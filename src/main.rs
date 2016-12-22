@@ -1,6 +1,10 @@
-#[macro_use]
-extern crate glium;
+#[macro_use] extern crate glium;
+
 mod dungeongen;
+
+use glium::glutin::ElementState::Released;
+use glium::glutin::VirtualKeyCode;
+use glium::glutin::Event;
 
 fn main() {
   use glium::{DisplayBuild, Surface};
@@ -12,10 +16,10 @@ fn main() {
     .build_glium().unwrap();
 
 
-  let level = Level { cave: Vec::new() };
-  let shape = level.make_circle_cave().cave;
+  let level = Level::make_walk_cave();
+  let mut shape = level.cave_verts();
 
-  let vertex_buffer = glium::VertexBuffer::new(&display, &shape).unwrap();
+  let vertex_buffer = glium::VertexBuffer::dynamic(&display, &shape).unwrap();
   let indices = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
 
   let vertex_shader_src = r#"
@@ -62,7 +66,11 @@ fn main() {
 
     for ev in display.poll_events() {
       match ev {
-        glium::glutin::Event::Closed => return,
+        Event::Closed => return,
+        Event::KeyboardInput(Released, _, Some(VirtualKeyCode::Space)) => {
+          shape = Level::make_walk_cave().cave_verts();
+          vertex_buffer.write(&shape);
+        },
         _ => (),
       }
     }
