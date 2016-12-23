@@ -12,15 +12,15 @@ fn main() {
   use glium::draw_parameters::PolygonMode;
   use dungeongen::Level;
   let display = glium::glutin::WindowBuilder::new()
-    .with_dimensions(600, 600)
+    .with_dimensions(800, 600)
     .build_glium().unwrap();
 
 
-  let level = Level::make_walk_cave();
+  let level = Level::gen_cave();
   let mut shape = level.cave_verts();
 
   let vertex_buffer = glium::VertexBuffer::dynamic(&display, &shape).unwrap();
-  let indices = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
+  let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
 
   let vertex_shader_src = r#"
         #version 140
@@ -49,8 +49,7 @@ fn main() {
   let program = glium::Program::from_source(&display,
                                             vertex_shader_src,
                                             fragment_shader_src,
-                                            None)
-    .unwrap();
+                                            None).unwrap();
 
   loop {
     let winsiz = display.get_context().get_framebuffer_dimensions();
@@ -68,7 +67,7 @@ fn main() {
       match ev {
         Event::Closed => return,
         Event::KeyboardInput(Released, _, Some(VirtualKeyCode::Space)) => {
-          shape = Level::make_walk_cave().cave_verts();
+          shape = Level::gen_cave().cave_verts();
           vertex_buffer.write(&shape);
         },
         _ => (),

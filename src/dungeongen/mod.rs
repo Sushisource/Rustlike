@@ -3,17 +3,16 @@ extern crate rand;
 extern crate noise;
 extern crate nalgebra as na;
 
-use std::f32::consts::PI;
 use std::fmt;
 use std::f32;
-use self::rand::Rng;
-use self::noise::{Brownian2, Seed};
 use self::na::Vector2;
 
 const VERTC: i32 = 5000;
 const CAVE_RAD: f32 = 0.5;
 const DIR_CHOICES: [Direction; 4] = [Direction::North, Direction::South,
   Direction::East, Direction::West];
+const CA_W: usize = 200;
+const CA_H: usize = 150;
 
 type Point = Vector2<f32>;
 type CavePoints = Vec<Point>;
@@ -26,38 +25,27 @@ pub struct Level {
 }
 
 impl Level {
-  pub fn make_circle_cave() -> Level {
-    let mut verts: CavePoints = Vec::new();
-    for rp in 0..VERTC {
-      let next_pt = {
-        let prev_point = &verts.last();
-        get_cave_pt(rp as f32, prev_point)
-      };
-      verts.push(next_pt);
+  pub fn gen_cave() -> Level {
+    let mut ca_grid = [[false; CA_H]; CA_W];
+    // First populate a random box in the middle of the grid
+    let inner_box_w = CA_W / 4;
+    let inner_box_h = CA_H / 4;
+    let left_edge = (CA_W / 2) - (inner_box_w / 2);
+    let top_edge = (CA_H / 2) - (inner_box_h / 2);
+    for x in left_edge..(inner_box_w + left_edge) {
+      for y in top_edge..(inner_box_h + top_edge) {
+        ca_grid[x][y] = rand::random();
+      }
     }
-    // Close the gap
-    let v1 = verts[0];
-    verts.push(v1);
-    Level { cave: verts }
-  }
-
-  pub fn make_walk_cave() -> Level {
-    let mut rng = rand::thread_rng();
-    let seed: Seed = Seed::new(rng.next_u32());
-    let noise = Brownian2::new(noise::perlin2, 4).wavelength(100.0);
-
-    let mut last_point = Point::new(0.1, 0.1);
-    let mut verts: CavePoints = Vec::new();
-    //    let dirref = &DIR_CHOICES;
-
-    for _ in 0..VERTC {
-      verts.push(last_point);
-      let val = noise.apply(&seed, last_point.as_ref()) + 0.05;
-      let dir: [f32; 2] = [rng.gen_range(-1.0, 1.0), rng.gen_range(-1.0, 1.0)];
-      println!("Val: {:?}  Dir: {:?}", val, dir);
-      last_point = last_point + (Point::from(&dir) * val);
+    let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
+    for x in 0..(CA_W - 2) {
+      for y in 0..(CA_H - 2) {
+        if ca_grid[x][y] {
+          as_points.push(project_to_unitspace(x, y));
+        }
+      }
     }
-    Level { cave: verts }
+    Level { cave: as_points }
   }
 
   pub fn cave_verts(&self) -> Vec<Vertex> {
@@ -66,19 +54,11 @@ impl Level {
   }
 }
 
-fn get_cave_pt(index: f32, prev_point_o: &Option<&Point>) -> Point {
-  let mut rng = rand::thread_rng();
-  let r_r = rng.gen_range(-0.1, 0.1);
-  let prev_drift = if let &Some(prev_point) = prev_point_o {
-    let prev_angle = 2.0 * PI * ((index - 1.0) / VERTC as f32);
-    let prev_pos = [CAVE_RAD * prev_angle.cos(), CAVE_RAD * prev_angle.sin()];
-    (prev_point.x - prev_pos[0], prev_point.y - prev_pos[1])
-  } else {
-    (0.0, 0.0)
-  };
-  let angle = 2.0 * PI * (index / VERTC as f32);
-  let pos = [(CAVE_RAD + r_r) * angle.cos(), (CAVE_RAD + r_r) * angle.sin()];
-  Point::new(pos[0] + prev_drift.0, pos[1] + prev_drift.1)
+fn project_to_unitspace(x: usize, y: usize) -> Point {
+  let xp = x as f32 / CA_W as f32;
+  let yp = y as f32 / CA_H as f32;
+  println!("x/y {:?}/{:?}", xp, yp);
+  Point::new(xp, yp)
 }
 
 enum Direction {
