@@ -11,6 +11,7 @@ fn main() {
   use glium::backend::Facade;
   use glium::draw_parameters::PolygonMode;
   use dungeongen::Level;
+
   let display = glium::glutin::WindowBuilder::new()
     .with_dimensions(800, 600)
     .build_glium().unwrap();

@@ -13,6 +13,7 @@ const DIR_CHOICES: [Direction; 4] = [Direction::North, Direction::South,
   Direction::East, Direction::West];
 const CA_W: usize = 200;
 const CA_H: usize = 150;
+const CA_BUFSIZ: usize = CA_H * CA_W;
 
 type Point = Vector2<f32>;
 type CavePoints = Vec<Point>;
@@ -49,8 +50,15 @@ impl Level {
   }
 
   pub fn cave_verts(&self) -> Vec<Vertex> {
-    self.cave.iter().map(|&x| Vertex { position: [x.x, x.y] })
-      .collect::<Vec<Vertex>>()
+    let mut verts = self.cave.iter().map(|&x| Vertex { position: [x.x, x.y] })
+      .collect::<Vec<Vertex>>();
+    // We have to pad the array so it's always the same size, so openGL doesn't
+    // freak out when we update it with more or less verticies
+    for _ in verts.len()..CA_BUFSIZ {
+      // We're just putting them way off in the corner somewhere invisible
+      verts.push(Vertex { position: [-10.0, -10.0] });
+    }
+    verts
   }
 }
 
