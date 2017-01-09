@@ -17,12 +17,14 @@ const CA_BUFSIZ: usize = CA_H * CA_W;
 
 type Point = Vector2<f32>;
 type CavePoints = Vec<Point>;
+type CellGrid = [[bool; CA_H]; CA_W];
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
 /// the cavern.
 pub struct Level {
-  pub cave: CavePoints
+  pub cave: CavePoints,
+  pub ca_grid: CellGrid
 }
 
 impl Level {
@@ -38,6 +40,10 @@ impl Level {
         ca_grid[x][y] = rand::random();
       }
     }
+    Level::new(ca_grid)
+  }
+
+  pub fn new(ca_grid: CellGrid) -> Level {
     let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
     for x in 0..(CA_W - 2) {
       for y in 0..(CA_H - 2) {
@@ -46,7 +52,7 @@ impl Level {
         }
       }
     }
-    Level { cave: as_points }
+    Level { cave: as_points, ca_grid: ca_grid }
   }
 
   pub fn cave_verts(&self) -> Vec<Vertex> {
@@ -60,12 +66,16 @@ impl Level {
     }
     verts
   }
+
+  pub fn tick_cavesim(&self) -> () {
+
+  }
 }
 
 fn project_to_unitspace(x: usize, y: usize) -> Point {
-  let xp = x as f32 / CA_W as f32;
-  let yp = y as f32 / CA_H as f32;
-  println!("x/y {:?}/{:?}", xp, yp);
+  let xp = (x as f32) / (CA_W as f32);
+  let yp = (y as f32) / (CA_H as f32);
+  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
   Point::new(xp, yp)
 }
 
