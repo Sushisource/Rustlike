@@ -44,15 +44,23 @@ impl Level {
   }
 
   pub fn new(ca_grid: CellGrid) -> Level {
+    let as_points = Level::cave_from_grid(ca_grid);
+    Level { cave: as_points, ca_grid: ca_grid }
+  }
+  fn update_cave(&mut self) -> () {
+    let as_points = Level::cave_from_grid(self.ca_grid);
+    self.cave = as_points;
+  }
+  fn cave_from_grid(ca_grid: CellGrid) -> CavePoints {
     let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
-    for x in 0..(CA_W - 2) {
-      for y in 0..(CA_H - 2) {
+    for x in 0..(CA_W - 1) {
+      for y in 0..(CA_H - 1) {
         if ca_grid[x][y] {
           as_points.push(project_to_unitspace(x, y));
         }
       }
     }
-    Level { cave: as_points, ca_grid: ca_grid }
+    as_points
   }
 
   pub fn cave_verts(&self) -> Vec<Vertex> {
@@ -67,15 +75,50 @@ impl Level {
     verts
   }
 
-  pub fn tick_cavesim(&self) -> () {
+  pub fn tick_cavesim(&mut self) -> () {
+    let mut ca_grid_next = [[false; CA_H]; CA_W];
+    {
+      let neighbor_count = |x: usize, y: usize| -> i32 {
+        let mut count = 0;
+        if x >= 1 {
+          if y >= 1 && self.ca_grid[x - 1][y - 1] { count += 1 };
+          if self.ca_grid[x - 1][y] { count += 1 };
+          if self.ca_grid[x - 1][y + 1] { count += 1 };
+        }
+        if y >= 1 && self.ca_grid[x][y - 1] { count += 1 };
+        if self.ca_grid[x][y + 1] { count += 1 };
+        if y >= 1 && self.ca_grid[x + 1][y - 1] { count += 1 };
+        if self.ca_grid[x + 1][y] { count += 1 };
+        if self.ca_grid[x + 1][y + 1] { count += 1 };
+        count
+      };
 
+      for x in 0..(CA_W - 1) {
+        for y in 0..(CA_H - 1) {
+          let nc = neighbor_count(x, y);
+          if self.ca_grid[x][y] {
+            // Check for survival
+            if nc >= 4 {
+              // Cell survives
+              ca_grid_next[x][y] = true;
+            }
+            // Cell dead
+          } else if nc == 3 || nc >= 7 {
+            // Cell born
+            ca_grid_next[x][y] = true;
+          }
+        }
+      }
+    }
+    self.ca_grid = ca_grid_next;
+    self.update_cave();
   }
 }
 
 fn project_to_unitspace(x: usize, y: usize) -> Point {
   let xp = (x as f32) / (CA_W as f32);
   let yp = (y as f32) / (CA_H as f32);
-  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
+  //  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
   Point::new(xp, yp)
 }
 

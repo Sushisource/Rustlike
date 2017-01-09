@@ -17,7 +17,7 @@ fn main() {
     .build_glium().unwrap();
 
 
-  let level = Level::gen_cave();
+  let mut level = Level::gen_cave();
   let mut shape = level.cave_verts();
 
   let vertex_buffer = glium::VertexBuffer::dynamic(&display, &shape).unwrap();
@@ -63,6 +63,10 @@ fn main() {
     target.draw(&vertex_buffer, &indices, &program, &uniforms, &draw_params)
       .unwrap();
     target.finish().unwrap();
+
+    level.tick_cavesim();
+    shape = level.cave_verts();
+    vertex_buffer.write(&shape);
 
     for ev in display.poll_events() {
       match ev {
