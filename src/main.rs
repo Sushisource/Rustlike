@@ -64,7 +64,9 @@ fn main() {
       .unwrap();
     target.finish().unwrap();
 
-    level.tick_cavesim();
+    if !level.cave_growth_finished {
+      level.tick_cavesim();
+    }
     shape = level.cave_verts();
     vertex_buffer.write(&shape);
 

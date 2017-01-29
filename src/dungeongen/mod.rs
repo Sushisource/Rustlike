@@ -24,7 +24,8 @@ type CellGrid = [[bool; CA_H]; CA_W];
 /// the cavern.
 pub struct Level {
   pub cave: CavePoints,
-  pub ca_grid: CellGrid
+  pub ca_grid: CellGrid,
+  pub cave_growth_finished: bool
 }
 
 impl Level {
@@ -45,7 +46,7 @@ impl Level {
 
   pub fn new(ca_grid: CellGrid) -> Level {
     let as_points = Level::cave_from_grid(ca_grid);
-    Level { cave: as_points, ca_grid: ca_grid }
+    Level { cave: as_points, ca_grid: ca_grid, cave_growth_finished: false }
   }
   fn update_cave(&mut self) -> () {
     let as_points = Level::cave_from_grid(self.ca_grid);
@@ -76,8 +77,10 @@ impl Level {
   }
 
   pub fn tick_cavesim(&mut self) -> () {
+    let mut growth_done = false;
     let mut ca_grid_next = [[false; CA_H]; CA_W];
     {
+      // A little helper func to get the live neighbor count for some cell
       let neighbor_count = |x: usize, y: usize| -> i32 {
         let mut count = 0;
         if x >= 1 {
@@ -106,19 +109,25 @@ impl Level {
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
+            // Check if it was born at the boundary, which means the sim is
+            // finished.
+            if x == 0 || x == CA_W - 1 || y == 0 || y == CA_H - 1 {
+              growth_done = true;
+            }
           }
         }
       }
     }
+    self.cave_growth_finished = growth_done;
     self.ca_grid = ca_grid_next;
     self.update_cave();
   }
 }
 
 fn project_to_unitspace(x: usize, y: usize) -> Point {
-  let xp = (x as f32) / (CA_W as f32);
-  let yp = (y as f32) / (CA_H as f32);
-  //  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
+  let xp = (x as f32) / (CA_W as f32) - 0.5;
+  let yp = (y as f32) / (CA_H as f32) - 0.5;
+//  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
   Point::new(xp, yp)
 }
 
