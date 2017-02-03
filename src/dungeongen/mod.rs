@@ -160,7 +160,11 @@ impl Level {
       }
     }
     println!("Bounds: {:?}", self.boundary);
-    if marked_ct >= 2 { true } else { false }
+    if marked_ct >= 2 {
+      let back_to_first = self.boundary[0].clone();
+      self.boundary.push(back_to_first);
+      true
+    } else { false }
   }
 
   fn tick_cavesim(&mut self) -> bool {
