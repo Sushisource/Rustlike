@@ -26,7 +26,7 @@ fn main() {
   let cave_bounds_buff = glium::VertexBuffer::dynamic(&display,
                                                       &cave_bounds).unwrap();
   let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
-  let indices2 = glium::index::NoIndices(glium::index::PrimitiveType::LineStrip);
+  let indices2 = glium::index::NoIndices(glium::index::PrimitiveType::LineLoop);
 
   let vertex_shader_src = r#"
         #version 140
@@ -56,8 +56,11 @@ fn main() {
     "#;
 
   let draw_params = glium::DrawParameters {
-    line_width: Some(3.0),
     point_size: Some(4.0),
+    ..Default::default()
+  };
+  let line_param = glium::DrawParameters {
+    line_width: Some(3.0),
     polygon_mode: PolygonMode::Line,
     ..Default::default()
   };
@@ -71,6 +74,7 @@ fn main() {
                                              fragment_shader_2,
                                              None).unwrap();
 
+  println!("GL Version: {:?}", display.get_context().get_opengl_version());
   loop {
     let winsiz = display.get_context().get_framebuffer_dimensions();
     let uniforms = glium::uniforms::UniformsStorage::new("resolution",
@@ -81,7 +85,7 @@ fn main() {
     target.clear_color_srgb(0.1, 0.2, 0.27, 0.0);
     target.draw(&cave_ca_buff, &indices, &program, &uniforms, &draw_params)
       .unwrap();
-    target.draw(&cave_bounds_buff, &indices2, &program2, &uniforms, &draw_params)
+    target.draw(&cave_bounds_buff, &indices2, &program2, &uniforms, &line_param)
       .unwrap();
     target.finish().unwrap();
 

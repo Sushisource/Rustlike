@@ -133,20 +133,18 @@ impl Level {
     // clockwise fashion until we find another occupied cell.
 
     // Start the sweep one tick clockwise from the direction we just came from
-    let incoming_dir = self.bounds_last_dir.opposite();
+    let in_dir = self.bounds_last_dir.opposite();
     let dirs = {
-      let first = Direction::iterator().skip_while(|x| **x != incoming_dir).skip(1);
-      let rest = Direction::iterator().take_while(|x| **x != incoming_dir);
+      let first = Direction::iterator().skip_while(|x| **x != in_dir).skip(1);
+      let rest = Direction::iterator().take_while(|x| **x != in_dir);
       first.chain(rest)
     };
     let mut marked_ct = 0;
     for dir in dirs {
-      println!("Dir: {:?}", dir);
       let cur_pt = dir.dir_from_tup(cur_pixel);
       // Bounds check, followed by cell present check
       let in_width = cur_pt.0 >= 0 && cur_pt.0 <= CA_W as i32;
       let in_height = cur_pt.1 >= 0 && cur_pt.1 <= CA_H as i32;
-      println!("curp: {:?}", cur_pt);
       let not_marked = !self.boundary.contains(&cur_pt);
       if !not_marked {
         marked_ct += 1;
@@ -159,7 +157,6 @@ impl Level {
         break;
       }
     }
-    println!("Bounds: {:?}", self.boundary);
     if marked_ct >= 2 {
       let back_to_first = self.boundary[0].clone();
       self.boundary.push(back_to_first);
