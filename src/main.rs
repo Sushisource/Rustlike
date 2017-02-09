@@ -14,7 +14,8 @@ fn main() {
   use dungeongen::Level;
 
   let display = glium::glutin::WindowBuilder::new()
-    .with_srgb(Some(true))
+    .with_title("Dungeon game name")
+    .with_srgb(Some(false))
     .with_dimensions(1024, 768)
     .build_glium().unwrap();
 
@@ -53,7 +54,7 @@ fn main() {
         uniform vec2 resolution;
         out vec4 color;
         void main() {
-            color = vec4(0.22, 0.81, 0.70, 1.0);
+            color = vec4(0.22, 0.82, 0.71, 1.0);
         }
     "#;
 

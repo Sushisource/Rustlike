@@ -28,8 +28,7 @@ pub struct Level {
   pub ca_grid: CellGrid,
   pub boundary: Vec<(i32, i32)>,
   pub level_gen_finished: bool,
-  cave_ca_finished: bool,
-  cave_bounds_finished: bool,
+  gen_stage: u8,
   bounds_last_dir: Direction
 }
 
@@ -56,8 +55,7 @@ impl Level {
       ca_grid: ca_grid,
       boundary: Vec::new(),
       level_gen_finished: false,
-      cave_ca_finished: false,
-      cave_bounds_finished: false,
+      gen_stage: 0,
       bounds_last_dir: Direction::SouthEast
     }
   }
@@ -110,14 +108,28 @@ impl Level {
   }
 
   pub fn tick_level_gen(&mut self) -> () {
-    if !self.cave_ca_finished {
-      self.cave_ca_finished = self.tick_cavesim();
-      return;
-    } else if !self.cave_bounds_finished {
-      self.cave_bounds_finished = self.tick_cave_boundary();
-      return;
-    }
-    self.level_gen_finished = true;
+    let stage_complete = match self.gen_stage {
+      0 => self.tick_cavesim(),
+      1 => self.tick_cave_boundary(),
+      2 => self.smooth_cave_boundary(),
+      3 => {
+        // Make sure boundary is fully conected
+        let back_to_first = self.boundary[0].clone();
+        self.boundary.push(back_to_first);
+        true
+      }
+      _ => false,
+    };
+    if stage_complete { self.gen_stage += 1 }
+  }
+
+  fn smooth_cave_boundary(&mut self) -> bool {
+    let mut a = 0;
+    self.boundary.retain(|_| {
+      a += 1;
+      a % 2 == 0
+    });
+    true
   }
 
   fn tick_cave_boundary(&mut self) -> bool {
@@ -166,11 +178,7 @@ impl Level {
         break;
       }
     }
-    if marked_ct >= 2 {
-      let back_to_first = self.boundary[0].clone();
-      self.boundary.push(back_to_first);
-      true
-    } else { false }
+    if marked_ct >= 2 { true } else { false }
   }
 
   fn tick_cavesim(&mut self) -> bool {
