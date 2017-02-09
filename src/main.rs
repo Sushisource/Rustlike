@@ -15,7 +15,7 @@ fn main() {
 
   let display = glium::glutin::WindowBuilder::new()
     .with_srgb(Some(true))
-    .with_dimensions(800, 600)
+    .with_dimensions(1024, 768)
     .build_glium().unwrap();
 
   let mut level = Level::gen_cave();
@@ -26,7 +26,9 @@ fn main() {
   let cave_bounds_buff = glium::VertexBuffer::dynamic(&display,
                                                       &cave_bounds).unwrap();
   let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
-  let indices2 = glium::index::NoIndices(glium::index::PrimitiveType::LineLoop);
+  let bound_ixs = glium::IndexBuffer::dynamic(
+    &display, glium::index::PrimitiveType::LineStrip,
+    level.boundary_ix().as_slice()).unwrap();
 
   let vertex_shader_src = r#"
         #version 140
@@ -85,7 +87,7 @@ fn main() {
     target.clear_color_srgb(0.1, 0.2, 0.27, 0.0);
     target.draw(&cave_ca_buff, &indices, &program, &uniforms, &draw_params)
       .unwrap();
-    target.draw(&cave_bounds_buff, &indices2, &program2, &uniforms, &line_param)
+    target.draw(&cave_bounds_buff, &bound_ixs, &program2, &uniforms, &line_param)
       .unwrap();
     target.finish().unwrap();
 
@@ -96,6 +98,7 @@ fn main() {
     cave_bounds = level.boundary_verts();
     cave_ca_buff.write(&cave_ca);
     cave_bounds_buff.write(&cave_bounds);
+    bound_ixs.write(level.boundary_ix().as_slice());
 
     for ev in display.poll_events() {
       match ev {

@@ -52,7 +52,8 @@ impl Level {
   pub fn new(ca_grid: CellGrid) -> Level {
     let as_points = Level::cave_from_grid(ca_grid);
     Level {
-      cave: as_points, ca_grid: ca_grid,
+      cave: as_points,
+      ca_grid: ca_grid,
       boundary: Vec::new(),
       level_gen_finished: false,
       cave_ca_finished: false,
@@ -98,6 +99,14 @@ impl Level {
       verts.push(Vertex { position: [-10.0, -10.0] });
     }
     verts
+  }
+
+  pub fn boundary_ix(&self) -> Vec<u16> {
+    let x = self.boundary.len() as u16;
+    let second_half: Vec<u16> = (0..x).collect();
+    let mut first = vec![0; CA_BUFSIZ - second_half.len()];
+    first.extend(second_half);
+    first
   }
 
   pub fn tick_level_gen(&mut self) -> () {
