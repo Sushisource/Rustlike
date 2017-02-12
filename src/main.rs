@@ -4,78 +4,23 @@ extern crate glium;
 mod dungeongen;
 
 use glium::glutin::ElementState::Released;
-use glium::glutin::VirtualKeyCode;
-use glium::glutin::Event;
+use glium::glutin::{VirtualKeyCode, Event};
+use glium::{DisplayBuild, Surface};
+use glium::backend::Facade;
+use glium::draw_parameters::PolygonMode;
+
+use dungeongen::{Level};
+use dungeongen::level_renderer::LevelRenderer;
 
 fn main() {
-  use glium::{DisplayBuild, Surface};
-  use glium::backend::Facade;
-  use glium::draw_parameters::PolygonMode;
-  use dungeongen::Level;
-
   let display = glium::glutin::WindowBuilder::new()
     .with_title("Dungeon game name")
     .with_srgb(Some(false))
     .with_dimensions(1024, 768)
     .build_glium().unwrap();
 
-  let mut level = Level::gen_cave();
-  let mut cave_ca = level.cave_verts();
-  let mut cave_bounds = level.boundary_verts();
-
-  let cave_ca_buff = glium::VertexBuffer::dynamic(&display, &cave_ca).unwrap();
-  let cave_bounds_buff = glium::VertexBuffer::dynamic(&display,
-                                                      &cave_bounds).unwrap();
-  let indices = glium::index::NoIndices(glium::index::PrimitiveType::Points);
-  let bound_ixs = glium::IndexBuffer::dynamic(
-    &display, glium::index::PrimitiveType::LineStrip,
-    level.boundary_ix().as_slice()).unwrap();
-
-  let vertex_shader_src = r#"
-        #version 140
-        in vec2 position;
-        void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
-        }
-    "#;
-
-  let fragment_shader_src = r#"
-        #version 140
-        in vec4 gl_FragCoord;
-        uniform vec2 resolution;
-        out vec4 color;
-        void main() {
-            color = vec4(0.47, 0.59, 0.66, 1.0);
-        }
-    "#;
-  let fragment_shader_2 = r#"
-        #version 140
-        in vec4 gl_FragCoord;
-        uniform vec2 resolution;
-        out vec4 color;
-        void main() {
-            color = vec4(0.22, 0.82, 0.71, 1.0);
-        }
-    "#;
-
-  let draw_params = glium::DrawParameters {
-    point_size: Some(4.0),
-    ..Default::default()
-  };
-  let line_param = glium::DrawParameters {
-    line_width: Some(3.0),
-    polygon_mode: PolygonMode::Line,
-    ..Default::default()
-  };
-
-  let program = glium::Program::from_source(&display,
-                                            vertex_shader_src,
-                                            fragment_shader_src,
-                                            None).unwrap();
-  let program2 = glium::Program::from_source(&display,
-                                             vertex_shader_src,
-                                             fragment_shader_2,
-                                             None).unwrap();
+  let mut level = Level::new();
+  let mut level_render = LevelRenderer::new(&mut level, &display);
 
   println!("GL Version: {:?}", display.get_context().get_opengl_version());
   loop {
@@ -86,26 +31,14 @@ fn main() {
 
     let mut target = display.draw();
     target.clear_color_srgb(0.1, 0.2, 0.27, 0.0);
-    target.draw(&cave_ca_buff, &indices, &program, &uniforms, &draw_params)
-      .unwrap();
-    target.draw(&cave_bounds_buff, &bound_ixs, &program2, &uniforms, &line_param)
-      .unwrap();
+    level_render.render_level_frame(&mut target, uniforms);
     target.finish().unwrap();
-
-    if !level.level_gen_finished {
-      level.tick_level_gen();
-    }
-    cave_ca = level.cave_verts();
-    cave_bounds = level.boundary_verts();
-    cave_ca_buff.write(&cave_ca);
-    cave_bounds_buff.write(&cave_bounds);
-    bound_ixs.write(level.boundary_ix().as_slice());
 
     for ev in display.poll_events() {
       match ev {
         Event::Closed => return,
         Event::KeyboardInput(Released, _, Some(VirtualKeyCode::Space)) => {
-          level.level_gen_finished = true;
+          level_render.stop_render();
         },
         _ => (),
       }

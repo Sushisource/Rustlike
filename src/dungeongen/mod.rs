@@ -3,10 +3,12 @@ extern crate rand;
 extern crate noise;
 extern crate nalgebra as na;
 
-use std::fmt;
+pub mod level_renderer;
+
 use std::f32;
 use std::slice::Iter;
 use self::na::Vector2;
+use self::level_renderer::Vertex;
 
 const VERTC: i32 = 5000;
 const CAVE_RAD: f32 = 0.5;
@@ -33,7 +35,20 @@ pub struct Level {
 }
 
 impl Level {
-  pub fn gen_cave() -> Level {
+  pub fn new() -> Level {
+    let ca_grid = Level::gen_cave();
+    let as_points = Level::cave_from_grid(ca_grid);
+    Level {
+      cave: as_points,
+      ca_grid: ca_grid,
+      boundary: Vec::new(),
+      level_gen_finished: false,
+      gen_stage: 0,
+      bounds_last_dir: Direction::SouthEast
+    }
+  }
+
+  fn gen_cave() -> [[bool; CA_H]; CA_W] {
     let mut ca_grid = [[false; CA_H]; CA_W];
     // First populate a random box in the middle of the grid
     let inner_box_w = CA_W / 4;
@@ -45,24 +60,14 @@ impl Level {
         ca_grid[x][y] = rand::random();
       }
     }
-    Level::new(ca_grid)
+    ca_grid
   }
 
-  pub fn new(ca_grid: CellGrid) -> Level {
-    let as_points = Level::cave_from_grid(ca_grid);
-    Level {
-      cave: as_points,
-      ca_grid: ca_grid,
-      boundary: Vec::new(),
-      level_gen_finished: false,
-      gen_stage: 0,
-      bounds_last_dir: Direction::SouthEast
-    }
-  }
   fn update_cave(&mut self) -> () {
     let as_points = Level::cave_from_grid(self.ca_grid);
     self.cave = as_points;
   }
+
   fn cave_from_grid(ca_grid: CellGrid) -> CavePoints {
     let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
     for x in 0..(CA_W - 1) {
@@ -75,6 +80,7 @@ impl Level {
     as_points
   }
 
+  // TODO: Maybe move into renderer?
   pub fn cave_verts(&self) -> Vec<Vertex> {
     let mut verts = self.cave.iter().map(|&x| Vertex { position: [x.x, x.y] })
       .collect::<Vec<Vertex>>();
@@ -299,16 +305,3 @@ impl Direction {
     }
   }
 }
-
-// TODO: Move vertex somewhere more graphics-specific
-#[derive(Copy, Clone)]
-pub struct Vertex {
-  pub position: [f32; 2],
-}
-
-impl fmt::Debug for Vertex {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "Vert: {:?}", self.position)
-  }
-}
-implement_vertex!(Vertex, position);
