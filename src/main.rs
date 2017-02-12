@@ -7,7 +7,6 @@ use glium::glutin::ElementState::Released;
 use glium::glutin::{VirtualKeyCode, Event};
 use glium::{DisplayBuild, Surface};
 use glium::backend::Facade;
-use glium::draw_parameters::PolygonMode;
 
 use dungeongen::{Level};
 use dungeongen::level_renderer::LevelRenderer;
