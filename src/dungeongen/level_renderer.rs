@@ -1,13 +1,16 @@
 extern crate glium;
+extern crate nalgebra as na;
 
 use std::fmt;
-use dungeongen::Level;
+use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
 use glium::{Surface, VertexBuffer, IndexBuffer, DrawParameters, PolygonMode,
             Program};
 use glium::index::{NoIndices};
 use glium::backend::Facade;
 use glium::uniforms::Uniforms;
+use self::na::Vector2;
 
+pub type Point = Vector2<f32>;
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
@@ -63,10 +66,12 @@ impl<'a> LevelRenderer<'a> {
   pub fn new<F>(level: &'a mut Level, display: &F) -> LevelRenderer<'a>
     where F: Facade {
     let ccv = {
-      VertexBuffer::dynamic(display, &level.cave_verts()).unwrap()
+      VertexBuffer::dynamic(display, cave_verts(&level.ca_grid).as_ref())
+        .unwrap()
     };
     let cbv = {
-      VertexBuffer::dynamic(display, &level.boundary_verts()).unwrap()
+      VertexBuffer::dynamic(display, boundary_verts(&level.boundary).as_ref())
+        .unwrap()
     };
     let cbi = {
       IndexBuffer::dynamic(display, glium::index::PrimitiveType::LineStrip,
@@ -107,12 +112,60 @@ impl<'a> LevelRenderer<'a> {
     if !self.level.level_gen_finished {
       self.level.tick_level_gen();
     }
-    let cave_ca = self.level.cave_verts();
+    let cave_ca = cave_verts(&self.level.ca_grid);
     self.cave_ca_vertb.write(&cave_ca);
-    let cave_bounds = self.level.boundary_verts();
+    let cave_bounds = boundary_verts(&self.level.boundary);
     self.cave_bounds_vertb.write(&cave_bounds);
     self.cave_bounds_indxb.write(self.level.boundary_ix().as_slice());
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
+}
+
+fn cave_verts(ca_grid: &CellGrid) -> Vec<Vertex> {
+  let cavep = cave_from_grid(ca_grid);
+  let mut verts = cavep.iter().map(|&x| Vertex { pos: [x.x, x.y] })
+    .collect::<Vec<Vertex>>();
+  // We have to pad the array so it's always the same size, so openGL doesn't
+  // freak out when we update it with more or less verticies
+  for _ in verts.len()..CA_BUFSIZ {
+    // We're just putting them way off in the corner somewhere invisible
+    verts.push(Vertex { pos: [-10.0, -10.0] });
+  }
+  let vlen = verts.len();
+  verts[vlen - 1] = Vertex { pos: *project_to_unitspace(0, 0).as_ref() };
+  verts[vlen - 2] = Vertex { pos: *project_to_unitspace(0, CA_H).as_ref() };
+  verts[vlen - 3] = Vertex { pos: *project_to_unitspace(CA_W, 0).as_ref() };
+  verts[vlen - 4] = Vertex { pos: *project_to_unitspace(CA_W, CA_H).as_ref() };
+  verts
+}
+
+fn cave_from_grid(ca_grid: &CellGrid) -> CavePoints {
+  let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
+  for x in 0..(CA_W - 1) {
+    for y in 0..(CA_H - 1) {
+      if ca_grid[x][y] {
+        as_points.push(project_to_unitspace(x, y));
+      }
+    }
+  }
+  as_points
+}
+
+fn boundary_verts(boundary: &Vec<(i32, i32)>) -> Vec<Vertex> {
+  let mut verts = boundary.iter().map(|&(x, y)| {
+    let as_pt = project_to_unitspace(x as usize, y as usize);
+    Vertex { pos: *as_pt.as_ref() }
+  }).collect::<Vec<Vertex>>();
+  for _ in verts.len()..CA_BUFSIZ {
+    // We're just putting them way off in the corner somewhere invisible
+    verts.push(Vertex { pos: [-10.0, -10.0] });
+  }
+  verts
+}
+
+fn project_to_unitspace(x: usize, y: usize) -> Point {
+  let xp = (x as f32) / (CA_W as f32) - 0.5;
+  let yp = (y as f32) / (CA_H as f32) - 0.5;
+  Point::new(xp * 1.5, yp * 1.5)
 }

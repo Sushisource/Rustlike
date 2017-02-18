@@ -1,21 +1,17 @@
 #![allow(dead_code)]
 extern crate rand;
 extern crate noise;
-extern crate nalgebra as na;
 
 pub mod level_renderer;
 pub mod direction;
 
-use std::f32;
-use self::na::Vector2;
-use self::level_renderer::Vertex;
+use self::level_renderer::Point;
 use self::direction::Direction;
 
 const CA_W: usize = 200;
 const CA_H: usize = 150;
 const CA_BUFSIZ: usize = CA_H * CA_W;
 
-type Point = Vector2<f32>;
 type CavePoints = Vec<Point>;
 type CellGrid = [[bool; CA_H]; CA_W];
 
@@ -23,7 +19,6 @@ type CellGrid = [[bool; CA_H]; CA_W];
 /// of which we will layer features. This bottom layer represents the shape of
 /// the cavern.
 pub struct Level {
-  pub cave: CavePoints,
   pub ca_grid: CellGrid,
   pub boundary: Vec<(i32, i32)>,
   pub level_gen_finished: bool,
@@ -34,9 +29,7 @@ pub struct Level {
 impl Level {
   pub fn new() -> Level {
     let ca_grid = Level::gen_cave();
-    let as_points = Level::cave_from_grid(ca_grid);
     Level {
-      cave: as_points,
       ca_grid: ca_grid,
       boundary: Vec::new(),
       level_gen_finished: false,
@@ -58,53 +51,6 @@ impl Level {
       }
     }
     ca_grid
-  }
-
-  fn update_cave(&mut self) -> () {
-    let as_points = Level::cave_from_grid(self.ca_grid);
-    self.cave = as_points;
-  }
-
-  fn cave_from_grid(ca_grid: CellGrid) -> CavePoints {
-    let mut as_points: Vec<Point> = Vec::with_capacity(CA_W * CA_H);
-    for x in 0..(CA_W - 1) {
-      for y in 0..(CA_H - 1) {
-        if ca_grid[x][y] {
-          as_points.push(project_to_unitspace(x, y));
-        }
-      }
-    }
-    as_points
-  }
-
-  // TODO: Maybe move into renderer?
-  pub fn cave_verts(&self) -> Vec<Vertex> {
-    let mut verts = self.cave.iter().map(|&x| Vertex { pos: [x.x, x.y] })
-      .collect::<Vec<Vertex>>();
-    // We have to pad the array so it's always the same size, so openGL doesn't
-    // freak out when we update it with more or less verticies
-    for _ in verts.len()..CA_BUFSIZ {
-      // We're just putting them way off in the corner somewhere invisible
-      verts.push(Vertex { pos: [-10.0, -10.0] });
-    }
-    let vlen = verts.len();
-    verts[vlen - 1] = Vertex { pos: *project_to_unitspace(0, 0).as_ref() };
-    verts[vlen - 2] = Vertex { pos: *project_to_unitspace(0, CA_H).as_ref() };
-    verts[vlen - 3] = Vertex { pos: *project_to_unitspace(CA_W, 0).as_ref() };
-    verts[vlen - 4] = Vertex { pos: *project_to_unitspace(CA_W, CA_H).as_ref() };
-    verts
-  }
-
-  pub fn boundary_verts(&self) -> Vec<Vertex> {
-    let mut verts = self.boundary.iter().map(|&(x, y)| {
-      let as_pt = project_to_unitspace(x as usize, y as usize);
-      Vertex { pos: *as_pt.as_ref() }
-    }).collect::<Vec<Vertex>>();
-    for _ in verts.len()..CA_BUFSIZ {
-      // We're just putting them way off in the corner somewhere invisible
-      verts.push(Vertex { pos: [-10.0, -10.0] });
-    }
-    verts
   }
 
   pub fn boundary_ix(&self) -> Vec<u16> {
@@ -231,7 +177,6 @@ impl Level {
       }
       println!("Done simulating CA for cave");
     }
-    self.update_cave();
     growth_done
   }
 
@@ -251,9 +196,3 @@ impl Level {
   }
 }
 
-
-fn project_to_unitspace(x: usize, y: usize) -> Point {
-  let xp = (x as f32) / (CA_W as f32) - 0.5;
-  let yp = (y as f32) / (CA_H as f32) - 0.5;
-  Point::new(xp * 1.5, yp * 1.5)
-}
