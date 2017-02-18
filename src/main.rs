@@ -14,7 +14,6 @@ use dungeongen::level_renderer::LevelRenderer;
 fn main() {
   let display = glium::glutin::WindowBuilder::new()
     .with_title("Dungeon game name")
-    .with_srgb(Some(false))
     .with_dimensions(1024, 768)
     .build_glium().unwrap();
 

@@ -11,22 +11,22 @@ use glium::uniforms::Uniforms;
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
-  pub position: [f32; 2],
+  pub pos: [f32; 2],
 }
 
 impl fmt::Debug for Vertex {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "Vert: {:?}", self.position)
+    write!(f, "Vert: {:?}", self.pos)
   }
 }
-implement_vertex!(Vertex, position);
+implement_vertex!(Vertex, pos);
 
 const NO_IXS: NoIndices = NoIndices(glium::index::PrimitiveType::Points);
 static VERT_SHAD_DEF: &'static str = r#"
         #version 140
-        in vec2 position;
+        in vec2 pos;
         void main() {
-            gl_Position = vec4(position, 0.0, 1.0);
+            gl_Position = vec4(pos, 0.0, 1.0);
         }
     "#;
 static FRAG_CA: &'static str = r#"
@@ -80,7 +80,7 @@ impl<'a> LevelRenderer<'a> {
       cave_bounds_indxb: cbi,
 
       ca_params: DrawParameters {
-        point_size: Some(4.0),
+        point_size: Some(3.0),
         ..Default::default()
       },
       bounds_params: DrawParameters {

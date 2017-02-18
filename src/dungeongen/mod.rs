@@ -11,10 +11,6 @@ use self::na::Vector2;
 use self::level_renderer::Vertex;
 use self::direction::Direction;
 
-const VERTC: i32 = 5000;
-const CAVE_RAD: f32 = 0.5;
-const DIR_CHOICES: [Direction; 4] = [Direction::North, Direction::South,
-  Direction::East, Direction::West];
 const CA_W: usize = 200;
 const CA_H: usize = 150;
 const CA_BUFSIZ: usize = CA_H * CA_W;
@@ -83,25 +79,30 @@ impl Level {
 
   // TODO: Maybe move into renderer?
   pub fn cave_verts(&self) -> Vec<Vertex> {
-    let mut verts = self.cave.iter().map(|&x| Vertex { position: [x.x, x.y] })
+    let mut verts = self.cave.iter().map(|&x| Vertex { pos: [x.x, x.y] })
       .collect::<Vec<Vertex>>();
     // We have to pad the array so it's always the same size, so openGL doesn't
     // freak out when we update it with more or less verticies
     for _ in verts.len()..CA_BUFSIZ {
       // We're just putting them way off in the corner somewhere invisible
-      verts.push(Vertex { position: [-10.0, -10.0] });
+      verts.push(Vertex { pos: [-10.0, -10.0] });
     }
+    let vlen = verts.len();
+    verts[vlen - 1] = Vertex { pos: *project_to_unitspace(0, 0).as_ref() };
+    verts[vlen - 2] = Vertex { pos: *project_to_unitspace(0, CA_H).as_ref() };
+    verts[vlen - 3] = Vertex { pos: *project_to_unitspace(CA_W, 0).as_ref() };
+    verts[vlen - 4] = Vertex { pos: *project_to_unitspace(CA_W, CA_H).as_ref() };
     verts
   }
 
   pub fn boundary_verts(&self) -> Vec<Vertex> {
     let mut verts = self.boundary.iter().map(|&(x, y)| {
       let as_pt = project_to_unitspace(x as usize, y as usize);
-      Vertex { position: [as_pt.x, as_pt.y] }
+      Vertex { pos: *as_pt.as_ref() }
     }).collect::<Vec<Vertex>>();
     for _ in verts.len()..CA_BUFSIZ {
       // We're just putting them way off in the corner somewhere invisible
-      verts.push(Vertex { position: [-10.0, -10.0] });
+      verts.push(Vertex { pos: [-10.0, -10.0] });
     }
     verts
   }
@@ -185,7 +186,10 @@ impl Level {
         break;
       }
     }
-    if marked_ct >= 2 { true } else { false }
+    if marked_ct >= 2 {
+      println!("Done drawing cave boundary");
+      true
+    } else { false }
   }
 
   fn tick_cavesim(&mut self) -> bool {
@@ -206,8 +210,8 @@ impl Level {
             // Cell born
             ca_grid_next[x][y] = true;
             // Check if it was born at the boundary, which means the sim is
-            // finished. TODO: This is wonky, doesn't catch top sometimes?
-            if x == 0 || x == CA_W - 1 || y == 0 || y == CA_H - 1 {
+            // finished.
+            if x == 0 || x == CA_W - 1 || y == 0 || y == CA_H - 2 {
               growth_done = true;
             }
           }
@@ -251,6 +255,5 @@ impl Level {
 fn project_to_unitspace(x: usize, y: usize) -> Point {
   let xp = (x as f32) / (CA_W as f32) - 0.5;
   let yp = (y as f32) / (CA_H as f32) - 0.5;
-  //  println!("x/y {:?}/{:?} -> {:?}/{:?}", x, y, xp, yp);
-  Point::new(xp * 2.0, yp * 2.0)
+  Point::new(xp * 1.5, yp * 1.5)
 }
