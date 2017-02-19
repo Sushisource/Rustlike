@@ -5,7 +5,7 @@ use std::fmt;
 use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
 use glium::{Surface, VertexBuffer, IndexBuffer, DrawParameters, PolygonMode,
             Program};
-use glium::index::{NoIndices};
+use glium::index::{NoIndices, PrimitiveType};
 use glium::backend::Facade;
 use glium::uniforms::Uniforms;
 use self::na::Vector2;
@@ -24,7 +24,7 @@ impl fmt::Debug for Vertex {
 }
 implement_vertex!(Vertex, pos);
 
-const NO_IXS: NoIndices = NoIndices(glium::index::PrimitiveType::Points);
+const NO_IXS: NoIndices = NoIndices(PrimitiveType::Points);
 static VERT_SHAD_DEF: &'static str = r#"
         #version 140
         in vec2 pos;
@@ -51,19 +51,22 @@ static FRAG_BOUNDS: &'static str = r#"
         }
     "#;
 
-pub struct LevelRenderer<'a> {
+pub struct LevelRenderer<'a, F: 'a> where F: Facade {
   level: &'a mut Level,
+  display: &'a F,
+  render_stage: u8,
   cave_ca_vertb: VertexBuffer<Vertex>,
   cave_bounds_vertb: VertexBuffer<Vertex>,
   cave_bounds_indxb: IndexBuffer<u16>,
   ca_params: DrawParameters<'a>,
   bounds_params: DrawParameters<'a>,
+  cave_params: DrawParameters<'a>,
   ca_prog: Program,
   bounds_prog: Program,
 }
 
-impl<'a> LevelRenderer<'a> {
-  pub fn new<F>(level: &'a mut Level, display: &F) -> LevelRenderer<'a>
+impl<'a, F: Facade> LevelRenderer<'a, F> {
+  pub fn new(level: &'a mut Level, display: &'a F) -> LevelRenderer<'a, F>
     where F: Facade {
     let ccv = {
       VertexBuffer::dynamic(display, cave_verts(&level.ca_grid).as_ref())
@@ -74,12 +77,14 @@ impl<'a> LevelRenderer<'a> {
         .unwrap()
     };
     let cbi = {
-      IndexBuffer::dynamic(display, glium::index::PrimitiveType::LineStrip,
+      IndexBuffer::dynamic(display, PrimitiveType::LineStrip,
                            level.boundary_ix().as_slice()).unwrap()
     };
 
     LevelRenderer {
       level: level,
+      display: display,
+      render_stage: 0,
       cave_ca_vertb: ccv,
       cave_bounds_vertb: cbv,
       cave_bounds_indxb: cbi,
@@ -93,6 +98,11 @@ impl<'a> LevelRenderer<'a> {
         polygon_mode: PolygonMode::Line,
         ..Default::default()
       },
+      cave_params: DrawParameters {
+        line_width: Some(3.0),
+        polygon_mode: PolygonMode::Fill,
+        ..Default::default()
+      },
 
       ca_prog: Program::from_source(display, VERT_SHAD_DEF, FRAG_CA,
                                     None).unwrap(),
@@ -103,20 +113,35 @@ impl<'a> LevelRenderer<'a> {
 
   pub fn render_level_frame<S, U>(&mut self, frame: &mut S, uniforms: U) -> ()
     where S: Surface, U: Uniforms {
-    // TODO: Stop drawing this after we're done with it
-    frame.draw(&self.cave_ca_vertb, &NO_IXS, &self.ca_prog, &uniforms,
-               &self.ca_params).unwrap();
-    frame.draw(&self.cave_bounds_vertb, &self.cave_bounds_indxb,
-               &self.bounds_prog, &uniforms, &self.bounds_params).unwrap();
-
+    // First tick the simulation
     if !self.level.level_gen_finished {
       self.level.tick_level_gen();
     }
-    let cave_ca = cave_verts(&self.level.ca_grid);
-    self.cave_ca_vertb.write(&cave_ca);
     let cave_bounds = boundary_verts(&self.level.boundary);
     self.cave_bounds_vertb.write(&cave_bounds);
     self.cave_bounds_indxb.write(self.level.boundary_ix().as_slice());
+
+    // Then render
+    // In the first 4 stages we draw the CA evolution and the boundary
+    if self.level.gen_stage <= 3 {
+      let cave_ca = cave_verts(&self.level.ca_grid);
+      self.cave_ca_vertb.write(&cave_ca);
+      frame.draw(&self.cave_ca_vertb, &NO_IXS, &self.ca_prog, &uniforms,
+                 &self.ca_params).unwrap();
+      frame.draw(&self.cave_bounds_vertb, &self.cave_bounds_indxb,
+                 &self.bounds_prog, &uniforms, &self.bounds_params).unwrap();
+    } else {
+      // Next, we draw the whole cave as a polygon
+      if self.render_stage == 0 {
+        // We need to re-do the bounds index buf as a triangle fan
+        self.cave_bounds_indxb = IndexBuffer::new(
+          self.display, PrimitiveType::TriangleFan,
+          self.level.boundary_ix().as_slice()).unwrap();
+        self.render_stage += 1
+      }
+      frame.draw(&self.cave_bounds_vertb, &self.cave_bounds_indxb,
+                 &self.ca_prog, &uniforms, &self.cave_params).unwrap();
+    }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }

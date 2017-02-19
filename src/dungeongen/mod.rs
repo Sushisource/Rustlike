@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 extern crate rand;
 extern crate noise;
 
@@ -67,9 +66,14 @@ impl Level {
       1 => self.tick_cave_boundary(),
       2 => self.smooth_cave_boundary(),
       3 => {
-        // Make sure boundary is fully conected
+        // Make sure boundary is fully conected, and has a dot in the center
+        // to prepare for rendering as a triangle fan.
+        // TODO: Move this part to renderer?
         let back_to_first = self.boundary[0].clone();
         self.boundary.push(back_to_first);
+        let first_v = self.boundary[1];
+        self.boundary[0] = (CA_W as i32 / 2, CA_H as i32 / 2);
+        self.boundary.push(first_v);
         true
       }
       _ => false,
