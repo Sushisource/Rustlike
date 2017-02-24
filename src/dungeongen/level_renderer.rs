@@ -54,9 +54,8 @@ static FRAG_BOUNDS: &'static str = r#"
         }
     "#;
 
-pub struct LevelRenderer<'a, F: 'a> where F: Facade {
+pub struct LevelRenderer<'a> {
   level: &'a mut Level,
-  display: &'a F,
   render_stage: u8,
   cave_ca_vertb: VertexBuffer<Vertex>,
   cave_bounds_vertb: VertexBuffer<Vertex>,
@@ -68,8 +67,8 @@ pub struct LevelRenderer<'a, F: 'a> where F: Facade {
   bounds_prog: Program,
 }
 
-impl<'a, F: Facade> LevelRenderer<'a, F> {
-  pub fn new(level: &'a mut Level, display: &'a F) -> LevelRenderer<'a, F>
+impl<'a> LevelRenderer<'a> {
+  pub fn new<F>(level: &'a mut Level, display: &'a F) -> LevelRenderer<'a>
     where F: Facade {
     let ccv = {
       VertexBuffer::dynamic(display, cave_verts(&level.ca_grid).as_ref())
@@ -86,7 +85,6 @@ impl<'a, F: Facade> LevelRenderer<'a, F> {
 
     LevelRenderer {
       level: level,
-      display: display,
       render_stage: 0,
       cave_ca_vertb: ccv,
       cave_bounds_vertb: cbv,

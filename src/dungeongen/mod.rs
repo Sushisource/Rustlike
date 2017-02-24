@@ -172,7 +172,7 @@ impl Level {
       for x in 0..(CA_W - 1) {
         for y in 0..(CA_H - 1) {
           let nc = self.neighbor_count(x, y);
-          if nc == 1 {
+          if nc == 1 || nc == 0 {
             self.ca_grid[x][y] = false;
           }
         }
