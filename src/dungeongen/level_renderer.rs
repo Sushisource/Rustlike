@@ -1,5 +1,6 @@
 extern crate glium;
 extern crate nalgebra as na;
+extern crate graphics;
 
 use std::fmt;
 use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
@@ -9,6 +10,7 @@ use glium::index::{NoIndices, PrimitiveType};
 use glium::backend::Facade;
 use glium::uniforms::Uniforms;
 use self::na::Vector2;
+use super::polyfill::polyfill_calc;
 
 pub type Point = Vector2<f32>;
 
@@ -19,12 +21,13 @@ pub struct Vertex {
 
 impl fmt::Debug for Vertex {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    write!(f, "Vert: {:?}", self.pos)
+    write!(f, "V:{:?}", self.pos)
   }
 }
 implement_vertex!(Vertex, pos);
 
 const NO_IXS: NoIndices = NoIndices(PrimitiveType::Points);
+const NO_IXS_TRI: NoIndices = NoIndices(PrimitiveType::TrianglesList);
 static VERT_SHAD_DEF: &'static str = r#"
         #version 140
         in vec2 pos;
@@ -99,7 +102,7 @@ impl<'a, F: Facade> LevelRenderer<'a, F> {
         ..Default::default()
       },
       cave_params: DrawParameters {
-        line_width: Some(3.0),
+        line_width: Some(1.0),
         polygon_mode: PolygonMode::Fill,
         ..Default::default()
       },
@@ -118,12 +121,12 @@ impl<'a, F: Facade> LevelRenderer<'a, F> {
       self.level.tick_level_gen();
     }
     let cave_bounds = boundary_verts(&self.level.boundary);
-    self.cave_bounds_vertb.write(&cave_bounds);
-    self.cave_bounds_indxb.write(self.level.boundary_ix().as_slice());
 
     // Then render
     // In the first 4 stages we draw the CA evolution and the boundary
     if self.level.gen_stage <= 3 {
+      self.cave_bounds_vertb.write(&cave_bounds);
+      self.cave_bounds_indxb.write(self.level.boundary_ix().as_slice());
       let cave_ca = cave_verts(&self.level.ca_grid);
       self.cave_ca_vertb.write(&cave_ca);
       frame.draw(&self.cave_ca_vertb, &NO_IXS, &self.ca_prog, &uniforms,
@@ -133,18 +136,41 @@ impl<'a, F: Facade> LevelRenderer<'a, F> {
     } else {
       // Next, we draw the whole cave as a polygon
       if self.render_stage == 0 {
-        // We need to re-do the bounds index buf as a triangle fan
-        self.cave_bounds_indxb = IndexBuffer::new(
-          self.display, PrimitiveType::TriangleFan,
-          self.level.boundary_ix().as_slice()).unwrap();
-        self.render_stage += 1
+        let polycave = self.cave_bounds_to_poly();
+        self.cave_bounds_vertb.write(&polycave);
+
+        self.render_stage += 1;
       }
-      frame.draw(&self.cave_bounds_vertb, &self.cave_bounds_indxb,
+      frame.draw(&self.cave_bounds_vertb, &NO_IXS_TRI,
                  &self.ca_prog, &uniforms, &self.cave_params).unwrap();
     }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
+
+  fn cave_bounds_to_poly(&mut self) -> Vec<Vertex> {
+    // We have to triangulate the boundary polygon. We use some helpful
+    // code provided by Campbell Barton to do this. First, project
+    // everything into unit space.
+    let bounds_p: Vec<[f64; 2]> = self.level.boundary.iter()
+      .map(|v| {
+        let p = project_to_unitspace(v.0 as usize, v.1 as usize);
+        [p.x as f64, p.y as f64]
+      }).collect();
+    let mut tris: Vec<[u32; 3]> = Vec::new();
+    polyfill_calc(&bounds_p, 0, &mut tris);
+    // Need to convert the indexes (in tris) back into coordinates.
+    let mut tri_list: Vec<Vertex> = tris.iter().flat_map(|x|
+      x.iter().map(|xx| Vertex {
+        pos: [bounds_p[*xx as usize][0] as f32,
+          bounds_p[*xx as usize][1] as f32]
+      })).collect();
+    for _ in tri_list.len()..CA_BUFSIZ {
+      // We're just putting them way off in the corner somewhere invisible
+      tri_list.push(Vertex { pos: [-10.0, -10.0] });
+    }
+    tri_list
+  }
 }
 
 fn cave_verts(ca_grid: &CellGrid) -> Vec<Vertex> {
