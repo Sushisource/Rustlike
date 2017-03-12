@@ -3,6 +3,7 @@ extern crate glium;
 
 mod dungeongen;
 
+use std::{thread, time};
 use glium::glutin::ElementState::Released;
 use glium::glutin::{VirtualKeyCode, Event};
 use glium::{DisplayBuild, Surface};
@@ -20,16 +21,16 @@ fn main() {
   let mut level = Level::new();
   let mut level_render = LevelRenderer::new(&mut level, &display);
 
+  let frame_ratelimit = time::Duration::from_millis(5);
+
   println!("GL Version: {:?}", display.get_context().get_opengl_version());
   loop {
-    let winsiz = display.get_context().get_framebuffer_dimensions();
-    let uniforms = glium::uniforms::UniformsStorage::new("resolution",
-                                                         [winsiz.0 as f32,
-                                                           winsiz.1 as f32]);
+    let frame_start = time::Instant::now();
 
     let mut target = display.draw();
     target.clear_color_srgb(0.1, 0.2, 0.27, 0.0);
-    level_render.render_level_frame(&mut target, uniforms);
+    let winsiz = display.get_context().get_framebuffer_dimensions();
+    level_render.render_level_frame(&mut target, winsiz);
     target.finish().unwrap();
 
     for ev in display.poll_events() {
@@ -40,6 +41,12 @@ fn main() {
         },
         _ => (),
       }
+    }
+
+    let elapsed = frame_start.elapsed();
+    if elapsed < frame_ratelimit {
+      let wait = frame_ratelimit - elapsed;
+      thread::sleep(wait);
     }
   }
 }

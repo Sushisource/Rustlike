@@ -1,9 +1,10 @@
+#version 140
 #ifdef GL_ES
 precision mediump float;
 #endif
 
 uniform vec2 resolution;
-varying out vec4 color;
+out vec4 color;
 
 // Some useful functions
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }

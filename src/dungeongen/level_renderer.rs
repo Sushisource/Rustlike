@@ -8,7 +8,6 @@ use glium::{Surface, VertexBuffer, IndexBuffer, DrawParameters, PolygonMode,
             Program};
 use glium::index::{NoIndices, PrimitiveType};
 use glium::backend::Facade;
-use glium::uniforms::Uniforms;
 use self::na::Vector2;
 use super::polyfill::polyfill_calc;
 
@@ -90,8 +89,12 @@ impl<'a> LevelRenderer<'a> {
     }
   }
 
-  pub fn render_level_frame<S, U>(&mut self, frame: &mut S, uniforms: U) -> ()
-    where S: Surface, U: Uniforms {
+  pub fn render_level_frame<S>(&mut self,
+                               frame: &mut S,
+                               resolution: (u32, u32)) -> ()
+    where S: Surface {
+    let uniforms = glium::uniforms::UniformsStorage::new(
+      "resolution", [resolution.0 as f32, resolution.1 as f32]);
     // First tick the simulation
     if !self.level.level_gen_finished {
       self.level.tick_level_gen();
@@ -194,5 +197,5 @@ fn boundary_verts(boundary: &Vec<(i32, i32)>) -> Vec<Vertex> {
 fn project_to_unitspace(x: usize, y: usize) -> Point {
   let xp = (x as f32) / (CA_W as f32) - 0.5;
   let yp = (y as f32) / (CA_H as f32) - 0.5;
-  Point::new(xp * 1.5, yp * 1.5)
+  Point::new(xp * 1.9, yp * 1.9)
 }
