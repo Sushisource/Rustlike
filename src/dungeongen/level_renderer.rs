@@ -28,31 +28,9 @@ implement_vertex!(Vertex, pos);
 
 const NO_IXS: NoIndices = NoIndices(PrimitiveType::Points);
 const NO_IXS_TRI: NoIndices = NoIndices(PrimitiveType::TrianglesList);
-static VERT_SHAD_DEF: &'static str = r#"
-        #version 140
-        in vec2 pos;
-        void main() {
-            gl_Position = vec4(pos, 0.0, 1.0);
-        }
-    "#;
-static FRAG_CA: &'static str = r#"
-        #version 140
-        in vec4 gl_FragCoord;
-        uniform vec2 resolution;
-        out vec4 color;
-        void main() {
-            color = vec4(0.47, 0.59, 0.66, 1.0);
-        }
-    "#;
-static FRAG_BOUNDS: &'static str = r#"
-        #version 140
-        in vec4 gl_FragCoord;
-        uniform vec2 resolution;
-        out vec4 color;
-        void main() {
-            color = vec4(0.22, 0.82, 0.71, 1.0);
-        }
-    "#;
+static VERT_SHAD_DEF: &'static str = include_str!("shaders/default_vert.glsl");
+static FRAG_CA: &'static str = include_str!("shaders/cave_frag.glsl");
+static FRAG_BOUNDS: &'static str = include_str!("shaders/bounds_frag.glsl");
 
 pub struct LevelRenderer<'a> {
   level: &'a mut Level,
