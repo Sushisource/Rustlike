@@ -1,6 +1,4 @@
 extern crate glium;
-extern crate nalgebra as na;
-extern crate graphics;
 
 use std::fmt;
 use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
@@ -8,14 +6,19 @@ use glium::{Surface, VertexBuffer, IndexBuffer, DrawParameters, PolygonMode,
             Program};
 use glium::index::{NoIndices, PrimitiveType};
 use glium::backend::Facade;
-use self::na::Vector2;
+use super::super::util::Point;
 use super::polyfill::polyfill_calc;
-
-pub type Point = Vector2<f32>;
+use super::rooms::Room;
 
 #[derive(Copy, Clone)]
 pub struct Vertex {
   pub pos: [f32; 2],
+}
+
+impl From<Point> for Vertex {
+  fn from(p: Point) -> Self {
+    Vertex { pos: [p.x, p.y] }
+  }
 }
 
 impl fmt::Debug for Vertex {
@@ -89,10 +92,11 @@ impl<'a> LevelRenderer<'a> {
     }
   }
 
-  pub fn render_level_frame<S>(&mut self,
-                               frame: &mut S,
-                               resolution: (u32, u32)) -> ()
-    where S: Surface {
+  pub fn render_level_frame<S, F>(&mut self,
+                                  frame: &mut S,
+                                  display: &F,
+                                  resolution: (u32, u32)) -> ()
+    where S: Surface, F: Facade {
     let uniforms = glium::uniforms::UniformsStorage::new(
       "resolution", [resolution.0 as f32, resolution.1 as f32]);
     // First tick the simulation
@@ -122,6 +126,15 @@ impl<'a> LevelRenderer<'a> {
       }
       frame.draw(&self.cave_bounds_vertb, &NO_IXS_TRI,
                  &self.ca_prog, &uniforms, &self.cave_params).unwrap();
+
+      if self.level.rooms.len() > 0 {
+        for room in &self.level.rooms {
+          let tlist = room_verts(&room);
+          let vbuff = VertexBuffer::immutable(display, tlist.as_ref()).unwrap();
+          frame.draw(&vbuff, &NO_IXS_TRI,
+                     &self.bounds_prog, &uniforms, &self.cave_params).unwrap();
+        }
+      }
     }
   }
 
@@ -163,10 +176,10 @@ fn cave_verts(ca_grid: &CellGrid) -> Vec<Vertex> {
     verts.push(Vertex { pos: [-10.0, -10.0] });
   }
   let vlen = verts.len();
-  verts[vlen - 1] = Vertex { pos: *project_to_unitspace(0, 0).as_ref() };
-  verts[vlen - 2] = Vertex { pos: *project_to_unitspace(0, CA_H).as_ref() };
-  verts[vlen - 3] = Vertex { pos: *project_to_unitspace(CA_W, 0).as_ref() };
-  verts[vlen - 4] = Vertex { pos: *project_to_unitspace(CA_W, CA_H).as_ref() };
+  verts[vlen - 1] = project_to_unitspace(0, 0).into();
+  verts[vlen - 2] = project_to_unitspace(0, CA_H).into();
+  verts[vlen - 3] = project_to_unitspace(CA_W, 0).into();
+  verts[vlen - 4] = project_to_unitspace(CA_W, CA_H).into();
   verts
 }
 
@@ -185,13 +198,21 @@ fn cave_from_grid(ca_grid: &CellGrid) -> CavePoints {
 fn boundary_verts(boundary: &Vec<(i32, i32)>) -> Vec<Vertex> {
   let mut verts = boundary.iter().map(|&(x, y)| {
     let as_pt = project_to_unitspace(x as usize, y as usize);
-    Vertex { pos: *as_pt.as_ref() }
+    Vertex::from(as_pt)
   }).collect::<Vec<Vertex>>();
   for _ in verts.len()..CA_BUFSIZ {
     // We're just putting them way off in the corner somewhere invisible
     verts.push(Vertex { pos: [-10.0, -10.0] });
   }
   verts
+}
+
+fn room_verts(room: &Room) -> Vec<Vertex> {
+  let btm_left = Point::new(room.top_left.x, room.bottom_right.y);
+  let top_rght = Point::new(room.bottom_right.x, room.top_left.y);
+  // Bottom triangle, top triangle
+  vec![btm_left.into(), room.top_left.into(), room.bottom_right.into(),
+       top_rght.into(), room.bottom_right.into(), room.top_left.into()];
 }
 
 fn project_to_unitspace(x: usize, y: usize) -> Point {

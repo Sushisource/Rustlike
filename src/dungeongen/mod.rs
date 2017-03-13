@@ -4,9 +4,11 @@ extern crate noise;
 pub mod level_renderer;
 pub mod direction;
 mod polyfill;
+mod rooms;
 
-use self::level_renderer::Point;
+use super::util::Point;
 use self::direction::Direction;
+use self::rooms::Room;
 
 const CA_W: usize = 200;
 const CA_H: usize = 150;
@@ -22,6 +24,7 @@ pub struct Level {
   pub ca_grid: CellGrid,
   pub boundary: Vec<(i32, i32)>,
   pub level_gen_finished: bool,
+  pub rooms: Vec<Room>,
   gen_stage: u8,
   bounds_last_dir: Direction
 }
@@ -33,9 +36,29 @@ impl Level {
       ca_grid: ca_grid,
       boundary: Vec::new(),
       level_gen_finished: false,
+      rooms: Vec::new(),
       gen_stage: 0,
       bounds_last_dir: Direction::SouthEast
     }
+  }
+
+  pub fn tick_level_gen(&mut self) -> () {
+    let stage_complete = match self.gen_stage {
+      0 => self.tick_cavesim(),
+      1 => self.tick_cave_boundary(),
+      2 => self.smooth_cave_boundary(),
+      3 => {
+        // Make sure boundary is fully conected, and has a dot in the center
+        // to prepare for rendering as a triangle fan.
+        // TODO: Move this part to renderer?
+        let back_to_first = self.boundary[0].clone();
+        self.boundary.push(back_to_first);
+        true
+      }
+      4 => self.tick_roomsim(),
+      _ => false,
+    };
+    if stage_complete { self.gen_stage += 1 }
   }
 
   fn gen_cave() -> [[bool; CA_H]; CA_W] {
@@ -59,24 +82,6 @@ impl Level {
     let mut first = vec![0; CA_BUFSIZ - second_half.len()];
     first.extend(second_half);
     first
-  }
-
-  pub fn tick_level_gen(&mut self) -> () {
-    let stage_complete = match self.gen_stage {
-      0 => self.tick_cavesim(),
-      1 => self.tick_cave_boundary(),
-      2 => self.smooth_cave_boundary(),
-      3 => {
-        // Make sure boundary is fully conected, and has a dot in the center
-        // to prepare for rendering as a triangle fan.
-        // TODO: Move this part to renderer?
-        let back_to_first = self.boundary[0].clone();
-        self.boundary.push(back_to_first);
-        true
-      }
-      _ => false,
-    };
-    if stage_complete { self.gen_stage += 1 }
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -195,6 +200,17 @@ impl Level {
     if self.ca_grid[x + 1][y] { count += 1 };
     if self.ca_grid[x + 1][y + 1] { count += 1 };
     count
+  }
+
+  fn tick_roomsim(&mut self) -> bool {
+    if self.rooms.len() < 5 {
+      let new_room = Room::new_rand();
+      self.rooms.push(new_room);
+      false
+    } else {
+      println!("Done placing rooms");
+      true
+    }
   }
 }
 

@@ -2,6 +2,7 @@
 extern crate glium;
 
 mod dungeongen;
+mod util;
 
 use std::{thread, time};
 use glium::glutin::ElementState::Released;
@@ -30,7 +31,7 @@ fn main() {
     let mut target = display.draw();
     target.clear_color_srgb(0.1, 0.2, 0.27, 0.0);
     let winsiz = display.get_context().get_framebuffer_dimensions();
-    level_render.render_level_frame(&mut target, winsiz);
+    level_render.render_level_frame(&mut target, &display, winsiz);
     target.finish().unwrap();
 
     for ev in display.poll_events() {
