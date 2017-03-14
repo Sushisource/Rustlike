@@ -22,6 +22,7 @@ fn main() {
   let mut level = Level::new();
   let mut level_render = LevelRenderer::new(&mut level, &display);
 
+  // TODO: Configurable
   let frame_ratelimit = time::Duration::from_millis(5);
 
   println!("GL Version: {:?}", display.get_context().get_opengl_version());

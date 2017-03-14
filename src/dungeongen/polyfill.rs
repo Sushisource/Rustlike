@@ -27,7 +27,6 @@ const USE_CONVEX_SKIP: bool = true;
 const USE_CLIP_SWEEP: bool = true;
 const USE_KDTREE: bool = true;
 
-// TODO, use enum type?
 pub type ESign = i8;
 pub type Real = f64;
 

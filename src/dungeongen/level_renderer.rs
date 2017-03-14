@@ -31,7 +31,9 @@ implement_vertex!(Vertex, pos);
 const NO_IXS: NoIndices = NoIndices(PrimitiveType::Points);
 const NO_IXS_TRI: NoIndices = NoIndices(PrimitiveType::TrianglesList);
 static VERT_SHAD_DEF: &'static str = include_str!("shaders/default_vert.glsl");
+// Should probably just bake this as a texture instead of rendering every frame
 static FRAG_CA: &'static str = include_str!("shaders/cave_frag.glsl");
+static FRAG_ROOM: &'static str = include_str!("shaders/room_frag.glsl");
 static FRAG_BOUNDS: &'static str = include_str!("shaders/bounds_frag.glsl");
 
 pub struct LevelRenderer<'a> {
@@ -45,6 +47,7 @@ pub struct LevelRenderer<'a> {
   cave_params: DrawParameters<'a>,
   ca_prog: Program,
   bounds_prog: Program,
+  room_prog: Program
 }
 
 impl<'a> LevelRenderer<'a> {
@@ -89,6 +92,8 @@ impl<'a> LevelRenderer<'a> {
                                     None).unwrap(),
       bounds_prog: Program::from_source(display, VERT_SHAD_DEF, FRAG_BOUNDS,
                                         None).unwrap(),
+      room_prog: Program::from_source(display, VERT_SHAD_DEF, FRAG_ROOM,
+                                      None).unwrap(),
     }
   }
 
@@ -132,7 +137,7 @@ impl<'a> LevelRenderer<'a> {
           let tlist = room_verts(&room);
           let vbuff = VertexBuffer::immutable(display, tlist.as_ref()).unwrap();
           frame.draw(&vbuff, &NO_IXS_TRI,
-                     &self.bounds_prog, &uniforms, &self.cave_params).unwrap();
+                     &self.room_prog, &uniforms, &self.cave_params).unwrap();
         }
       }
     }
@@ -144,11 +149,10 @@ impl<'a> LevelRenderer<'a> {
     // We have to triangulate the boundary polygon. We use some helpful
     // code provided by Campbell Barton to do this. First, project
     // everything into unit space.
-    let bounds_p: Vec<[f64; 2]> = self.level.boundary.iter()
-      .map(|v| {
-        let p = project_to_unitspace(v.0 as usize, v.1 as usize);
-        [p.x as f64, p.y as f64]
-      }).collect();
+    let bounds_p: Vec<[f64; 2]> = self.level.boundary.iter().map(|v| {
+      let p = project_to_unitspace(v.0 as usize, v.1 as usize);
+      [p.x as f64, p.y as f64]
+    }).collect();
     let mut tris: Vec<[u32; 3]> = Vec::new();
     polyfill_calc(&bounds_p, 0, &mut tris);
     // Need to convert the indexes (in tris) back into coordinates.
@@ -168,7 +172,7 @@ impl<'a> LevelRenderer<'a> {
 fn cave_verts(ca_grid: &CellGrid) -> Vec<Vertex> {
   let cavep = cave_from_grid(ca_grid);
   let mut verts = cavep.iter().map(|&x| Vertex { pos: [x.x, x.y] })
-    .collect::<Vec<Vertex>>();
+                       .collect::<Vec<Vertex>>();
   // We have to pad the array so it's always the same size, so openGL doesn't
   // freak out when we update it with more or less verticies
   for _ in verts.len()..CA_BUFSIZ {
@@ -212,7 +216,7 @@ fn room_verts(room: &Room) -> Vec<Vertex> {
   let top_rght = Point::new(room.bottom_right.x, room.top_left.y);
   // Bottom triangle, top triangle
   vec![btm_left.into(), room.top_left.into(), room.bottom_right.into(),
-       top_rght.into(), room.bottom_right.into(), room.top_left.into()];
+       top_rght.into(), room.bottom_right.into(), room.top_left.into()]
 }
 
 fn project_to_unitspace(x: usize, y: usize) -> Point {

@@ -203,9 +203,14 @@ impl Level {
   }
 
   fn tick_roomsim(&mut self) -> bool {
-    if self.rooms.len() < 5 {
-      let new_room = Room::new_rand();
-      self.rooms.push(new_room);
+    if self.rooms.len() < 20 {
+      loop {
+        let room = Room::new_rand();
+        if self.rooms.iter().all(|ref r| !room.intersects(r)) {
+          self.rooms.push(room);
+          break;
+        }
+      }
       false
     } else {
       println!("Done placing rooms");
