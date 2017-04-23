@@ -6,7 +6,7 @@ pub mod direction;
 mod polyfill;
 mod rooms;
 
-use super::util::Point;
+use super::util::{Point, Meters};
 use self::direction::Direction;
 use self::rooms::Room;
 
@@ -26,7 +26,9 @@ pub struct Level {
   pub level_gen_finished: bool,
   pub rooms: Vec<Room>,
   gen_stage: u8,
-  bounds_last_dir: Direction
+  bounds_last_dir: Direction,
+  width: Meters,
+  height: Meters
 }
 
 impl Level {
@@ -38,7 +40,9 @@ impl Level {
       level_gen_finished: false,
       rooms: Vec::new(),
       gen_stage: 0,
-      bounds_last_dir: Direction::SouthEast
+      bounds_last_dir: Direction::SouthEast,
+      width: 133.3,
+      height: 100.0
     }
   }
 
@@ -204,9 +208,14 @@ impl Level {
 
   fn tick_roomsim(&mut self) -> bool {
     if self.rooms.len() < 20 {
+      let half_w = self.width / 2.0;
+      let half_h = self.height / 2.0;
       loop {
-        let room = Room::new_rand();
-        if self.rooms.iter().all(|ref r| !room.intersects(r)) {
+        let room = Room::new_rand((0.0, half_w), (0.0, half_h));
+        let avoids_other_rooms = self.rooms.iter()
+                                           .all(|ref r| !room.intersects(r));
+        let is_touching_cave = true;
+        if avoids_other_rooms && is_touching_cave {
           self.rooms.push(room);
           break;
         }
@@ -218,4 +227,3 @@ impl Level {
     }
   }
 }
-
