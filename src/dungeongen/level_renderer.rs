@@ -1,11 +1,17 @@
 extern crate glium;
+extern crate glium_text;
+extern crate nalgebra;
 
 use std::fmt;
-use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
+use std::fs::File;
+use std::path::Path;
+use self::nalgebra::{Matrix4, Vector3};
 use glium::{Surface, VertexBuffer, IndexBuffer, DrawParameters, PolygonMode,
             Program};
 use glium::index::{NoIndices, PrimitiveType};
 use glium::backend::Facade;
+
+use dungeongen::{Level, CavePoints, CA_H, CA_BUFSIZ, CA_W, CellGrid};
 use super::super::util::{Point, Meters};
 use super::polyfill::polyfill_calc;
 use super::rooms::Room;
@@ -140,6 +146,22 @@ impl<'a> LevelRenderer<'a> {
                      &self.room_prog, &uniforms, &self.cave_params).unwrap();
         }
       }
+
+      let text_sys = glium_text::TextSystem::new(display);
+      // Creating a `FontTexture`, which a regular `Texture` which contains the
+      // font.
+      let font = glium_text::FontTexture::new(
+        display,
+        File::open(&Path::new("fonts/VeraMono.ttf")).unwrap(),
+        24).unwrap();
+      // Creating a `TextDisplay` which contains the elements required to draw
+      // a specific sentence.
+      let text = glium_text::TextDisplay::new(&text_sys, &font, "@");
+
+      let mut matrix = Matrix4::new_scaling(0.03);
+      matrix = matrix.append_translation(&Vector3::new(0.5, 0.5, 0.0));
+      glium_text::draw(&text, &text_sys, frame, matrix,
+                       (1.0, 1.0, 0.0, 1.0));
     }
   }
 

@@ -5,6 +5,7 @@ authors = ["Spencer Judge <sushisource@gmail.com>"]
 
 [dependencies]
 glium = "*"
+glium_text = "*"
 rand = "*"
 noise = "*"
 nalgebra = "*"
