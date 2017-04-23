@@ -22,9 +22,10 @@ type CellGrid = [[bool; CA_H]; CA_W];
 /// the cavern.
 pub struct Level {
   pub ca_grid: CellGrid,
-  pub boundary: Vec<(i32, i32)>,
+  pub boundary: Vec<Point>,
   pub level_gen_finished: bool,
   pub rooms: Vec<Room>,
+  ca_boundary: Vec<(i32, i32)>,
   gen_stage: u8,
   bounds_last_dir: Direction,
   width: Meters,
@@ -37,6 +38,7 @@ impl Level {
     Level {
       ca_grid: ca_grid,
       boundary: Vec::new(),
+      ca_boundary: Vec::new(),
       level_gen_finished: false,
       rooms: Vec::new(),
       gen_stage: 0,
@@ -55,8 +57,10 @@ impl Level {
         // Make sure boundary is fully conected, and has a dot in the center
         // to prepare for rendering as a triangle fan.
         // TODO: Move this part to renderer?
-        let back_to_first = self.boundary[0].clone();
-        self.boundary.push(back_to_first);
+        let back_to_first = self.ca_boundary[0].clone();
+        self.ca_boundary.push(back_to_first);
+        self.boundary = self.ca_boundary.iter()
+                                        .map(|p| self.ca_to_wspace(p.0, p.1)).collect();
         true
       }
       4 => self.tick_roomsim(),
@@ -81,7 +85,7 @@ impl Level {
   }
 
   pub fn boundary_ix(&self) -> Vec<u16> {
-    let x = self.boundary.len() as u16;
+    let x = self.ca_boundary.len() as u16;
     let second_half: Vec<u16> = (0..x).collect();
     let mut first = vec![0; CA_BUFSIZ - second_half.len()];
     first.extend(second_half);
@@ -90,7 +94,7 @@ impl Level {
 
   fn smooth_cave_boundary(&mut self) -> bool {
     let mut a = 0;
-    self.boundary.retain(|_| {
+    self.ca_boundary.retain(|_| {
       a += 1;
       a % 2 == 0
     });
@@ -99,21 +103,21 @@ impl Level {
 
   fn tick_cave_boundary(&mut self) -> bool {
     // Inspect grid, starting top left and work around clockwise building poly
-    let mut cur_pixel = (0, 0);
+    let mut cur_cell = (0, 0);
     // First I move in from the corner until I hit a cell, if this is the first
     // tick.
-    if self.boundary.is_empty() {
+    if self.ca_boundary.is_empty() {
       'out: for x in 0..(CA_W - 1) {
         for y in 0..(CA_H - 1) {
           if self.ca_grid[x][y] {
-            cur_pixel = (x as i32, y as i32);
+            cur_cell = (x as i32, y as i32);
             break 'out;
           }
         }
       }
-      self.boundary.push(cur_pixel);
+      self.ca_boundary.push(cur_cell);
     }
-    cur_pixel = *self.boundary.last().unwrap();
+    cur_cell = *self.ca_boundary.last().unwrap();
     // Then we will use a radial sweep algorithm to trace the boundary of the
     // cells. Starting from the current point, we check it's neighbors in a
     // clockwise fashion until we find another occupied cell.
@@ -127,18 +131,18 @@ impl Level {
     };
     let mut marked_ct = 0;
     for dir in dirs {
-      let cur_pt = dir.dir_from_tup(cur_pixel);
+      let cur_pt = dir.dir_from_tup(cur_cell);
       // Bounds check, followed by cell present check
       let in_width = cur_pt.0 >= 0 && cur_pt.0 <= CA_W as i32;
       let in_height = cur_pt.1 >= 0 && cur_pt.1 <= CA_H as i32;
-      let not_marked = !self.boundary.contains(&cur_pt);
+      let not_marked = !self.ca_boundary.contains(&cur_pt);
       if !not_marked {
         marked_ct += 1;
       }
       if in_width && in_height
         && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
-        cur_pixel = cur_pt;
-        self.boundary.push(cur_pixel);
+        cur_cell = cur_pt;
+        self.ca_boundary.push(cur_cell);
         self.bounds_last_dir = dir.clone();
         break;
       }
@@ -208,14 +212,11 @@ impl Level {
 
   fn tick_roomsim(&mut self) -> bool {
     if self.rooms.len() < 20 {
-      let half_w = self.width / 2.0;
-      let half_h = self.height / 2.0;
       loop {
-        let room = Room::new_rand((0.0, half_w), (0.0, half_h));
+        let room = Room::new_rand((0.0, self.width), (0.0, self.height));
         let avoids_other_rooms = self.rooms.iter()
                                            .all(|ref r| !room.intersects(r));
-        let is_touching_cave = true;
-        if avoids_other_rooms && is_touching_cave {
+        if avoids_other_rooms {
           self.rooms.push(room);
           break;
         }
@@ -225,5 +226,16 @@ impl Level {
       println!("Done placing rooms");
       true
     }
+  }
+
+  /// Converts cellular automata space to world space
+  fn ca_to_wspace(&self, x: i32, y: i32) -> Point {
+    // TODO: Configurable scale factor?
+    let scale = 1.9;
+    // We normalize, then center, then scale, then translate back and fit to
+    // world space.
+    let xp = ((x as f32) / (CA_W as f32) - 0.5) * scale + 0.5;
+    let yp = ((y as f32) / (CA_H as f32) - 0.5) * scale + 0.5;
+    Point::new(xp * self.width, yp * self.height)
   }
 }

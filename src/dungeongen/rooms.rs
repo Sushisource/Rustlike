@@ -27,9 +27,9 @@ impl Room {
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
     let c_y: f32 = rng.gen_range(y_min, y_max);
-    let sizer = Normal::new(10.0, 20.0);
+    let sizer = Normal::new(15.0, 20.0);
     let mut get_siz = || {
-      sizer.ind_sample(&mut rng).abs().max(5.0).min(40.0) as f32
+      sizer.ind_sample(&mut rng).abs().max(8.0).min(40.0) as f32
     };
     Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
   }

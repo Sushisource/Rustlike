@@ -58,7 +58,7 @@ impl<'a> LevelRenderer<'a> {
         .unwrap()
     };
     let cbv = {
-      VertexBuffer::dynamic(display, boundary_verts(&level.boundary).as_ref())
+      VertexBuffer::dynamic(display, boundary_verts(&level.ca_boundary).as_ref())
         .unwrap()
     };
     let cbi = {
@@ -108,7 +108,7 @@ impl<'a> LevelRenderer<'a> {
     if !self.level.level_gen_finished {
       self.level.tick_level_gen();
     }
-    let cave_bounds = boundary_verts(&self.level.boundary);
+    let cave_bounds = boundary_verts(&self.level.ca_boundary);
 
     // Then render
     // In the first 4 stages we draw the CA evolution and the boundary
@@ -150,8 +150,8 @@ impl<'a> LevelRenderer<'a> {
     // code provided by Campbell Barton to do this. First, project
     // everything into unit space.
     let bounds_p: Vec<[f64; 2]> = self.level.boundary.iter().map(|v| {
-      let p = ca_to_sspace(v.0 as usize, v.1 as usize);
-      [p.x as f64, p.y as f64]
+      let vus = ws_to_uspace(v.x, v.y, self.level);
+      [vus.x as f64, vus.y as f64]
     }).collect();
     let mut tris: Vec<[u32; 3]> = Vec::new();
     polyfill_calc(&bounds_p, 0, &mut tris);
@@ -169,10 +169,10 @@ impl<'a> LevelRenderer<'a> {
   }
 
   fn room_verts(&self, room: &Room) -> Vec<Vertex> {
-    let btm_left = ws_to_sspace(room.top_left.x, room.bottom_right.y, self.level);
-    let top_rght = ws_to_sspace(room.bottom_right.x, room.top_left.y, self.level);
-    let top_left = ws_to_sspace(room.top_left.x, room.top_left.y, self.level);
-    let btm_rght = ws_to_sspace(room.bottom_right.x, room.bottom_right.y,
+    let btm_left = ws_to_uspace(room.top_left.x, room.bottom_right.y, self.level);
+    let top_rght = ws_to_uspace(room.bottom_right.x, room.top_left.y, self.level);
+    let top_left = ws_to_uspace(room.top_left.x, room.top_left.y, self.level);
+    let btm_rght = ws_to_uspace(room.bottom_right.x, room.bottom_right.y,
                                 self.level);
     // Bottom triangle, top triangle
     vec![btm_left.into(), top_left.into(), btm_rght.into(),
@@ -191,10 +191,10 @@ fn cave_verts(ca_grid: &CellGrid) -> Vec<Vertex> {
     verts.push(Vertex { pos: [-10.0, -10.0] });
   }
   let vlen = verts.len();
-  verts[vlen - 1] = ca_to_sspace(0, 0).into();
-  verts[vlen - 2] = ca_to_sspace(0, CA_H).into();
-  verts[vlen - 3] = ca_to_sspace(CA_W, 0).into();
-  verts[vlen - 4] = ca_to_sspace(CA_W, CA_H).into();
+  verts[vlen - 1] = ca_to_uspace(0, 0).into();
+  verts[vlen - 2] = ca_to_uspace(0, CA_H).into();
+  verts[vlen - 3] = ca_to_uspace(CA_W, 0).into();
+  verts[vlen - 4] = ca_to_uspace(CA_W, CA_H).into();
   verts
 }
 
@@ -203,7 +203,7 @@ fn cave_from_grid(ca_grid: &CellGrid) -> CavePoints {
   for x in 0..(CA_W - 1) {
     for y in 0..(CA_H - 1) {
       if ca_grid[x][y] {
-        as_points.push(ca_to_sspace(x, y));
+        as_points.push(ca_to_uspace(x, y));
       }
     }
   }
@@ -212,7 +212,7 @@ fn cave_from_grid(ca_grid: &CellGrid) -> CavePoints {
 
 fn boundary_verts(boundary: &Vec<(i32, i32)>) -> Vec<Vertex> {
   let mut verts = boundary.iter().map(|&(x, y)| {
-    let as_pt = ca_to_sspace(x as usize, y as usize);
+    let as_pt = ca_to_uspace(x as usize, y as usize);
     Vertex::from(as_pt)
   }).collect::<Vec<Vertex>>();
   for _ in verts.len()..CA_BUFSIZ {
@@ -222,15 +222,15 @@ fn boundary_verts(boundary: &Vec<(i32, i32)>) -> Vec<Vertex> {
   verts
 }
 
-/// Converts world space to screen space
-fn ws_to_sspace(x: Meters, y: Meters, l: &Level) -> Point {
+/// Converts world space to unit space
+fn ws_to_uspace(x: Meters, y: Meters, l: &Level) -> Point {
   let xp = (x / l.width) - 0.5;
   let yp = (y / l.height) - 0.5;
   Point::new(xp, yp)
 }
 
-/// Converts cellular automata space to screen space
-fn ca_to_sspace(x: usize, y: usize) -> Point {
+/// Converts cellular automata space to unit space
+fn ca_to_uspace(x: usize, y: usize) -> Point {
   let xp = (x as f32) / (CA_W as f32) - 0.5;
   let yp = (y as f32) / (CA_H as f32) - 0.5;
   Point::new(xp * 1.9, yp * 1.9)
