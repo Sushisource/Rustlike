@@ -4,8 +4,8 @@ version = "0.1.0"
 authors = ["Spencer Judge <sushisource@gmail.com>"]
 
 [dependencies]
-glium = "*"
-glium_text = "*"
+ggez = "0.3"
+time = "0.1"
 rand = "*"
 noise = "*"
 nalgebra = "*"

@@ -1,18 +1,18 @@
 extern crate rand;
+extern crate ggez;
 extern crate noise;
 
 pub mod level_renderer;
 pub mod direction;
-mod polyfill;
 mod rooms;
 
-use super::util::{Point, Meters};
+use self::ggez::graphics::Point;
+use super::util::Meters;
 use self::direction::Direction;
 use self::rooms::Room;
 
 const CA_W: usize = 200;
 const CA_H: usize = 150;
-const CA_BUFSIZ: usize = CA_H * CA_W;
 
 type CavePoints = Vec<Point>;
 type CellGrid = [[bool; CA_H]; CA_W];
@@ -59,8 +59,9 @@ impl Level {
         // TODO: Move this part to renderer?
         let back_to_first = self.ca_boundary[0].clone();
         self.ca_boundary.push(back_to_first);
-        self.boundary = self.ca_boundary.iter()
-                                        .map(|p| self.ca_to_wspace(p.0, p.1)).collect();
+        self.boundary = self.ca_boundary
+          .iter()
+          .map(|p| self.ca_to_wspace(p.0, p.1)).collect();
         true
       }
       4 => self.tick_roomsim(),
@@ -82,14 +83,6 @@ impl Level {
       }
     }
     ca_grid
-  }
-
-  pub fn boundary_ix(&self) -> Vec<u16> {
-    let x = self.ca_boundary.len() as u16;
-    let second_half: Vec<u16> = (0..x).collect();
-    let mut first = vec![0; CA_BUFSIZ - second_half.len()];
-    first.extend(second_half);
-    first
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {

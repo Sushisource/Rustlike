@@ -3,3 +3,5 @@ Cargo.lock
 *.iml
 .idea/
 .vscode/
+out/
+SDL2-2.0.5/

@@ -1,23 +1,23 @@
 extern crate nalgebra as na;
 extern crate rand;
+extern crate ggez;
 
-use self::na::{Vector2};
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{Normal, IndependentSample};
+use self::ggez::graphics::{Rect, Point};
 
-use super::super::util::{Point, Meters};
+use super::super::util:: Meters;
 
+#[derive(Debug)]
 pub struct Room {
-  pub top_left: Point,
-  pub bottom_right: Point
+  pub center: Point,
+  pub width: f32,
+  pub height: f32
 }
 
 impl Room {
   pub fn new(center: Point, width: Meters, height: Meters) -> Room {
-    assert!(width >= 0.0);
-    assert!(height >= 0.0);
-    let scale = Vector2::new(width / 2.0, height / 2.0);
-    Room { top_left: center - scale, bottom_right: center + scale }
+    Room { center: center, width: width, height: height }
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
@@ -36,9 +36,15 @@ impl Room {
 
   /// Tests intersection with another room. Returns true if they intersect.
   pub fn intersects(&self, other: &Room) -> bool {
-    return !(other.top_left.x > self.bottom_right.x ||
-      other.bottom_right.x < self.top_left.x ||
-      other.top_left.y > self.bottom_right.y ||
-      other.bottom_right.y < self.top_left.y)
+    let s: Rect = self.into();
+    let o: Rect = other.into();
+    o.left() < s. right() && o.right() > s.left() 
+    && o.top() > s.bottom() && o.bottom() < s.top()
+  }
+}
+
+impl<'a> From<&'a Room> for Rect {
+  fn from(r: &Room) -> Rect {
+    Rect { x: r.center.x / 100.0, y: r.center.y / 100.0, w: r.width / 20.0, h: r.height / 20.0}
   }
 }
