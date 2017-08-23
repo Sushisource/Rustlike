@@ -5,6 +5,7 @@ extern crate time;
 use std::time::Duration;
 use self::ggez::{Context, GameResult};
 use self::ggez::event;
+use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
 use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode,
                            Image, Point};
@@ -80,6 +81,17 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     // even if vsync is off.
     timer::sleep(Duration::from_secs(0));
     Ok(())
+  }
+
+  // Handle key events.  These just map keyboard events
+  // and alter our input state appropriately.
+  fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+    match keycode {
+      Keycode::Space => {
+        self.stop_render();
+      }
+      _ => (), // Do nothing
+    }
   }
 }
 
