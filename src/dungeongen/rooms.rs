@@ -40,20 +40,20 @@ impl Room {
 
   /// Tests intersection with another room. Returns true if they intersect.
   pub fn intersects(&self, other: &Room) -> bool {
-    let s: Rect = self.into();
-    let o: Rect = other.into();
-    o.left() < s.right() && o.right() > s.left() && o.top() > s.bottom() &&
-    o.bottom() < s.top()
+    let r1: Rect = self.into();
+    let r2: Rect = other.into();
+    !(r2.left() > r1.right() || r2.right() < r1.left() ||
+      r2.top() > r1.bottom() || r2.bottom() < r1.top())
   }
 }
 
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
     Rect {
-      x: r.center.x / 100.0,
-      y: r.center.y / 100.0,
-      w: r.width / 20.0,
-      h: r.height / 20.0,
+      x: r.center.x,
+      y: r.center.y,
+      w: r.width,
+      h: r.height,
     }
   }
 }

@@ -8,7 +8,7 @@ use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
 use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode,
-                           Image, Point};
+                           Image, Point, Rect};
 use self::ggez::timer;
 
 use dungeongen::{CellGrid, Level, CA_H, CA_W};
@@ -20,12 +20,11 @@ pub struct LevelRenderer<'a> {
 }
 
 impl<'a> event::EventHandler for LevelRenderer<'a> {
-  fn update(&mut self, _: &mut Context, _dt: Duration) -> GameResult<()> {
-    // const DESIRED_FPS: u64 = 60;
-    // if !timer::check_update_time(ctx, DESIRED_FPS) {
-    //     return Ok(());
-    // }
-    // let seconds = 1.0 / (DESIRED_FPS as f64);
+  fn update(&mut self, ctx: &mut Context, _dt: Duration) -> GameResult<()> {
+    const DESIRED_FPS: u64 = 60;
+    if !timer::check_update_time(ctx, DESIRED_FPS) {
+      return Ok(());
+    }
     // Tick the simulation
     if !self.level.level_gen_finished {
       self.level.tick_level_gen();
@@ -67,8 +66,13 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
         for room in &self.level.rooms {
           // TODO: Make rooms "drawable"
           // TODO: Scaling is all wrong
-          println!("{:?}", room);
-          graphics::rectangle(ctx, DrawMode::Fill, room.into())?;
+          // println!("{:?}", room);
+          let mut r: Rect = room.into();
+          r.x /= 200.0;
+          r.y /= 200.0;
+          r.w /= 200.0;
+          r.h /= 200.0;
+          graphics::rectangle(ctx, DrawMode::Fill, r)?;
         }
       }
     }
