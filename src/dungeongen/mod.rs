@@ -14,7 +14,6 @@ use self::rooms::Room;
 const CA_W: usize = 200;
 const CA_H: usize = 150;
 
-type CavePoints = Vec<Point>;
 type CellGrid = [[bool; CA_H]; CA_W];
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
