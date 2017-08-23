@@ -28,7 +28,7 @@ pub struct Level {
   gen_stage: u8,
   bounds_last_dir: Direction,
   width: Meters,
-  height: Meters
+  height: Meters,
 }
 
 impl Level {
@@ -43,7 +43,7 @@ impl Level {
       gen_stage: 0,
       bounds_last_dir: Direction::SouthEast,
       width: 133.3,
-      height: 100.0
+      height: 100.0,
     }
   }
 
@@ -60,13 +60,16 @@ impl Level {
         self.ca_boundary.push(back_to_first);
         self.boundary = self.ca_boundary
           .iter()
-          .map(|p| self.ca_to_wspace(p.0, p.1)).collect();
+          .map(|p| self.ca_to_wspace(p.0, p.1))
+          .collect();
         true
       }
       4 => self.tick_roomsim(),
       _ => false,
     };
-    if stage_complete { self.gen_stage += 1 }
+    if stage_complete {
+      self.gen_stage += 1
+    }
   }
 
   fn gen_cave() -> [[bool; CA_H]; CA_W] {
@@ -131,8 +134,9 @@ impl Level {
       if !not_marked {
         marked_ct += 1;
       }
-      if in_width && in_height
-        && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
+      if in_width && in_height &&
+         self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] &&
+         not_marked {
         cur_cell = cur_pt;
         self.ca_boundary.push(cur_cell);
         self.bounds_last_dir = dir.clone();
@@ -142,7 +146,9 @@ impl Level {
     if marked_ct >= 2 {
       println!("Done drawing cave boundary");
       true
-    } else { false }
+    } else {
+      false
+    }
   }
 
   fn tick_cavesim(&mut self) -> bool {
@@ -190,15 +196,31 @@ impl Level {
   fn neighbor_count(&self, x: usize, y: usize) -> i32 {
     let mut count = 0;
     if x >= 1 {
-      if y >= 1 && self.ca_grid[x - 1][y - 1] { count += 1 };
-      if self.ca_grid[x - 1][y] { count += 1 };
-      if self.ca_grid[x - 1][y + 1] { count += 1 };
+      if y >= 1 && self.ca_grid[x - 1][y - 1] {
+        count += 1
+      };
+      if self.ca_grid[x - 1][y] {
+        count += 1
+      };
+      if self.ca_grid[x - 1][y + 1] {
+        count += 1
+      };
     }
-    if y >= 1 && self.ca_grid[x][y - 1] { count += 1 };
-    if self.ca_grid[x][y + 1] { count += 1 };
-    if y >= 1 && self.ca_grid[x + 1][y - 1] { count += 1 };
-    if self.ca_grid[x + 1][y] { count += 1 };
-    if self.ca_grid[x + 1][y + 1] { count += 1 };
+    if y >= 1 && self.ca_grid[x][y - 1] {
+      count += 1
+    };
+    if self.ca_grid[x][y + 1] {
+      count += 1
+    };
+    if y >= 1 && self.ca_grid[x + 1][y - 1] {
+      count += 1
+    };
+    if self.ca_grid[x + 1][y] {
+      count += 1
+    };
+    if self.ca_grid[x + 1][y + 1] {
+      count += 1
+    };
     count
   }
 
@@ -206,8 +228,8 @@ impl Level {
     if self.rooms.len() < 20 {
       loop {
         let room = Room::new_rand((0.0, self.width), (0.0, self.height));
-        let avoids_other_rooms = self.rooms.iter()
-                                           .all(|ref r| !room.intersects(r));
+        let avoids_other_rooms =
+          self.rooms.iter().all(|ref r| !room.intersects(r));
         if avoids_other_rooms {
           self.rooms.push(room);
           break;

@@ -9,14 +9,19 @@ pub enum Direction {
   South,
   SouthWest,
   West,
-  NorthWest
+  NorthWest,
 }
 
 impl Direction {
   pub fn iterator() -> Iter<'static, Direction> {
-    static DIRECTIONS: [Direction; 8] = [Direction::North, Direction::NorthEast,
-      Direction::East, Direction::SouthEast, Direction::South,
-      Direction::SouthWest, Direction::West, Direction::NorthWest];
+    static DIRECTIONS: [Direction; 8] = [Direction::North,
+                                         Direction::NorthEast,
+                                         Direction::East,
+                                         Direction::SouthEast,
+                                         Direction::South,
+                                         Direction::SouthWest,
+                                         Direction::West,
+                                         Direction::NorthWest];
     DIRECTIONS.into_iter()
   }
 
@@ -29,7 +34,7 @@ impl Direction {
       Direction::South => (0, -1),
       Direction::SouthWest => (-1, -1),
       Direction::West => (-1, 0),
-      Direction::NorthWest => (-1, 1)
+      Direction::NorthWest => (-1, 1),
     }
   }
 
@@ -47,7 +52,7 @@ impl Direction {
       Direction::South => Direction::North,
       Direction::SouthWest => Direction::NorthEast,
       Direction::West => Direction::East,
-      Direction::NorthWest => Direction::SouthEast
+      Direction::NorthWest => Direction::SouthEast,
     }
   }
 }

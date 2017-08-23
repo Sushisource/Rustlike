@@ -22,7 +22,7 @@ fn main() {
 
   let mut level = Level::new();
   let mut level_render = LevelRenderer::new(&mut level);
-  
+
   graphics::set_screen_coordinates(ctx, -1.0, 1.0, -1.0, 1.0).unwrap();
   event::run(ctx, &mut level_render).unwrap();
 }

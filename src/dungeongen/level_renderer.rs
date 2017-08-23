@@ -46,10 +46,8 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       let mut img =
         Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
       let params = DrawParam {
-        scale: Point::new(
-          CA_RENDERSCALE / CA_W as f32,
-          CA_RENDERSCALE / CA_H as f32,
-        ),
+        scale: Point::new(CA_RENDERSCALE / CA_W as f32,
+                          CA_RENDERSCALE / CA_H as f32),
         ..Default::default()
       };
       // Don't make my pixels all blurry
@@ -90,9 +88,7 @@ impl<'a> LevelRenderer<'a> {
     LevelRenderer { level: level }
   }
 
-  pub fn stop_render(&mut self) -> () {
-    self.level.level_gen_finished = true
-  }
+  pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 }
 
 /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
@@ -120,8 +116,7 @@ fn ca_to_uspace(x: usize, y: usize) -> Point {
 }
 
 fn boundary_points(boundary: &Vec<(i32, i32)>) -> Vec<Point> {
-  boundary
-    .iter()
+  boundary.iter()
     .map(|&(x, y)| ca_to_uspace(x as usize, y as usize))
     .collect::<Vec<Point>>()
 }
