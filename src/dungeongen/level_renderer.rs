@@ -17,6 +17,7 @@ const CA_RENDERSCALE: f32 = 2.0;
 
 pub struct LevelRenderer<'a> {
   level: &'a mut Level,
+  fastmode: bool,
 }
 
 impl<'a> event::EventHandler for LevelRenderer<'a> {
@@ -27,7 +28,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     }
     // Tick the simulation
     if !self.level.level_gen_finished {
-      self.level.tick_level_gen();
+      let i = if self.fastmode { 15 } else { 2 };
+      for _ in 1..i {
+        self.level.tick_level_gen();
+      }
     }
     Ok(())
   }
@@ -46,8 +50,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       let mut img =
         Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
       let params = DrawParam {
-        scale: Point::new(CA_RENDERSCALE / CA_W as f32,
-                          CA_RENDERSCALE / CA_H as f32),
+        scale: Point::new(
+          CA_RENDERSCALE / CA_W as f32,
+          CA_RENDERSCALE / CA_H as f32,
+        ),
         ..Default::default()
       };
       // Don't make my pixels all blurry
@@ -94,6 +100,9 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       Keycode::Space => {
         self.stop_render();
       }
+      Keycode::Plus | Keycode::KpPlus => {
+        self.fastmode = true;
+      }
       _ => (), // Do nothing
     }
   }
@@ -101,7 +110,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
 impl<'a> LevelRenderer<'a> {
   pub fn new(level: &'a mut Level) -> LevelRenderer<'a> {
-    LevelRenderer { level: level }
+    LevelRenderer {
+      level: level,
+      fastmode: false,
+    }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
@@ -132,7 +144,8 @@ fn ca_to_uspace(x: usize, y: usize) -> Point {
 }
 
 fn boundary_points(boundary: &Vec<(i32, i32)>) -> Vec<Point> {
-  boundary.iter()
+  boundary
+    .iter()
     .map(|&(x, y)| ca_to_uspace(x as usize, y as usize))
     .collect::<Vec<Point>>()
 }
