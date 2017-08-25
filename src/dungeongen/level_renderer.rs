@@ -1,8 +1,10 @@
-extern crate nalgebra;
 extern crate ggez;
+extern crate nalgebra;
+extern crate rand;
 extern crate time;
 
 use std::time::Duration;
+use self::rand::{thread_rng, Rng};
 use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
@@ -49,13 +51,11 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       let ca_img_a = cave_ca_img(&self.level.ca_grid);
       let mut img =
         Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
-      let params = DrawParam {
-        scale: Point::new(
-          CA_RENDERSCALE / CA_W as f32,
-          CA_RENDERSCALE / CA_H as f32,
-        ),
-        ..Default::default()
-      };
+      let params = DrawParam { scale: Point::new(
+        CA_RENDERSCALE / CA_W as f32,
+        CA_RENDERSCALE / CA_H as f32,
+      ),
+                               ..Default::default() };
       // Don't make my pixels all blurry
       img.set_filter(FilterMode::Nearest);
       img.draw_ex(ctx, params)?;
@@ -68,16 +68,13 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
 
       if self.level.rooms.len() > 0 {
-        graphics::set_color(ctx, Color::new(0.2, 0.2, 0.2, 1.0))?;
         for room in &self.level.rooms {
+          // TODO: Just a hack to make it easier to see if rooms are overlaping
+          let grayval = room.width % room.center.x as f32;
+          graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
           // TODO: Make rooms "drawable"
           // TODO: Scaling is all wrong
-          // println!("{:?}", room);
-          let mut r: Rect = room.into();
-          r.x /= 200.0;
-          r.y /= 200.0;
-          r.w /= 200.0;
-          r.h /= 200.0;
+          let r: Rect = room.into();
           graphics::rectangle(ctx, DrawMode::Fill, r)?;
         }
       }
@@ -95,13 +92,14 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   // Handle key events.  These just map keyboard events
   // and alter our input state appropriately.
-  fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+  fn key_down_event(&mut self, keycode: Keycode,
+                    _keymod: Mod, _repeat: bool) {
     match keycode {
       Keycode::Space => {
         self.stop_render();
       }
       Keycode::Plus | Keycode::KpPlus => {
-        self.fastmode = true;
+        self.fastmode = !self.fastmode;
       }
       _ => (), // Do nothing
     }
@@ -110,10 +108,8 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
 impl<'a> LevelRenderer<'a> {
   pub fn new(level: &'a mut Level) -> LevelRenderer<'a> {
-    LevelRenderer {
-      level: level,
-      fastmode: false,
-    }
+    LevelRenderer { level: level,
+                    fastmode: false, }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
@@ -144,8 +140,7 @@ fn ca_to_uspace(x: usize, y: usize) -> Point {
 }
 
 fn boundary_points(boundary: &Vec<(i32, i32)>) -> Vec<Point> {
-  boundary
-    .iter()
-    .map(|&(x, y)| ca_to_uspace(x as usize, y as usize))
-    .collect::<Vec<Point>>()
+  boundary.iter()
+          .map(|&(x, y)| ca_to_uspace(x as usize, y as usize))
+          .collect::<Vec<Point>>()
 }

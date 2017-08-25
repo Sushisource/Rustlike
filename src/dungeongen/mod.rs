@@ -1,6 +1,6 @@
-extern crate rand;
 extern crate ggez;
 extern crate noise;
+extern crate rand;
 
 pub mod level_renderer;
 pub mod direction;
@@ -34,17 +34,15 @@ pub struct Level {
 impl Level {
   pub fn new() -> Level {
     let ca_grid = Level::gen_cave();
-    Level {
-      ca_grid: ca_grid,
-      boundary: Vec::new(),
-      ca_boundary: Vec::new(),
-      level_gen_finished: false,
-      rooms: Vec::new(),
-      gen_stage: 0,
-      bounds_last_dir: Direction::SouthEast,
-      width: 133.3,
-      height: 100.0,
-    }
+    Level { ca_grid: ca_grid,
+            boundary: Vec::new(),
+            ca_boundary: Vec::new(),
+            level_gen_finished: false,
+            rooms: Vec::new(),
+            gen_stage: 0,
+            bounds_last_dir: Direction::SouthEast,
+            width: 133.3,
+            height: 100.0, }
   }
 
   pub fn tick_level_gen(&mut self) -> () {
@@ -59,9 +57,9 @@ impl Level {
         let back_to_first = self.ca_boundary[0].clone();
         self.ca_boundary.push(back_to_first);
         self.boundary = self.ca_boundary
-          .iter()
-          .map(|p| self.ca_to_wspace(p.0, p.1))
-          .collect();
+                            .iter()
+                            .map(|p| self.ca_to_wspace(p.0, p.1))
+                            .collect();
         true
       }
       4 => self.tick_roomsim(),
@@ -164,7 +162,7 @@ impl Level {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-            // Cell dead
+          // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
@@ -227,7 +225,7 @@ impl Level {
   fn tick_roomsim(&mut self) -> bool {
     if self.rooms.len() < 20 {
       loop {
-        let room = Room::new_rand((0.0, self.width), (0.0, self.height));
+        let room = Room::new_rand((-0.8, 0.8), (-0.8, 0.8));
         let avoids_other_rooms =
           self.rooms.iter().all(|ref r| !room.intersects(r));
         if avoids_other_rooms {

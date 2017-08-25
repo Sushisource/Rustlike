@@ -1,5 +1,13 @@
 max_width = 80
 tab_spaces = 2
+single_line_if_else_max_width = 80
+chain_one_line_max = 70
+
+control_style = "Legacy"
 fn_args_density = "Compressed"
 fn_single_line = true
-single_line_if_else_max_width = 70
+array_layout = "Visual"
+chain_indent = "Visual"
+fn_args_layout = "Visual"
+struct_lit_style = "Visual"
+where_pred_indent = "Visual"

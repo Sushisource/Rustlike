@@ -1,10 +1,10 @@
+extern crate ggez;
 extern crate nalgebra as na;
 extern crate rand;
-extern crate ggez;
 
 use self::rand::{thread_rng, Rng};
-use self::rand::distributions::{Normal, IndependentSample};
-use self::ggez::graphics::{Rect, Point};
+use self::rand::distributions::{IndependentSample, Normal};
+use self::ggez::graphics::{Point, Rect};
 
 use super::super::util::Meters;
 
@@ -17,11 +17,9 @@ pub struct Room {
 
 impl Room {
   pub fn new(center: Point, width: Meters, height: Meters) -> Room {
-    Room {
-      center: center,
-      width: width,
-      height: height,
-    }
+    Room { center: center,
+           width: width,
+           height: height, }
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
@@ -32,9 +30,12 @@ impl Room {
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
     let c_y: f32 = rng.gen_range(y_min, y_max);
-    let sizer = Normal::new(15.0, 20.0);
-    let mut get_siz =
-      || sizer.ind_sample(&mut rng).abs().max(8.0).min(40.0) as f32;
+    let scaler = (x_max - x_min).min(y_max - y_min) as f64;
+    let sizer = Normal::new(scaler / 10.0, scaler / 20.0);
+    let mut get_siz = || {
+      sizer.ind_sample(&mut rng).abs().max(scaler / 30.0).min(scaler / 2.0) as
+      f32
+    };
     Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
   }
 
@@ -43,17 +44,15 @@ impl Room {
     let r1: Rect = self.into();
     let r2: Rect = other.into();
     !(r2.left() > r1.right() || r2.right() < r1.left() ||
-      r2.top() > r1.bottom() || r2.bottom() < r1.top())
+      r2.top() < r1.bottom() || r2.bottom() > r1.top())
   }
 }
 
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
-    Rect {
-      x: r.center.x,
-      y: r.center.y,
-      w: r.width,
-      h: r.height,
-    }
+    Rect { x: r.center.x,
+           y: r.center.y,
+           w: r.width,
+           h: r.height, }
   }
 }
