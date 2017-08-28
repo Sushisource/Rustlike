@@ -1,17 +1,15 @@
 extern crate ggez;
-extern crate noise;
 extern crate rand;
 
 pub mod level_renderer;
 pub mod direction;
 mod rooms;
 
-use self::ggez::graphics::Point;
 use super::util::Meters;
 use self::direction::Direction;
 use self::rooms::Room;
 
-const CA_W: usize = 200;
+const CA_W: usize = 266;
 const CA_H: usize = 150;
 
 type CellGrid = [[bool; CA_H]; CA_W];
@@ -21,7 +19,6 @@ type CellGrid = [[bool; CA_H]; CA_W];
 /// the cavern.
 pub struct Level {
   pub ca_grid: CellGrid,
-  pub boundary: Vec<Point>,
   pub level_gen_finished: bool,
   pub rooms: Vec<Room>,
   ca_boundary: Vec<(i32, i32)>,
@@ -35,13 +32,12 @@ impl Level {
   pub fn new() -> Level {
     let ca_grid = Level::gen_cave();
     Level { ca_grid: ca_grid,
-            boundary: Vec::new(),
             ca_boundary: Vec::new(),
             level_gen_finished: false,
             rooms: Vec::new(),
             gen_stage: 0,
             bounds_last_dir: Direction::SouthEast,
-            width: 133.3,
+            width: 177.7,
             height: 100.0, }
   }
 
@@ -56,10 +52,6 @@ impl Level {
         // TODO: Move this part to renderer?
         let back_to_first = self.ca_boundary[0].clone();
         self.ca_boundary.push(back_to_first);
-        self.boundary = self.ca_boundary
-                            .iter()
-                            .map(|p| self.ca_to_wspace(p.0, p.1))
-                            .collect();
         true
       }
       4 => self.tick_roomsim(),
@@ -225,7 +217,7 @@ impl Level {
   fn tick_roomsim(&mut self) -> bool {
     if self.rooms.len() < 20 {
       loop {
-        let room = Room::new_rand((-0.8, 0.8), (-0.8, 0.8));
+        let room = Room::new_rand((0.0, self.width), (0.0, self.height));
         let avoids_other_rooms =
           self.rooms.iter().all(|ref r| !room.intersects(r));
         if avoids_other_rooms {
@@ -238,16 +230,5 @@ impl Level {
       println!("Done placing rooms");
       true
     }
-  }
-
-  /// Converts cellular automata space to world space
-  fn ca_to_wspace(&self, x: i32, y: i32) -> Point {
-    // TODO: Configurable scale factor?
-    let scale = 1.9;
-    // We normalize, then center, then scale, then translate back and fit to
-    // world space.
-    let xp = ((x as f32) / (CA_W as f32) - 0.5) * scale + 0.5;
-    let yp = ((y as f32) / (CA_H as f32) - 0.5) * scale + 0.5;
-    Point::new(xp * self.width, yp * self.height)
   }
 }

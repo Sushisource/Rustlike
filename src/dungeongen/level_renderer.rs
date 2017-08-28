@@ -4,7 +4,6 @@ extern crate rand;
 extern crate time;
 
 use std::time::Duration;
-use self::rand::{thread_rng, Rng};
 use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
@@ -92,8 +91,7 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   // Handle key events.  These just map keyboard events
   // and alter our input state appropriately.
-  fn key_down_event(&mut self, keycode: Keycode,
-                    _keymod: Mod, _repeat: bool) {
+  fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
     match keycode {
       Keycode::Space => {
         self.stop_render();

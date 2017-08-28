@@ -14,8 +14,7 @@ use dungeongen::level_renderer::LevelRenderer;
 fn main() {
   let mut c = conf::Conf::new();
   c.window_title = "Rougelike!".to_string();
-  // TODO: Fix ratio stuff
-  c.window_width = 768;
+  c.window_width = 1365;
   c.window_height = 768;
 
   let ctx = &mut Context::load_from_conf("roguelike", "ggez", c).unwrap();
