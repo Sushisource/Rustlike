@@ -56,8 +56,8 @@ impl Drawable for Room {
     let mut r: Rect = self.into();
     r.x = param.dest.x;
     r.y = param.dest.y;
-    r.w = r.w / param.scale.x;
-    r.h = r.h / param.scale.y;
+    r.w *= param.scale.x;
+    r.h *= param.scale.y;
     rectangle(ctx, DrawMode::Fill, r)
   }
 }

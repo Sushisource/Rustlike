@@ -14,11 +14,19 @@ use self::ggez::timer;
 
 use dungeongen::{CellGrid, Level, CA_H, CA_W};
 
-const CA_RENDERSCALE: f32 = 2.0;
+const CA_RENDERSCALE: f32 = 1.0;
+
+struct Assets {
+  font: graphics::Font,
+}
 
 pub struct LevelRenderer<'a> {
   level: &'a mut Level,
   fastmode: bool,
+  screen_x: f32,
+  screen_y: f32,
+  assets: Assets,
+  player: graphics::Text,
 }
 
 impl<'a> event::EventHandler for LevelRenderer<'a> {
@@ -42,27 +50,27 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
     // In the first 4 stages we draw the CA evolution and the boundary
     if self.level.gen_stage <= 3 {
-      // let cave_ca = cave_points(&self.level.ca_grid);
-      let cave_bounds = boundary_points(&self.level.ca_boundary);
-
-      graphics::set_point_size(ctx, 0.008);
-      graphics::set_line_width(ctx, 0.01);
       let ca_img_a = cave_ca_img(&self.level.ca_grid);
       let mut img =
         Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
       let params = DrawParam { scale: Point::new(
-        CA_RENDERSCALE / CA_W as f32,
-        CA_RENDERSCALE / CA_H as f32,
+        CA_RENDERSCALE / CA_W as f32 * self.screen_x,
+        CA_RENDERSCALE / CA_H as f32 * self.screen_y,
       ),
+                               dest: self.middle(),
                                ..Default::default() };
       // Don't make my pixels all blurry
       img.set_filter(FilterMode::Nearest);
       img.draw_ex(ctx, params)?;
+      // Boundary drawing
+      let cave_bounds = self.boundary_points(&self.level.ca_boundary);
+      println!("{:?}", cave_bounds);
       if !cave_bounds.is_empty() {
+        graphics::set_line_width(ctx, 4.0);
         graphics::line(ctx, cave_bounds.as_slice())?;
       }
     } else {
-      let cave_bounds = boundary_points(&self.level.ca_boundary);
+      let cave_bounds = self.boundary_points(&self.level.ca_boundary);
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
 
@@ -70,20 +78,24 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
         for room in &self.level.rooms {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
-          // TODO: Make rooms "drawable"
-          // TODO: Scaling is all wrong
-          let (rx, ry) =
-            self.level.wspace_to_uspace(room.center.x, room.center.y);
-          let drawps = DrawParam { dest: Point::new(rx - 0.5, ry - 0.5),
-                                   scale: Point::new(
-            self.level.width,
-            self.level.height,
-          ),
-                                   ..Default::default() };
+          let rd = self.lspace_to_sspace(room.center);
+          println!("{:?}", room);
+          println!("{:?}", rd);
+          let drawps =
+            DrawParam { dest: rd,
+                        scale: self.lspace_to_sspace(Point::new(1.0, 1.0)),
+                        ..Default::default() };
           room.draw_ex(ctx, drawps)?;
         }
       }
     }
+
+    // TODO : Remove is test
+    graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
+    let player_d = self.lspace_to_sspace(self.level.middle());
+    let drawps = DrawParam { dest: player_d,
+                             ..Default::default() };
+    graphics::draw_ex(ctx, &self.player, drawps)?;
 
     graphics::present(ctx);
     // And sleep for 0 seconds.
@@ -112,12 +124,41 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 }
 
 impl<'a> LevelRenderer<'a> {
-  pub fn new(level: &'a mut Level) -> LevelRenderer<'a> {
+  pub fn new(level: &'a mut Level, ctx: &mut Context) -> LevelRenderer<'a> {
+    let font = graphics::Font::new(ctx, "/consola.ttf", 16).unwrap();
+    let assets = Assets { font: font };
+    let p = graphics::Text::new(ctx, "@", &assets.font).unwrap();
     LevelRenderer { level: level,
-                    fastmode: false, }
+                    fastmode: false,
+                    screen_x: ctx.conf.window_width as f32,
+                    screen_y: ctx.conf.window_height as f32,
+                    assets: assets,
+                    player: p, }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
+
+  fn boundary_points(&self, boundary: &Vec<(i32, i32)>) -> Vec<Point> {
+    boundary.iter()
+            .map(|&(x, y)| {
+      // TODO: Well this is horrible
+      self.lspace_to_sspace(
+        self.level.uspace_to_wspace(ca_to_uspace(x as usize, y as usize)),
+      )
+    })
+            .collect::<Vec<Point>>()
+  }
+
+  fn lspace_to_sspace(&self, p: Point) -> Point {
+    let p = self.level.wspace_to_uspace(p);
+    let sx = self.screen_x;
+    let sy = self.screen_y;
+    Point::new((p.x * sx).ceil(), (p.y * sy).ceil())
+  }
+
+  fn middle(&self) -> Point {
+    Point::new(self.screen_x / 2.0, self.screen_y / 2.0)
+  }
 }
 
 /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
@@ -139,13 +180,7 @@ fn cave_ca_img(cell_grid: &CellGrid) -> [u8; CA_W * CA_H * 4] {
 
 /// Converts cellular automata space to unit space
 fn ca_to_uspace(x: usize, y: usize) -> Point {
-  let xp = (x as f32) / (CA_W as f32) - 0.5;
-  let yp = (y as f32) / (CA_H as f32) - 0.5;
-  Point::new(xp * CA_RENDERSCALE, yp * CA_RENDERSCALE)
-}
-
-fn boundary_points(boundary: &Vec<(i32, i32)>) -> Vec<Point> {
-  boundary.iter()
-          .map(|&(x, y)| ca_to_uspace(x as usize, y as usize))
-          .collect::<Vec<Point>>()
+  let xp = (x as f32) / (CA_W as f32);
+  let yp = (y as f32) / (CA_H as f32);
+  Point::new(xp, yp)
 }

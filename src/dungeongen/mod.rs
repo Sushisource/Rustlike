@@ -8,6 +8,7 @@ mod rooms;
 use super::util::Meters;
 use self::direction::Direction;
 use self::rooms::Room;
+use self::ggez::graphics::Point;
 
 const CA_W: usize = 266;
 const CA_H: usize = 150;
@@ -54,6 +55,7 @@ impl Level {
         self.ca_boundary.push(back_to_first);
         true
       }
+      // TODO: Set bounds within which rooms should be placed after cave gen
       4 => self.tick_roomsim(),
       _ => false,
     };
@@ -232,7 +234,13 @@ impl Level {
     }
   }
 
-  fn wspace_to_uspace(&self, x: f32, y: f32) -> (f32, f32) {
-    (x / self.width, y / self.height)
+  fn wspace_to_uspace(&self, p: Point) -> Point {
+    Point::new(p.x / self.width, p.y / self.height)
   }
+
+  fn uspace_to_wspace(&self, p: Point) -> Point {
+    Point::new(p.x * self.width, p.y * self.height)
+  }
+
+  fn middle(&self) -> Point { Point::new(self.width / 2.0, self.height / 2.0) }
 }

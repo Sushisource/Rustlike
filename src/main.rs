@@ -3,7 +3,6 @@ extern crate ggez;
 use ggez::conf;
 use ggez::event;
 use ggez::Context;
-use ggez::graphics;
 
 mod dungeongen;
 mod util;
@@ -20,8 +19,7 @@ fn main() {
   let ctx = &mut Context::load_from_conf("roguelike", "ggez", c).unwrap();
 
   let mut level = Level::new();
-  let mut level_render = LevelRenderer::new(&mut level);
+  let mut level_render = LevelRenderer::new(&mut level, ctx);
 
-  graphics::set_screen_coordinates(ctx, -1.0, 1.0, -1.0, 1.0).unwrap();
   event::run(ctx, &mut level_render).unwrap();
 }
