@@ -9,7 +9,7 @@ use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
 use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode,
-                           Image, Point, Rect};
+                           Image, Point};
 use self::ggez::timer;
 
 use dungeongen::{CellGrid, Level, CA_H, CA_W};
@@ -68,13 +68,19 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
-          // TODO: Just a hack to make it easier to see if rooms are overlaping
-          let grayval = room.width % room.center.x as f32;
+          let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
           // TODO: Make rooms "drawable"
           // TODO: Scaling is all wrong
-          let r: Rect = room.into();
-          graphics::rectangle(ctx, DrawMode::Fill, r)?;
+          let (rx, ry) =
+            self.level.wspace_to_uspace(room.center.x, room.center.y);
+          let drawps = DrawParam { dest: Point::new(rx - 0.5, ry - 0.5),
+                                   scale: Point::new(
+            self.level.width,
+            self.level.height,
+          ),
+                                   ..Default::default() };
+          room.draw_ex(ctx, drawps)?;
         }
       }
     }
@@ -91,7 +97,8 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   // Handle key events.  These just map keyboard events
   // and alter our input state appropriately.
-  fn key_down_event(&mut self, keycode: Keycode, _keymod: Mod, _repeat: bool) {
+  fn key_down_event(&mut self, keycode: Keycode,
+                    _keymod: Mod, _repeat: bool) {
     match keycode {
       Keycode::Space => {
         self.stop_render();

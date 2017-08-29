@@ -4,7 +4,9 @@ extern crate rand;
 
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
-use self::ggez::graphics::{Point, Rect};
+use self::ggez::{Context, GameError};
+use self::ggez::graphics::{rectangle, DrawMode, DrawParam, Drawable, Point,
+                           Rect};
 
 use super::super::util::Meters;
 
@@ -45,6 +47,18 @@ impl Room {
     let r2: Rect = other.into();
     !(r2.left() > r1.right() || r2.right() < r1.left() ||
       r2.top() < r1.bottom() || r2.bottom() > r1.top())
+  }
+}
+
+impl Drawable for Room {
+  fn draw_ex(&self, ctx: &mut Context, param: DrawParam)
+             -> Result<(), GameError> {
+    let mut r: Rect = self.into();
+    r.x = param.dest.x;
+    r.y = param.dest.y;
+    r.w = r.w / param.scale.x;
+    r.h = r.h / param.scale.y;
+    rectangle(ctx, DrawMode::Fill, r)
   }
 }
 

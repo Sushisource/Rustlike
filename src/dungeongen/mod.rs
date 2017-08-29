@@ -231,4 +231,8 @@ impl Level {
       true
     }
   }
+
+  fn wspace_to_uspace(&self, x: f32, y: f32) -> (f32, f32) {
+    (x / self.width, y / self.height)
+  }
 }
