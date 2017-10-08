@@ -1,5 +1,6 @@
 extern crate ggez;
 extern crate rand;
+extern crate geo;
 
 pub mod level_renderer;
 pub mod direction;
@@ -8,12 +9,14 @@ mod rooms;
 use super::util::Meters;
 use self::direction::Direction;
 use self::rooms::Room;
-use self::ggez::graphics::Point;
+use self::geo::{MultiPoint};
+use self::geo::algorithm::boundingbox::BoundingBox;
 
 const CA_W: usize = 266;
 const CA_H: usize = 150;
 
 type CellGrid = [[bool; CA_H]; CA_W];
+type Point = self::geo::Point<f32>;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -32,7 +35,7 @@ pub struct Level {
 impl Level {
   pub fn new() -> Level {
     let ca_grid = Level::gen_cave();
-    Level { ca_grid: ca_grid,
+    Level { ca_grid,
             ca_boundary: Vec::new(),
             level_gen_finished: false,
             rooms: Vec::new(),
@@ -48,14 +51,12 @@ impl Level {
       1 => self.tick_cave_boundary(),
       2 => self.smooth_cave_boundary(),
       3 => {
-        // Make sure boundary is fully conected, and has a dot in the center
-        // to prepare for rendering as a triangle fan.
+        // Make sure boundary is fully conected
         // TODO: Move this part to renderer?
         let back_to_first = self.ca_boundary[0].clone();
         self.ca_boundary.push(back_to_first);
         true
       }
-      // TODO: Set bounds within which rooms should be placed after cave gen
       4 => self.tick_roomsim(),
       _ => false,
     };
@@ -217,12 +218,21 @@ impl Level {
   }
 
   fn tick_roomsim(&mut self) -> bool {
+    // Room centers should be within the bounding box of the cave
+    let cavebf: Vec<Point> = self.ca_boundary.iter()
+      .map(|&(x, y)| self.uspace_to_wspace(ca_to_uspace(x,y))).collect();
+    let caveb: MultiPoint<_> = cavebf.into();
+    let cave_bb = caveb.bbox().unwrap();
+    println!("BBox {:?}", cave_bb);
     if self.rooms.len() < 20 {
       loop {
         let room = Room::new_rand((0.0, self.width), (0.0, self.height));
         let avoids_other_rooms =
           self.rooms.iter().all(|ref r| !room.intersects(r));
-        if avoids_other_rooms {
+        let in_cave = room.center.x < cave_bb.xmax && room.center.x > cave_bb.xmin
+                      && room.center.y < cave_bb.ymax && room.center.y > cave_bb.ymin;
+        if avoids_other_rooms && in_cave {
+          println!("Room {:?}", room);
           self.rooms.push(room);
           break;
         }
@@ -234,13 +244,22 @@ impl Level {
     }
   }
 
+  /// Converts world space to unit space
   fn wspace_to_uspace(&self, p: Point) -> Point {
-    Point::new(p.x / self.width, p.y / self.height)
+    Point::new(p.x() / self.width, p.y() / self.height)
   }
 
+  /// Converts unit space to world space
   fn uspace_to_wspace(&self, p: Point) -> Point {
-    Point::new(p.x * self.width, p.y * self.height)
+    Point::new(p.x() * self.width, p.y() * self.height)
   }
 
   fn middle(&self) -> Point { Point::new(self.width / 2.0, self.height / 2.0) }
+}
+
+/// Converts cellular automata space to unit space
+fn ca_to_uspace(x: i32, y: i32) -> Point {
+  let xp = (x as f32) / (CA_W as f32);
+  let yp = (y as f32) / (CA_H as f32);
+  Point::new(xp, yp)
 }

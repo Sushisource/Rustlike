@@ -19,9 +19,9 @@ pub struct Room {
 
 impl Room {
   pub fn new(center: Point, width: Meters, height: Meters) -> Room {
-    Room { center: center,
-           width: width,
-           height: height, }
+    Room { center,
+           width,
+           height, }
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
