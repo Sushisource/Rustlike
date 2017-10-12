@@ -50,9 +50,9 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
     graphics::clear(ctx);
 
-    // In the first 4 stages we draw the CA evolution and the boundary
-    if self.level.gen_stage <= 3 {
-      let ca_img_a = cave_ca_img(&self.level.ca_grid);
+    // In the stage 0 we draw the CA evolution and the boundary
+    if self.level.gen_stage == 0 {
+      let ca_img_a = cave_ca_img(&self.level.cave_sim.ca_grid);
       let mut img =
         Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
       let params = DrawParam { scale: Point::new(
@@ -65,13 +65,14 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       img.set_filter(FilterMode::Nearest);
       img.draw_ex(ctx, params)?;
       // Boundary drawing
-      let cave_bounds = self.boundary_points(&self.level.ca_boundary);
+      let cave_bounds = self.boundary_points(&self.level.cave_sim.ca_boundary);
       if !cave_bounds.is_empty() {
         graphics::set_line_width(ctx, 4.0);
         graphics::line(ctx, cave_bounds.as_slice())?;
       }
     } else {
-      let cave_bounds = self.boundary_points(&self.level.ca_boundary);
+      // Next stage, we render the cave as a polygon and place rooms
+      let cave_bounds = self.boundary_points(&self.level.cave_sim.ca_boundary);
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
 
@@ -80,8 +81,6 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
           let rd = self.room_to_sspace(room.center);
-//          println!("{:?}", room);
-//          println!("{:?}", rd);
           let drawps =
             DrawParam { dest: rd,
                         scale: self.lspace_to_sspace(LevelPoint::new(1.0, 1.0)),
@@ -91,7 +90,7 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       }
     }
 
-    // TODO : Remove is test
+    // TODO: Remove is test
     graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
     let player_d = self.lspace_to_sspace(self.level.middle());
     let drawps = DrawParam { dest: player_d,
