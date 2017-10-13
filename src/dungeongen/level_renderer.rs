@@ -3,20 +3,23 @@ extern crate nalgebra;
 extern crate rand;
 extern crate time;
 
+use std;
 use std::time::Duration;
 use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode,
-                           Image, Point};
+use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, Point};
 use self::ggez::timer;
 
 use dungeongen;
-use dungeongen::{CellGrid, Level, CA_H, CA_W};
+use dungeongen::Level;
+use dungeongen::geo::prelude::MapCoords;
 
-const CA_RENDERSCALE: f32 = 1.0;
 type LevelPoint = dungeongen::Point;
+
+#[derive(Copy, Clone, Debug)]
+pub struct DrawablePt(pub LevelPoint);
 
 struct Assets {
   font: graphics::Font,
@@ -52,35 +55,22 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
     // In the stage 0 we draw the CA evolution and the boundary
     if self.level.gen_stage == 0 {
-      let ca_img_a = cave_ca_img(&self.level.cave_sim.ca_grid);
-      let mut img =
-        Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
-      let params = DrawParam { scale: Point::new(
-        CA_RENDERSCALE / CA_W as f32 * self.screen_x,
-        CA_RENDERSCALE / CA_H as f32 * self.screen_y,
-      ),
-                               dest: self.middle(),
-                               ..Default::default() };
-      // Don't make my pixels all blurry
-      img.set_filter(FilterMode::Nearest);
-      img.draw_ex(ctx, params)?;
-      // Boundary drawing
-      let cave_bounds = self.boundary_points(
-        &self.level.cave_sim.uspace_boundary());
-      if !cave_bounds.is_empty() {
-        graphics::set_line_width(ctx, 4.0);
-        graphics::line(ctx, cave_bounds.as_slice())?;
-      }
+      let params = DrawParam {
+        scale: Point::new(self.screen_x, self.screen_y),
+        dest: self.middle(),
+        ..Default::default()
+      };
+      &self.level.cave_sim.draw_evolution(ctx, params);
     } else {
       // Next stage, we render the cave as a polygon and place rooms
-      let cave_bounds = self.boundary_points(
+      let cave_bounds = self.upts_to_sspace(
         &self.level.cave_sim.uspace_boundary());
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
 
       if self.level.obstacles.len() > 0 {
         for obstacle in &self.level.obstacles {
-          let boundary = self.boundary_points(&obstacle.uspace_boundary());
+          let boundary = self.upts_to_sspace(&obstacle.uspace_boundary());
           graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
           graphics::polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
         }
@@ -92,9 +82,11 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
           let rd = self.room_to_sspace(room.center);
           let drawps =
-            DrawParam { dest: rd,
-                        scale: self.lspace_to_sspace(LevelPoint::new(1.0, 1.0)),
-                        ..Default::default() };
+            DrawParam {
+              dest: rd,
+              scale: self.lspace_to_sspace(LevelPoint::new(1.0, 1.0)),
+              ..Default::default()
+            };
           room.draw_ex(ctx, drawps)?;
         }
       }
@@ -103,8 +95,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     // TODO: Remove is test
     graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
     let player_d = self.lspace_to_sspace(self.level.middle());
-    let drawps = DrawParam { dest: player_d,
-                             ..Default::default() };
+    let drawps = DrawParam {
+      dest: player_d,
+      ..Default::default()
+    };
     graphics::draw_ex(ctx, &self.player, drawps)?;
 
     graphics::present(ctx);
@@ -138,35 +132,36 @@ impl<'a> LevelRenderer<'a> {
     let font = graphics::Font::new(ctx, "/consola.ttf", 16).unwrap();
     let assets = Assets { font };
     let p = graphics::Text::new(ctx, "@", &assets.font).unwrap();
-    LevelRenderer { level,
-                    fastmode: false,
-                    screen_x: ctx.conf.window_width as f32,
-                    screen_y: ctx.conf.window_height as f32,
-                    assets,
-                    player: p, }
+    LevelRenderer {
+      level,
+      fastmode: false,
+      screen_x: ctx.conf.window_width as f32,
+      screen_y: ctx.conf.window_height as f32,
+      assets,
+      player: p,
+    }
   }
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 
   // TODO: This needs to be moved?
-  fn boundary_points(&self, boundary: &Vec<LevelPoint>) -> Vec<Point> {
-    boundary.iter()
-            .map(|&p| {
-              // TODO: This is ugly
-              self.lspace_to_sspace(self.level.uspace_to_wspace(p),
-              )
-            })
-            .collect::<Vec<Point>>()
+  pub fn upts_to_sspace(&self, boundary: &Vec<LevelPoint>) -> Vec<Point> {
+    boundary.iter().map(|&p| {
+      self.uspace_to_sspace(p)
+    }).collect::<Vec<Point>>()
   }
 
   fn room_to_sspace(&self, p: Point) -> Point {
     self.lspace_to_sspace(LevelPoint::new(p.x, p.y))
   }
-  fn lspace_to_sspace(&self, p: LevelPoint) -> Point {
-    let p = self.level.wspace_to_uspace(p);
+  fn uspace_to_sspace(&self, p: LevelPoint) -> Point {
     let sx = self.screen_x;
     let sy = self.screen_y;
-    Point::new((p.x() * sx).ceil(), (p.y() * sy).ceil())
+    Point::new(p.x() * sx, p.y() * sy)
+  }
+  fn lspace_to_sspace(&self, p: LevelPoint) -> Point {
+    let p = self.level.wspace_to_uspace(p);
+    self.uspace_to_sspace(p)
   }
 
   fn middle(&self) -> Point {
@@ -174,19 +169,29 @@ impl<'a> LevelRenderer<'a> {
   }
 }
 
-/// Converts the cave CA sim to a 1d array of RGBA 8 bit values
-fn cave_ca_img(cell_grid: &CellGrid) -> [u8; CA_W * CA_H * 4] {
-  let mut img = [0; CA_W * CA_H * 4];
-  for x in 0..(CA_W - 1) {
-    for y in 0..(CA_H - 1) {
-      if cell_grid[x][y] {
-        let i = (CA_W * y + x) * 4;
-        img[i] = 0xAF;
-        img[i + 1] = 0xAF;
-        img[i + 2] = 0xAF;
-        img[i + 3] = 0xFF;
-      }
-    }
+// Sorta lame that we have to do this b/c can't implement traits for non-crate
+// types
+impl From<DrawablePt> for Point {
+  fn from(dp: DrawablePt) -> Self {
+    let DrawablePt(p) = dp;
+    Point::new(p.x(), p.y())
   }
-  img
+}
+
+impl std::ops::Mul for DrawablePt {
+  type Output = Self;
+
+  fn mul(self, rhs: Self) -> Self {
+    let DrawablePt(p) = self;
+    let DrawablePt(p2) = rhs;
+    DrawablePt(LevelPoint::new(p.x() * p2.x(), p.y() * p2.y()))
+  }
+}
+
+impl DrawablePt {
+  /// Truncates floating point numbers to avoid rendering artifacts
+  pub fn snap(&self) -> Self {
+    let DrawablePt(p) = *self;
+    DrawablePt(p.map_coords(&|&(x, y)| (x.ceil(), y.ceil())))
+  }
 }

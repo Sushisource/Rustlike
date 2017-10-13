@@ -12,11 +12,7 @@ use self::geo::algorithm::boundingbox::BoundingBox;
 use super::util::Meters;
 use self::rooms::Room;
 use self::ca_simulator::CASim;
-// TODO: Dedupe inside casim
-const CA_W: usize = 266;
-const CA_H: usize = 150;
 
-type CellGrid = [[bool; CA_H]; CA_W];
 type Point = self::geo::Point<f32>;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
@@ -90,9 +86,9 @@ impl Level {
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
     // TODO: Is scaled, but drawn in corner
-    let mut testPond = CASim::new(0.1);
-    testPond.generate();
-    self.obstacles.push(testPond);
+    let mut test_pond = CASim::new(0.1);
+    test_pond.generate();
+    self.obstacles.push(test_pond);
     true
   }
 

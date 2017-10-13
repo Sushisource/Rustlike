@@ -4,7 +4,7 @@ extern crate rand;
 
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
-use self::ggez::{Context, GameError};
+use self::ggez::{Context, GameResult};
 use self::ggez::graphics::{rectangle, DrawMode, DrawParam, Drawable, Point,
                            Rect};
 
@@ -12,6 +12,7 @@ use super::super::util::Meters;
 
 #[derive(Debug)]
 pub struct Room {
+  // TODO: Should be geo point, use ggez point in render part
   pub center: Point,
   pub width: f32,
   pub height: f32,
@@ -52,7 +53,7 @@ impl Room {
 
 impl Drawable for Room {
   fn draw_ex(&self, ctx: &mut Context, param: DrawParam)
-             -> Result<(), GameError> {
+             -> GameResult<()> {
     let mut r: Rect = self.into();
     r.x = param.dest.x;
     r.y = param.dest.y;

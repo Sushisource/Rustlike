@@ -1,7 +1,14 @@
 extern crate rand;
+extern crate ggez;
+
+use self::ggez::{Context, GameResult};
+use self::ggez::graphics;
+use self::ggez::graphics::{DrawParam, Drawable, FilterMode, Image};
+use self::ggez::graphics::Point as GPoint;
 
 use super::direction::Direction;
 use super::Point;
+use super::level_renderer::DrawablePt;
 
 const CA_W: usize = 266;
 const CA_H: usize = 150;
@@ -215,4 +222,60 @@ impl CASim {
     };
     count
   }
+
+  // GRAPHICS =================================================================
+  // Not really sure it's good practice to put this here, but I can't put it
+  // in Drawable impl.
+  pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam)
+                        -> GameResult<()> {
+    let ca_img_a = self.cave_ca_img(&self.ca_grid);
+    let screen_scale = DrawablePt(Point::new(param.scale.x, param.scale.y));
+    let scalept = DrawablePt(
+      Point::new(1.0 / CA_W as f32, 1.0 / CA_H as f32)) * screen_scale;
+    let mut img = Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
+    let mut scaled_params = param.clone();
+    scaled_params.scale = scalept.into();
+    // Don't make my pixels all blurry
+    img.set_filter(FilterMode::Nearest);
+    img.draw_ex(ctx, scaled_params)?;
+
+    // Boundary drawing
+    let cave_bounds: Vec<GPoint> = self.uspace_boundary().iter()
+                                       .map(|&p| {
+                                         let scaled = (DrawablePt(p) * screen_scale).snap();
+                                         scaled.into()
+                                       })
+                                       .collect();
+    if !cave_bounds.is_empty() {
+      graphics::set_line_width(ctx, 4.0);
+      graphics::line(ctx, cave_bounds.as_slice())?;
+    }
+    Ok(())
+  }
+
+  /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
+  fn cave_ca_img(&self, cell_grid: &CellGrid) -> [u8; CA_W * CA_H * 4] {
+    let mut img = [0; CA_W * CA_H * 4];
+    for x in 0..(CA_W - 1) {
+      for y in 0..(CA_H - 1) {
+        if cell_grid[x][y] {
+          let i = (CA_W * y + x) * 4;
+          img[i] = 0xAF;
+          img[i + 1] = 0xAF;
+          img[i + 2] = 0xAF;
+          img[i + 3] = 0xFF;
+        }
+      }
+    }
+    img
+  }
 }
+
+//impl Drawable for CASim {
+//  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+//    //    let boundary = self.upts_to_sspace(&obstacle.uspace_boundary());
+//    //    graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
+//    //    graphics::polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
+//    Ok(())
+//  }
+//}
