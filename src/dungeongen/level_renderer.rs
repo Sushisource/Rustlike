@@ -13,7 +13,7 @@ use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode,
 use self::ggez::timer;
 
 use dungeongen;
-use dungeongen::{CellGrid, Level, CA_H, CA_W, ca_to_uspace};
+use dungeongen::{CellGrid, Level, CA_H, CA_W};
 
 const CA_RENDERSCALE: f32 = 1.0;
 type LevelPoint = dungeongen::Point;
@@ -65,16 +65,26 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       img.set_filter(FilterMode::Nearest);
       img.draw_ex(ctx, params)?;
       // Boundary drawing
-      let cave_bounds = self.boundary_points(&self.level.cave_sim.ca_boundary);
+      let cave_bounds = self.boundary_points(
+        &self.level.cave_sim.uspace_boundary());
       if !cave_bounds.is_empty() {
         graphics::set_line_width(ctx, 4.0);
         graphics::line(ctx, cave_bounds.as_slice())?;
       }
     } else {
       // Next stage, we render the cave as a polygon and place rooms
-      let cave_bounds = self.boundary_points(&self.level.cave_sim.ca_boundary);
+      let cave_bounds = self.boundary_points(
+        &self.level.cave_sim.uspace_boundary());
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
+
+      if self.level.obstacles.len() > 0 {
+        for obstacle in &self.level.obstacles {
+          let boundary = self.boundary_points(&obstacle.uspace_boundary());
+          graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
+          graphics::polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
+        }
+      }
 
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
@@ -138,12 +148,12 @@ impl<'a> LevelRenderer<'a> {
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 
-  fn boundary_points(&self, boundary: &Vec<(i32, i32)>) -> Vec<Point> {
+  // TODO: This needs to be moved?
+  fn boundary_points(&self, boundary: &Vec<LevelPoint>) -> Vec<Point> {
     boundary.iter()
-            .map(|&(x, y)| {
+            .map(|&p| {
               // TODO: This is ugly
-              self.lspace_to_sspace(self.level.uspace_to_wspace(
-                ca_to_uspace(x, y)),
+              self.lspace_to_sspace(self.level.uspace_to_wspace(p),
               )
             })
             .collect::<Vec<Point>>()

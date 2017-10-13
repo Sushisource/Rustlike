@@ -1,6 +1,7 @@
 extern crate rand;
 
 use super::direction::Direction;
+use super::Point;
 
 const CA_W: usize = 266;
 const CA_H: usize = 150;
@@ -11,6 +12,7 @@ type CellGrid = [[bool; CA_H]; CA_W];
 pub struct CASim {
   pub ca_grid: CellGrid,
   pub ca_boundary: Vec<(i32, i32)>,
+  scale: f32,
   gen_stage: u8,
   bounds_last_dir: Direction
 }
@@ -30,15 +32,21 @@ fn gen_cave() -> [[bool; CA_H]; CA_W] {
   ca_grid
 }
 
+// TODO: Make this drawable?
 impl CASim {
-  pub fn new() -> CASim {
+  pub fn new(scale: f32) -> CASim {
     let ca_grid = gen_cave();
     CASim {
       ca_grid,
       ca_boundary: Vec::new(),
+      scale,
       gen_stage: 0,
       bounds_last_dir: Direction::SouthEast
     }
+  }
+
+  pub fn generate(&mut self) {
+    while !self.tick() {}
   }
 
   pub fn tick(&mut self) -> bool {
@@ -59,6 +67,15 @@ impl CASim {
       self.gen_stage += 1
     }
     self.gen_stage > 3
+  }
+
+  /// Converts cellular automata space to unit space
+  pub fn uspace_boundary(&self) -> Vec<Point> {
+    self.ca_boundary.iter().map(|&(x, y)| {
+      let xp = (x as f32) / (CA_W as f32) * self.scale;
+      let yp = (y as f32) / (CA_H as f32) * self.scale;
+      Point::new(xp, yp)
+    }).collect()
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -168,7 +185,7 @@ impl CASim {
     growth_done
   }
 
-  fn neighbor_count(&self, x: usize, y: usize) -> i32 {
+  fn neighbor_count(&self, x: usize, y: usize) -> u8 {
     let mut count = 0;
     if x >= 1 {
       if y >= 1 && self.ca_grid[x - 1][y - 1] {
