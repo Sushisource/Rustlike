@@ -3,7 +3,8 @@ extern crate ggez;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{DrawParam, Drawable, FilterMode, Image};
+use self::ggez::graphics::{DrawParam, Drawable, FilterMode, Image, DrawMode,
+                           Mesh};
 use self::ggez::graphics::Point as GPoint;
 
 use super::direction::Direction;
@@ -15,7 +16,6 @@ const CA_H: usize = 150;
 
 type CellGrid = [[bool; CA_H]; CA_W];
 
-// TODO: Make drawable?
 pub struct CASim {
   pub ca_grid: CellGrid,
   pub ca_boundary: Vec<(i32, i32)>,
@@ -39,7 +39,6 @@ fn gen_cave() -> [[bool; CA_H]; CA_W] {
   ca_grid
 }
 
-// TODO: Make this drawable?
 impl CASim {
   pub fn new(scale: f32) -> CASim {
     let ca_grid = gen_cave();
@@ -63,7 +62,6 @@ impl CASim {
       2 => self.smooth_cave_boundary(),
       3 => {
         // Make sure boundary is fully conected
-        // TODO: Move this part to renderer?
         let back_to_first = self.ca_boundary[0].clone();
         self.ca_boundary.push(back_to_first);
         true
@@ -83,6 +81,10 @@ impl CASim {
       let yp = (y as f32) / (CA_H as f32) * self.scale;
       Point::new(xp, yp)
     }).collect()
+  }
+
+  pub fn usapce_gboundary(&self) -> Vec<GPoint> {
+    self.uspace_boundary().into_iter().map(|p| DrawablePt(p).into()).collect()
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -240,12 +242,11 @@ impl CASim {
     img.draw_ex(ctx, scaled_params)?;
 
     // Boundary drawing
-    let cave_bounds: Vec<GPoint> = self.uspace_boundary().iter()
-                                       .map(|&p| {
-                                         let scaled = (DrawablePt(p) * screen_scale).snap();
-                                         scaled.into()
-                                       })
-                                       .collect();
+    let cave_bounds: Vec<GPoint> = self.uspace_boundary().iter().map(|&p| {
+      let scaled = (DrawablePt(p) * screen_scale).snap();
+      scaled.into()
+    }).collect();
+
     if !cave_bounds.is_empty() {
       graphics::set_line_width(ctx, 4.0);
       graphics::line(ctx, cave_bounds.as_slice())?;
@@ -271,11 +272,13 @@ impl CASim {
   }
 }
 
-//impl Drawable for CASim {
-//  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-//    //    let boundary = self.upts_to_sspace(&obstacle.uspace_boundary());
-//    //    graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
-//    //    graphics::polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
-//    Ok(())
-//  }
-//}
+impl Drawable for CASim {
+  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+    let boundary = self.usapce_gboundary();
+    // Width?
+    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, boundary.as_slice(),
+                                 0.0)?;
+    graphics::draw_ex(ctx, &mesh, param)?;
+    Ok(())
+  }
+}

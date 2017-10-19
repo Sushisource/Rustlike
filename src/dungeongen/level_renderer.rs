@@ -55,18 +55,14 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
     // In the stage 0 we draw the CA evolution and the boundary
     if self.level.gen_stage == 0 {
-      let params = DrawParam {
-        scale: Point::new(self.screen_x, self.screen_y),
-        dest: self.middle(),
-        ..Default::default()
-      };
-      &self.level.cave_sim.draw_evolution(ctx, params);
+      &self.level.cave_sim.draw_evolution(ctx, self.sscale());
     } else {
       // Next stage, we render the cave as a polygon and place rooms
-      let cave_bounds = self.upts_to_sspace(
-        &self.level.cave_sim.uspace_boundary());
+      let scale = self.uspace_to_sspace(LevelPoint::new(0.5, 0.5));
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
-      graphics::polygon(ctx, DrawMode::Fill, cave_bounds.as_slice())?;
+      // TODO: Not sure why I need to do half scale here? Coordinates 😤
+      self.level.cave_sim.draw_ex(
+        ctx, DrawParam { dest: Point::new(0.5, 0.5), ..self.sscale() })?;
 
       if self.level.obstacles.len() > 0 {
         for obstacle in &self.level.obstacles {
@@ -166,6 +162,14 @@ impl<'a> LevelRenderer<'a> {
 
   fn middle(&self) -> Point {
     Point::new(self.screen_x / 2.0, self.screen_y / 2.0)
+  }
+
+  fn sscale(&self) -> DrawParam {
+    DrawParam {
+      scale: Point::new(self.screen_x, self.screen_y),
+      dest: self.middle(),
+      ..Default::default()
+    }
   }
 }
 

@@ -5,6 +5,7 @@ pub mod level_renderer;
 pub mod direction;
 mod rooms;
 mod ca_simulator;
+mod blobstacle;
 
 use self::geo::MultiPoint;
 use self::geo::algorithm::boundingbox::BoundingBox;
