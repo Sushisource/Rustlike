@@ -1,5 +1,4 @@
 extern crate ggez;
-extern crate nalgebra;
 extern crate rand;
 extern crate time;
 
@@ -9,7 +8,7 @@ use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawMode, DrawParam, Drawable, Point};
+use self::ggez::graphics::{Color, DrawParam, Drawable, Point};
 use self::ggez::timer;
 
 use dungeongen;
@@ -58,19 +57,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       &self.level.cave_sim.draw_evolution(ctx, self.sscale());
     } else {
       // Next stage, we render the cave as a polygon and place rooms
-      let scale = self.uspace_to_sspace(LevelPoint::new(0.5, 0.5));
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       // TODO: Not sure why I need to do half scale here? Coordinates 😤
       self.level.cave_sim.draw_ex(
         ctx, DrawParam { dest: Point::new(0.5, 0.5), ..self.sscale() })?;
-
-      if self.level.obstacles.len() > 0 {
-        for obstacle in &self.level.obstacles {
-          let boundary = self.upts_to_sspace(&obstacle.uspace_boundary());
-          graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
-          graphics::polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
-        }
-      }
 
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
@@ -80,10 +70,18 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
           let drawps =
             DrawParam {
               dest: rd,
-              scale: self.lspace_to_sspace(LevelPoint::new(1.0, 1.0)),
+              scale: self.lscale(),
               ..Default::default()
             };
           room.draw_ex(ctx, drawps)?;
+        }
+      }
+
+      if self.level.obstacles.len() > 0 {
+        for obstacle in &self.level.obstacles {
+          graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
+          let dp = DrawParam { scale: self.lscale(), ..Default::default() };
+          obstacle.draw_ex(ctx, dp)?;
         }
       }
     }
@@ -140,13 +138,6 @@ impl<'a> LevelRenderer<'a> {
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 
-  // TODO: This needs to be moved?
-  pub fn upts_to_sspace(&self, boundary: &Vec<LevelPoint>) -> Vec<Point> {
-    boundary.iter().map(|&p| {
-      self.uspace_to_sspace(p)
-    }).collect::<Vec<Point>>()
-  }
-
   fn room_to_sspace(&self, p: Point) -> Point {
     self.lspace_to_sspace(LevelPoint::new(p.x, p.y))
   }
@@ -171,6 +162,10 @@ impl<'a> LevelRenderer<'a> {
       ..Default::default()
     }
   }
+
+  fn lscale(&self) -> Point {
+    self.lspace_to_sspace(LevelPoint::new(1.0, 1.0))
+  }
 }
 
 // Sorta lame that we have to do this b/c can't implement traits for non-crate
@@ -179,6 +174,12 @@ impl From<DrawablePt> for Point {
   fn from(dp: DrawablePt) -> Self {
     let DrawablePt(p) = dp;
     Point::new(p.x(), p.y())
+  }
+}
+
+impl From<Point> for DrawablePt {
+  fn from(dp: Point) -> Self {
+    DrawablePt(LevelPoint::new(dp.x, dp.y))
   }
 }
 

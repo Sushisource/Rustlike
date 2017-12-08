@@ -1,3 +1,10 @@
+extern crate ggez;
+
+use self::ggez::{Context, GameResult};
+use self::ggez::graphics;
+use self::ggez::graphics::{DrawParam, Drawable};
+use super::level_renderer::DrawablePt;
+
 use super::ca_simulator::CASim;
 use super::Point;
 
@@ -9,7 +16,20 @@ pub struct Blobstacle {
 }
 
 impl Blobstacle {
-  pub fn new() -> Blobstacle {
-    Blobstacle { position: Point::new(0.0, 0.0), sim: CASim::new(0.1) }
+  pub fn new(pos: Point) -> Blobstacle {
+    // TODO: How is this number making any sense
+    let mut sim = CASim::new(15.1);
+    sim.generate();
+    Blobstacle { position: pos, sim }
+  }
+}
+
+impl Drawable for Blobstacle {
+  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+    // TODO: Draw properly centered (looks like it's using dest as upper-right)
+    let d = DrawablePt(self.position) * param.scale.into();
+    let repositioned = DrawParam { dest: d.into(), ..param };
+    graphics::draw_ex(ctx, &self.sim, repositioned)?;
+    Ok(())
   }
 }

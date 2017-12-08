@@ -1,5 +1,4 @@
 extern crate ggez;
-extern crate nalgebra as na;
 extern crate rand;
 
 use self::rand::{thread_rng, Rng};

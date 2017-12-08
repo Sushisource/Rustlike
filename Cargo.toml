@@ -7,6 +7,5 @@ authors = ["Spencer Judge <sushisource@gmail.com>"]
 ggez = "0.3"
 time = "0.1"
 rand = "*"
-nalgebra = "*"
 geo = "*"
 petgraph = "*"

@@ -144,7 +144,6 @@ impl CASim {
       }
     }
     if marked_ct >= 2 {
-      println!("Done drawing cave boundary");
       true
     } else {
       false
@@ -189,7 +188,6 @@ impl CASim {
           }
         }
       }
-      println!("Done simulating CA for cave");
     }
     growth_done
   }

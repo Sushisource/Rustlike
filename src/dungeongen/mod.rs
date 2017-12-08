@@ -13,6 +13,7 @@ use self::geo::algorithm::boundingbox::BoundingBox;
 use super::util::Meters;
 use self::rooms::Room;
 use self::ca_simulator::CASim;
+use self::blobstacle::Blobstacle;
 
 type Point = self::geo::Point<f32>;
 
@@ -23,7 +24,7 @@ pub struct Level {
   pub cave_sim: CASim,
   pub level_gen_finished: bool,
   pub rooms: Vec<Room>,
-  pub obstacles: Vec<CASim>,
+  pub obstacles: Vec<Blobstacle>,
   gen_stage: u8,
   width: Meters,
   height: Meters,
@@ -87,9 +88,12 @@ impl Level {
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
     // TODO: Is scaled, but drawn in corner
-    let mut test_pond = CASim::new(0.1);
-    test_pond.generate();
+    let test_pond = Blobstacle::new(self.middle());
+    let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
+    let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
     self.obstacles.push(test_pond);
+    self.obstacles.push(test_pond2);
+    self.obstacles.push(test_pond3);
     true
   }
 
