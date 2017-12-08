@@ -58,7 +58,6 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     } else {
       // Next stage, we render the cave as a polygon and place rooms
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
-      // TODO: Not sure why I need to do half scale here? Coordinates 😤
       self.level.cave_sim.draw_ex(
         ctx, DrawParam { dest: Point::new(0.5, 0.5), ..self.sscale() })?;
 

@@ -87,7 +87,6 @@ impl Level {
 
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
-    // TODO: Is scaled, but drawn in corner
     let test_pond = Blobstacle::new(self.middle());
     let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
     let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
