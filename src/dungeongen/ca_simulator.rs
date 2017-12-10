@@ -11,6 +11,8 @@ use super::direction::Direction;
 use super::Point;
 use super::level_renderer::DrawablePt;
 
+// TODO: These really need to be variable (main cave / blobstacles need
+// different aspect ratios)
 const CA_W: usize = 266;
 const CA_H: usize = 150;
 
@@ -75,16 +77,19 @@ impl CASim {
   }
 
   /// Converts cellular automata space to unit space
-  pub fn uspace_boundary(&self) -> Vec<Point> {
+  pub fn uspace_boundary(&self, shift: Point) -> Vec<Point> {
     self.ca_boundary.iter().map(|&(x, y)| {
-      let xp = (x as f32) / (CA_W as f32) * self.scale;
-      let yp = (y as f32) / (CA_H as f32) * self.scale;
+      let xp = ((x as f32) / (CA_W as f32) + shift.x()) * self.scale;
+      let yp = ((y as f32) / (CA_H as f32) + shift.y()) * self.scale;
       Point::new(xp, yp)
     }).collect()
   }
 
-  pub fn usapce_gboundary(&self) -> Vec<GPoint> {
-    self.uspace_boundary().into_iter().map(|p| DrawablePt(p).into()).collect()
+  pub fn uspace_gboundary(&self) -> Vec<GPoint> {
+    // We shift by a half because we want to draw the sim centered around
+    // the destination point.
+    self.uspace_boundary(Point::new(-0.5, -0.5)).into_iter()
+        .map(|p| DrawablePt(p).into()).collect()
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -239,15 +244,12 @@ impl CASim {
     img.set_filter(FilterMode::Nearest);
     img.draw_ex(ctx, scaled_params)?;
 
-    // Boundary drawing
-    let cave_bounds: Vec<GPoint> = self.uspace_boundary().iter().map(|&p| {
-      let scaled = (DrawablePt(p) * screen_scale).snap();
-      scaled.into()
-    }).collect();
-
+    let cave_bounds = self.uspace_gboundary();
     if !cave_bounds.is_empty() {
-      graphics::set_line_width(ctx, 4.0);
-      graphics::line(ctx, cave_bounds.as_slice())?;
+      // Line width also scales w/ draw param, so need to make it reasonable.
+      let line = Mesh::new_line(ctx, cave_bounds.as_slice(),
+                                4.0 / param.scale.x)?;
+      graphics::draw_ex(ctx, &line, param)?;
     }
     Ok(())
   }
@@ -272,8 +274,7 @@ impl CASim {
 
 impl Drawable for CASim {
   fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-    let boundary = self.usapce_gboundary();
-    // Width?
+    let boundary = self.uspace_gboundary();
     let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, boundary.as_slice(),
                                  0.0)?;
     graphics::draw_ex(ctx, &mesh, param)?;

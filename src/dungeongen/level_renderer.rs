@@ -58,8 +58,7 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     } else {
       // Next stage, we render the cave as a polygon and place rooms
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
-      self.level.cave_sim.draw_ex(
-        ctx, DrawParam { dest: Point::new(0.5, 0.5), ..self.sscale() })?;
+      self.level.cave_sim.draw_ex(ctx, self.sscale())?;
 
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
@@ -78,7 +77,7 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
       if self.level.obstacles.len() > 0 {
         for obstacle in &self.level.obstacles {
-          graphics::set_color(ctx, Color::new(0.5, 0.5, 0.8, 1.0))?;
+          graphics::set_color(ctx, (227, 77, 40).into())?;
           let dp = DrawParam { scale: self.lscale(), ..Default::default() };
           obstacle.draw_ex(ctx, dp)?;
         }

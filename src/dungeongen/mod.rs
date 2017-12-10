@@ -62,8 +62,9 @@ impl Level {
 
   fn tick_roomsim(&mut self) -> bool {
     // Room centers should be within the bounding box of the cave
-    let cavebf: Vec<Point> = self.cave_sim.uspace_boundary().iter()
-                                 .map(|&p| self.uspace_to_wspace(p)).collect();
+    let cavebf: Vec<Point> = self.cave_sim.uspace_boundary(Point::new(0.0, 0.0))
+                                 .iter().map(|&p| self.uspace_to_wspace(p))
+                                 .collect();
     let caveb: MultiPoint<_> = cavebf.into();
     let cave_bb = caveb.bbox().unwrap();
     if self.rooms.len() < 20 {
