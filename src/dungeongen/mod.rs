@@ -33,7 +33,9 @@ pub struct Level {
 impl Level {
   pub fn new() -> Level {
     Level {
-      cave_sim: CASim::new(1.0),
+      // TODO: Right now the dimensions of this sim need to have the same ratio
+      // as the screen or it gets squished
+      cave_sim: CASim::new(266, 150, 1.0),
       level_gen_finished: false,
       rooms: Vec::new(),
       obstacles: Vec::new(),

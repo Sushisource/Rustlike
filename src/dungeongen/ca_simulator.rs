@@ -11,28 +11,25 @@ use super::direction::Direction;
 use super::Point;
 use super::level_renderer::DrawablePt;
 
-// TODO: These really need to be variable (main cave / blobstacles need
-// different aspect ratios)
-const CA_W: usize = 266;
-const CA_H: usize = 150;
-
-type CellGrid = [[bool; CA_H]; CA_W];
+type CellGrid = Vec<Vec<bool>>;
 
 pub struct CASim {
   pub ca_grid: CellGrid,
   pub ca_boundary: Vec<(i32, i32)>,
+  width: usize,
+  height: usize,
   scale: f32,
   gen_stage: u8,
-  bounds_last_dir: Direction
+  bounds_last_dir: Direction,
 }
 
-fn gen_cave() -> [[bool; CA_H]; CA_W] {
-  let mut ca_grid = [[false; CA_H]; CA_W];
+fn gen_cave(width: usize, height: usize) -> CellGrid {
+  let mut ca_grid = vec![vec![false; height]; width];
   // First populate a random box in the middle of the grid
-  let inner_box_w = CA_W / 4;
-  let inner_box_h = CA_H / 4;
-  let left_edge = (CA_W / 2) - (inner_box_w / 2);
-  let top_edge = (CA_H / 2) - (inner_box_h / 2);
+  let inner_box_w = width / 4;
+  let inner_box_h = height / 4;
+  let left_edge = (width / 2) - (inner_box_w / 2);
+  let top_edge = (height / 2) - (inner_box_h / 2);
   for x in left_edge..(inner_box_w + left_edge) {
     for y in top_edge..(inner_box_h + top_edge) {
       ca_grid[x][y] = rand::random();
@@ -42,14 +39,16 @@ fn gen_cave() -> [[bool; CA_H]; CA_W] {
 }
 
 impl CASim {
-  pub fn new(scale: f32) -> CASim {
-    let ca_grid = gen_cave();
+  pub fn new(width: usize, height: usize, scale: f32) -> CASim {
+    let ca_grid = gen_cave(width, height);
     CASim {
       ca_grid,
       ca_boundary: Vec::new(),
+      width,
+      height,
       scale,
       gen_stage: 0,
-      bounds_last_dir: Direction::SouthEast
+      bounds_last_dir: Direction::SouthEast,
     }
   }
 
@@ -79,8 +78,8 @@ impl CASim {
   /// Converts cellular automata space to unit space
   pub fn uspace_boundary(&self, shift: Point) -> Vec<Point> {
     self.ca_boundary.iter().map(|&(x, y)| {
-      let xp = ((x as f32) / (CA_W as f32) + shift.x()) * self.scale;
-      let yp = ((y as f32) / (CA_H as f32) + shift.y()) * self.scale;
+      let xp = ((x as f32) / (self.width as f32) + shift.x()) * self.scale;
+      let yp = ((y as f32) / (self.height as f32) + shift.y()) * self.scale;
       Point::new(xp, yp)
     }).collect()
   }
@@ -101,14 +100,15 @@ impl CASim {
     true
   }
 
+  // TODO: This can get stuck
   fn tick_cave_boundary(&mut self) -> bool {
     // Inspect grid, starting top left and work around clockwise building poly
     let mut cur_cell = (0, 0);
     // First I move in from the corner until I hit a cell, if this is the first
     // tick.
     if self.ca_boundary.is_empty() {
-      'out: for x in 0..(CA_W - 1) {
-        for y in 0..(CA_H - 1) {
+      'out: for x in 0..(self.width - 1) {
+        for y in 0..(self.height - 1) {
           if self.ca_grid[x][y] {
             cur_cell = (x as i32, y as i32);
             break 'out;
@@ -133,15 +133,14 @@ impl CASim {
     for dir in dirs {
       let cur_pt = dir.dir_from_tup(cur_cell);
       // Bounds check, followed by cell present check
-      let in_width = cur_pt.0 >= 0 && cur_pt.0 <= CA_W as i32;
-      let in_height = cur_pt.1 >= 0 && cur_pt.1 <= CA_H as i32;
+      let in_width = cur_pt.0 >= 0 && cur_pt.0 <= self.width as i32;
+      let in_height = cur_pt.1 >= 0 && cur_pt.1 <= self.height as i32;
       let not_marked = !self.ca_boundary.contains(&cur_pt);
       if !not_marked {
         marked_ct += 1;
       }
       if in_width && in_height &&
-        self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] &&
-        not_marked {
+        self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
         cur_cell = cur_pt;
         self.ca_boundary.push(cur_cell);
         self.bounds_last_dir = dir.clone();
@@ -158,10 +157,10 @@ impl CASim {
 
   fn tick_ca_sim(&mut self) -> bool {
     let mut growth_done = false;
-    let mut ca_grid_next = [[false; CA_H]; CA_W];
+    let mut ca_grid_next = vec![vec![false; self.height]; self.width];
     {
-      for x in 0..(CA_W - 1) {
-        for y in 0..(CA_H - 1) {
+      for x in 0..(self.width - 1) {
+        for y in 0..(self.height - 1) {
           let nc = self.neighbor_count(x, y);
           if self.ca_grid[x][y] {
             // Check for survival
@@ -175,7 +174,7 @@ impl CASim {
             ca_grid_next[x][y] = true;
             // Check if it was born at the boundary, which means the sim is
             // finished.
-            if x == 0 || x == CA_W - 1 || y == 0 || y == CA_H - 2 {
+            if x == 0 || x == self.width - 1 || y == 0 || y == self.height - 2 {
               growth_done = true;
             }
           }
@@ -185,8 +184,8 @@ impl CASim {
     self.ca_grid = ca_grid_next;
     if growth_done {
       // Trim all the "danglers" - these prevent boundary from forming
-      for x in 0..(CA_W - 1) {
-        for y in 0..(CA_H - 1) {
+      for x in 0..(self.width - 1) {
+        for y in 0..(self.height - 1) {
           let nc = self.neighbor_count(x, y);
           if nc == 1 || nc == 0 {
             self.ca_grid[x][y] = false;
@@ -236,8 +235,9 @@ impl CASim {
     let ca_img_a = self.cave_ca_img(&self.ca_grid);
     let screen_scale = DrawablePt(Point::new(param.scale.x, param.scale.y));
     let scalept = DrawablePt(
-      Point::new(1.0 / CA_W as f32, 1.0 / CA_H as f32)) * screen_scale;
-    let mut img = Image::from_rgba8(ctx, CA_W as u16, CA_H as u16, &ca_img_a)?;
+      Point::new(1.0 / self.width as f32, 1.0 / self.height as f32)) * screen_scale;
+    let mut img = Image::from_rgba8(ctx, self.width as u16,
+                                    self.height as u16, &ca_img_a)?;
     let mut scaled_params = param.clone();
     scaled_params.scale = scalept.into();
     // Don't make my pixels all blurry
@@ -255,12 +255,12 @@ impl CASim {
   }
 
   /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
-  fn cave_ca_img(&self, cell_grid: &CellGrid) -> [u8; CA_W * CA_H * 4] {
-    let mut img = [0; CA_W * CA_H * 4];
-    for x in 0..(CA_W - 1) {
-      for y in 0..(CA_H - 1) {
+  fn cave_ca_img(&self, cell_grid: &CellGrid) -> Vec<u8> {
+    let mut img = vec![0u8; self.width * self.height * 4];
+    for x in 0..(self.width - 1) {
+      for y in 0..(self.height - 1) {
         if cell_grid[x][y] {
-          let i = (CA_W * y + x) * 4;
+          let i = (self.width * y + x) * 4;
           img[i] = 0xAF;
           img[i + 1] = 0xAF;
           img[i + 2] = 0xAF;

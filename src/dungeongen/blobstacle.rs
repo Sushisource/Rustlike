@@ -19,7 +19,7 @@ impl Blobstacle {
   pub fn new(pos: Point) -> Blobstacle {
     // TODO: I think this number is effectively "blob width in world units"
     // But need to verify that.
-    let mut sim = CASim::new(20.0);
+    let mut sim = CASim::new(128, 128, 20.0);
     sim.generate();
     Blobstacle { position: pos, sim }
   }
