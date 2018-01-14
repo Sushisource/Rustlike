@@ -2,7 +2,7 @@ extern crate ggez;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{DrawParam, Drawable};
+use self::ggez::graphics::{DrawParam, Drawable, BlendMode};
 use super::level_renderer::DrawablePt;
 
 use super::ca_simulator::CASim;
@@ -32,5 +32,12 @@ impl Drawable for Blobstacle {
     let repositioned = DrawParam { dest: d.into(), ..param };
     graphics::draw_ex(ctx, &self.sim, repositioned)?;
     Ok(())
+  }
+  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
+    // Dodes nothing
+  }
+
+  fn get_blend_mode(&self) -> Option<BlendMode> {
+    None
   }
 }

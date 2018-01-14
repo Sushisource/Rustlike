@@ -4,7 +4,7 @@ version = "0.1.0"
 authors = ["Spencer Judge <sushisource@gmail.com>"]
 
 [dependencies]
-ggez = "0.3"
+ggez = "0.4"
 time = "0.1"
 rand = "*"
 geo = "*"

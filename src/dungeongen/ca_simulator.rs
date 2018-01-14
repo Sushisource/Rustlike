@@ -4,8 +4,8 @@ extern crate ggez;
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
 use self::ggez::graphics::{DrawParam, Drawable, FilterMode, Image, DrawMode,
-                           Mesh};
-use self::ggez::graphics::Point as GPoint;
+                           Mesh, BlendMode};
+use self::ggez::graphics::Point2 as GPoint;
 
 use super::direction::Direction;
 use super::Point;
@@ -240,6 +240,7 @@ impl CASim {
                                     self.height as u16, &ca_img_a)?;
     let mut scaled_params = param.clone();
     scaled_params.scale = scalept.into();
+    scaled_params.dest = GPoint::new(0.0, 0.0);
     // Don't make my pixels all blurry
     img.set_filter(FilterMode::Nearest);
     img.draw_ex(ctx, scaled_params)?;
@@ -275,9 +276,15 @@ impl CASim {
 impl Drawable for CASim {
   fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let boundary = self.uspace_gboundary();
-    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, boundary.as_slice(),
-                                 0.0)?;
+    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
     graphics::draw_ex(ctx, &mesh, param)?;
     Ok(())
+  }
+  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
+    // Does nothing
+  }
+
+  fn get_blend_mode(&self) -> Option<BlendMode> {
+    None
   }
 }

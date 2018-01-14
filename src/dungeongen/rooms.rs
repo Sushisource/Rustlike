@@ -4,21 +4,21 @@ extern crate rand;
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
-use self::ggez::graphics::{rectangle, DrawMode, DrawParam, Drawable, Point,
-                           Rect};
+use self::ggez::graphics::{rectangle, DrawMode, DrawParam, Drawable, Point2,
+                           Rect, BlendMode};
 
 use super::super::util::Meters;
 
 #[derive(Debug)]
 pub struct Room {
   // TODO: Should be geo point, use ggez point in render part
-  pub center: Point,
+  pub center: Point2,
   pub width: f32,
   pub height: f32,
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters) -> Room {
+  pub fn new(center: Point2, width: Meters, height: Meters) -> Room {
     Room { center,
            width,
            height, }
@@ -38,7 +38,7 @@ impl Room {
       sizer.ind_sample(&mut rng).abs().max(scaler / 30.0).min(scaler / 2.0) as
       f32
     };
-    Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
+    Room::new(Point2::new(c_x, c_y), get_siz(), get_siz())
   }
 
   /// Tests intersection with another room. Returns true if they intersect.
@@ -59,6 +59,13 @@ impl Drawable for Room {
     r.w *= param.scale.x;
     r.h *= param.scale.y;
     rectangle(ctx, DrawMode::Fill, r)
+  }
+  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
+    // Does nothing
+  }
+
+  fn get_blend_mode(&self) -> Option<BlendMode> {
+    None
   }
 }
 

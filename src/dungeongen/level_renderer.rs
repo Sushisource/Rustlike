@@ -8,7 +8,7 @@ use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam, Drawable, Point};
+use self::ggez::graphics::{Color, DrawParam, Drawable, Point2};
 use self::ggez::timer;
 
 use dungeongen;
@@ -34,8 +34,8 @@ pub struct LevelRenderer<'a> {
 }
 
 impl<'a> event::EventHandler for LevelRenderer<'a> {
-  fn update(&mut self, ctx: &mut Context, _dt: Duration) -> GameResult<()> {
-    const DESIRED_FPS: u64 = 60;
+  fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
+    const DESIRED_FPS: u32 = 60;
     if !timer::check_update_time(ctx, DESIRED_FPS) {
       return Ok(());
     }
@@ -105,7 +105,7 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   // Handle key events.  These just map keyboard events
   // and alter our input state appropriately.
-  fn key_down_event(&mut self, keycode: Keycode,
+  fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode,
                     _keymod: Mod, _repeat: bool) {
     match keycode {
       Keycode::Space => {
@@ -127,8 +127,8 @@ impl<'a> LevelRenderer<'a> {
     LevelRenderer {
       level,
       fastmode: false,
-      screen_x: ctx.conf.window_width as f32,
-      screen_y: ctx.conf.window_height as f32,
+      screen_x: ctx.conf.window_mode.width as f32,
+      screen_y: ctx.conf.window_mode.height as f32,
       assets,
       player: p,
     }
@@ -136,47 +136,47 @@ impl<'a> LevelRenderer<'a> {
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 
-  fn room_to_sspace(&self, p: Point) -> Point {
+  fn room_to_sspace(&self, p: Point2) -> Point2 {
     self.lspace_to_sspace(LevelPoint::new(p.x, p.y))
   }
-  fn uspace_to_sspace(&self, p: LevelPoint) -> Point {
+  fn uspace_to_sspace(&self, p: LevelPoint) -> Point2 {
     let sx = self.screen_x;
     let sy = self.screen_y;
-    Point::new(p.x() * sx, p.y() * sy)
+    Point2::new(p.x() * sx, p.y() * sy)
   }
-  fn lspace_to_sspace(&self, p: LevelPoint) -> Point {
+  fn lspace_to_sspace(&self, p: LevelPoint) -> Point2 {
     let p = self.level.wspace_to_uspace(p);
     self.uspace_to_sspace(p)
   }
 
-  fn middle(&self) -> Point {
-    Point::new(self.screen_x / 2.0, self.screen_y / 2.0)
+  fn middle(&self) -> Point2 {
+    Point2::new(self.screen_x / 2.0, self.screen_y / 2.0)
   }
 
   fn sscale(&self) -> DrawParam {
     DrawParam {
-      scale: Point::new(self.screen_x, self.screen_y),
+      scale: Point2::new(self.screen_x, self.screen_y),
       dest: self.middle(),
       ..Default::default()
     }
   }
 
-  fn lscale(&self) -> Point {
+  fn lscale(&self) -> Point2 {
     self.lspace_to_sspace(LevelPoint::new(1.0, 1.0))
   }
 }
 
 // Sorta lame that we have to do this b/c can't implement traits for non-crate
 // types
-impl From<DrawablePt> for Point {
+impl From<DrawablePt> for Point2 {
   fn from(dp: DrawablePt) -> Self {
     let DrawablePt(p) = dp;
-    Point::new(p.x(), p.y())
+    Point2::new(p.x(), p.y())
   }
 }
 
-impl From<Point> for DrawablePt {
-  fn from(dp: Point) -> Self {
+impl From<Point2> for DrawablePt {
+  fn from(dp: Point2) -> Self {
     DrawablePt(LevelPoint::new(dp.x, dp.y))
   }
 }
