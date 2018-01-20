@@ -51,25 +51,30 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
     graphics::clear(ctx);
+    let scaler = DrawParam {
+      scale: self.lscale(),
+      offset: Point2::new(0.5, 0.5),
+      ..Default::default()
+    };
 
     // In the stage 0 we draw the CA evolution and the boundary
     if self.level.gen_stage == 0 {
       &self.level.cave_sim.draw_evolution(ctx, self.sscale());
     } else {
+      graphics::pop_transform(ctx);
+      graphics::apply_transformations(ctx)?;
       // Next stage, we render the cave as a polygon and place rooms
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       self.level.cave_sim.draw_ex(ctx, self.sscale())?;
 
-      // TODO: Try out using set_transform
+      graphics::push_transform(ctx, Some(scaler.into_matrix()));
+      graphics::apply_transformations(ctx)?;
+
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
-          let drawps =
-            DrawParam {
-              scale: self.lscale(),
-              ..Default::default()
-            };
+          let drawps = DrawParam { ..Default::default() };
           room.draw_ex(ctx, drawps)?;
         }
       }
@@ -77,20 +82,22 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       if self.level.obstacles.len() > 0 {
         for obstacle in &self.level.obstacles {
           graphics::set_color(ctx, (227, 77, 40).into())?;
-          let dp = DrawParam { scale: self.lscale(), ..Default::default() };
+          let dp = DrawParam { ..Default::default() };
           obstacle.draw_ex(ctx, dp)?;
         }
       }
-    }
 
-    // TODO: Remove is test
-    graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
-    let player_d = self.lspace_to_sspace(self.level.middle());
-    let drawps = DrawParam {
-      dest: player_d,
-      ..Default::default()
-    };
-    graphics::draw_ex(ctx, &self.player, drawps)?;
+      // TODO: Remove is test
+      graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
+      let player_d: Point2 = DrawablePt(self.level.middle()).into();
+      let drawps = DrawParam {
+        dest: player_d,
+        scale: Point2::new(1.0, 1.0),
+        ..Default::default()
+      };
+      graphics::draw_ex(ctx, &self.player, drawps)?;
+
+    }
 
     graphics::present(ctx);
     // And sleep for 0 seconds.
