@@ -60,14 +60,13 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       self.level.cave_sim.draw_ex(ctx, self.sscale())?;
 
+      // TODO: Try out using set_transform
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
-          let rd = self.room_to_sspace(room.center);
           let drawps =
             DrawParam {
-              dest: rd,
               scale: self.lscale(),
               ..Default::default()
             };
@@ -136,9 +135,6 @@ impl<'a> LevelRenderer<'a> {
 
   pub fn stop_render(&mut self) -> () { self.level.level_gen_finished = true }
 
-  fn room_to_sspace(&self, p: Point2) -> Point2 {
-    self.lspace_to_sspace(LevelPoint::new(p.x, p.y))
-  }
   fn uspace_to_sspace(&self, p: LevelPoint) -> Point2 {
     let sx = self.screen_x;
     let sy = self.screen_y;

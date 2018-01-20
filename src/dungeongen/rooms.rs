@@ -19,9 +19,11 @@ pub struct Room {
 
 impl Room {
   pub fn new(center: Point2, width: Meters, height: Meters) -> Room {
-    Room { center,
-           width,
-           height, }
+    Room {
+      center,
+      width,
+      height,
+    }
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
@@ -36,7 +38,7 @@ impl Room {
     let sizer = Normal::new(scaler / 10.0, scaler / 20.0);
     let mut get_siz = || {
       sizer.ind_sample(&mut rng).abs().max(scaler / 30.0).min(scaler / 2.0) as
-      f32
+        f32
     };
     Room::new(Point2::new(c_x, c_y), get_siz(), get_siz())
   }
@@ -45,8 +47,8 @@ impl Room {
   pub fn intersects(&self, other: &Room) -> bool {
     let r1: Rect = self.into();
     let r2: Rect = other.into();
-    !(r2.left() > r1.right() || r2.right() < r1.left() ||
-      r2.top() < r1.bottom() || r2.bottom() > r1.top())
+    !(r1.left() > r2.right() || r1.right() < r2.left() ||
+      r1.top() > r2.bottom() || r1.bottom() < r2.top())
   }
 }
 
@@ -54,8 +56,8 @@ impl Drawable for Room {
   fn draw_ex(&self, ctx: &mut Context, param: DrawParam)
              -> GameResult<()> {
     let mut r: Rect = self.into();
-    r.x = param.dest.x;
-    r.y = param.dest.y;
+    r.x = self.center.x * param.scale.x;
+    r.y = self.center.y * param.scale.y;
     r.w *= param.scale.x;
     r.h *= param.scale.y;
     rectangle(ctx, DrawMode::Fill, r)
@@ -71,9 +73,11 @@ impl Drawable for Room {
 
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
-    Rect { x: r.center.x,
-           y: r.center.y,
-           w: r.width,
-           h: r.height, }
+    Rect {
+      x: r.center.x,
+      y: r.center.y,
+      w: r.width,
+      h: r.height,
+    }
   }
 }
