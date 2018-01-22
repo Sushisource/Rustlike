@@ -8,15 +8,16 @@ use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam, Drawable, Point2};
+use self::ggez::graphics::{Color, DrawParam, Drawable, Point2, Vector2};
 use self::ggez::timer;
 
 use dungeongen;
 use dungeongen::Level;
 use dungeongen::rooms::Room;
 use dungeongen::geo::prelude::MapCoords;
-use super::super::agents::player::Player;
-use super::super::util::Assets;
+use agents::player::Player;
+use agents::Agent;
+use util::Assets;
 
 type LevelPoint = dungeongen::Point;
 
@@ -113,6 +114,12 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
       Keycode::Plus | Keycode::KpPlus => {
         self.fastmode = !self.fastmode;
       }
+      Keycode::Up => {
+        self.player.trans(Vector2::new(0.0, -1.0));
+      }
+      Keycode::Down => {
+        self.player.trans(Vector2::new(0.0, 1.0));
+      }
       _ => (), // Do nothing
     }
   }
@@ -121,10 +128,10 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 impl<'a> LevelRenderer<'a> {
   pub fn new(level: &'a mut Level, ctx: &mut Context) -> LevelRenderer<'a> {
     let assets = Assets::new(ctx);
-    let player = Player::new(level.middle());
+    let player = Player::new(DrawablePt(level.middle()).into());
     LevelRenderer {
       level,
-      fastmode: false,
+      fastmode: true,
       screen_x: ctx.conf.window_mode.width as f32,
       screen_y: ctx.conf.window_mode.height as f32,
       assets,
