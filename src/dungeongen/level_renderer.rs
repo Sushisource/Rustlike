@@ -13,16 +13,12 @@ use self::ggez::timer;
 
 use dungeongen;
 use dungeongen::Level;
+use dungeongen::rooms::Room;
 use dungeongen::geo::prelude::MapCoords;
+use super::super::agents::player::Player;
+use super::super::util::Assets;
 
 type LevelPoint = dungeongen::Point;
-
-#[derive(Copy, Clone, Debug)]
-pub struct DrawablePt(pub LevelPoint);
-
-struct Assets {
-  font: graphics::Font,
-}
 
 pub struct LevelRenderer<'a> {
   level: &'a mut Level,
@@ -30,7 +26,7 @@ pub struct LevelRenderer<'a> {
   screen_x: f32,
   screen_y: f32,
   assets: Assets,
-  player: graphics::Text,
+  player: Player,
 }
 
 impl<'a> event::EventHandler for LevelRenderer<'a> {
@@ -51,6 +47,8 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
     graphics::clear(ctx);
+    graphics::set_transform(ctx, DrawParam::default().into_matrix());
+    graphics::apply_transformations(ctx)?;
     let scaler = DrawParam {
       scale: self.lscale(),
       offset: Point2::new(0.5, 0.5),
@@ -61,42 +59,37 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
     if self.level.gen_stage == 0 {
       &self.level.cave_sim.draw_evolution(ctx, self.sscale());
     } else {
-      graphics::pop_transform(ctx);
-      graphics::apply_transformations(ctx)?;
       // Next stage, we render the cave as a polygon and place rooms
       graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
       self.level.cave_sim.draw_ex(ctx, self.sscale())?;
 
-      graphics::push_transform(ctx, Some(scaler.into_matrix()));
+      graphics::set_transform(ctx, scaler.into_matrix());
       graphics::apply_transformations(ctx)?;
 
       if self.level.rooms.len() > 0 {
         for room in &self.level.rooms {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
-          let drawps = DrawParam { ..Default::default() };
-          room.draw_ex(ctx, drawps)?;
+          room.draw(ctx)?;
         }
       }
 
       if self.level.obstacles.len() > 0 {
         for obstacle in &self.level.obstacles {
           graphics::set_color(ctx, (227, 77, 40).into())?;
-          let dp = DrawParam { ..Default::default() };
-          obstacle.draw_ex(ctx, dp)?;
+          obstacle.draw(ctx)?;
         }
       }
+      // Test center room of one sq unit
+      let croom = Room::new(self.level.middle(), 1.0, 1.0);
+      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
+      croom.draw(ctx)?;
 
-      // TODO: Remove is test
+      graphics::set_transform(ctx, DrawParam::default().into_matrix());
+      graphics::apply_transformations(ctx)?;
+      // TODO: Create "world" and move player obj into there
       graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
-      let player_d: Point2 = DrawablePt(self.level.middle()).into();
-      let drawps = DrawParam {
-        dest: player_d,
-        scale: Point2::new(1.0, 1.0),
-        ..Default::default()
-      };
-      graphics::draw_ex(ctx, &self.player, drawps)?;
-
+      self.player.draw(ctx, &mut self.assets, scaler.scale)?;
     }
 
     graphics::present(ctx);
@@ -127,16 +120,15 @@ impl<'a> event::EventHandler for LevelRenderer<'a> {
 
 impl<'a> LevelRenderer<'a> {
   pub fn new(level: &'a mut Level, ctx: &mut Context) -> LevelRenderer<'a> {
-    let font = graphics::Font::new(ctx, "/consola.ttf", 16).unwrap();
-    let assets = Assets { font };
-    let p = graphics::Text::new(ctx, "@", &assets.font).unwrap();
+    let assets = Assets::new(ctx);
+    let player = Player::new(level.middle());
     LevelRenderer {
       level,
       fastmode: false,
       screen_x: ctx.conf.window_mode.width as f32,
       screen_y: ctx.conf.window_mode.height as f32,
       assets,
-      player: p,
+      player: player,
     }
   }
 
@@ -171,6 +163,9 @@ impl<'a> LevelRenderer<'a> {
 
 // Sorta lame that we have to do this b/c can't implement traits for non-crate
 // types
+#[derive(Copy, Clone, Debug)]
+pub struct DrawablePt(pub LevelPoint);
+
 impl From<DrawablePt> for Point2 {
   fn from(dp: DrawablePt) -> Self {
     let DrawablePt(p) = dp;
@@ -191,6 +186,15 @@ impl std::ops::Mul for DrawablePt {
     let DrawablePt(p) = self;
     let DrawablePt(p2) = rhs;
     DrawablePt(LevelPoint::new(p.x() * p2.x(), p.y() * p2.y()))
+  }
+}
+
+impl std::ops::Mul<Point2> for DrawablePt {
+  type Output = Self;
+
+  fn mul(self, rhs: Point2) -> Self {
+    let DrawablePt(p) = self;
+    DrawablePt(LevelPoint::new(p.x() * rhs.coords.x, p.y() * rhs.coords.y))
   }
 }
 

@@ -4,6 +4,7 @@ use ggez::{ContextBuilder, graphics, conf, event};
 
 mod dungeongen;
 mod util;
+mod agents;
 
 use dungeongen::Level;
 use dungeongen::level_renderer::LevelRenderer;

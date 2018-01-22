@@ -10,12 +10,10 @@ mod blobstacle;
 use self::geo::MultiPoint;
 use self::geo::algorithm::boundingbox::BoundingBox;
 
-use super::util::Meters;
+use super::util::{Meters, Point};
 use self::rooms::Room;
 use self::ca_simulator::CASim;
 use self::blobstacle::Blobstacle;
-
-type Point = self::geo::Point<f32>;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -40,8 +38,8 @@ impl Level {
       rooms: Vec::new(),
       obstacles: Vec::new(),
       gen_stage: 0,
-      width: 177.7,
-      height: 100.0,
+      width: 80.0,
+      height: 45.0,
     }
   }
 
@@ -74,8 +72,10 @@ impl Level {
         let room = Room::new_rand((0.0, self.width), (0.0, self.height));
         let avoids_other_rooms =
           self.rooms.iter().all(|ref r| !room.intersects(r));
-        let in_cave = room.center.x < cave_bb.xmax && room.center.x > cave_bb.xmin
-          && room.center.y < cave_bb.ymax && room.center.y > cave_bb.ymin;
+        let in_cave = room.center.x() < cave_bb.xmax && 
+                      room.center.x() > cave_bb.xmin &&
+                      room.center.y() < cave_bb.ymax &&
+                      room.center.y() > cave_bb.ymin;
         if avoids_other_rooms && in_cave {
           self.rooms.push(room);
           break;

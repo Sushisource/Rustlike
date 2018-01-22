@@ -2,7 +2,7 @@ extern crate ggez;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{DrawParam, Drawable, BlendMode};
+use self::ggez::graphics::DrawParam;
 use super::level_renderer::DrawablePt;
 
 use super::ca_simulator::CASim;
@@ -19,25 +19,14 @@ impl Blobstacle {
   pub fn new(pos: Point) -> Blobstacle {
     // TODO: I think this number is effectively "blob width in world units"
     // But need to verify that.
-    let mut sim = CASim::new(128, 128, 20.0);
+    let mut sim = CASim::new(128, 128, 10.0);
     sim.generate();
     Blobstacle { position: pos, sim }
   }
-}
 
-impl Drawable for Blobstacle {
-  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-    // TODO: Draw properly centered (looks like it's using dest as upper-right)
-    let d = DrawablePt(self.position) * param.scale.into();
-    let repositioned = DrawParam { dest: d.into(), ..param };
-    graphics::draw_ex(ctx, &self.sim, repositioned)?;
-    Ok(())
-  }
-  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
-    // Dodes nothing
-  }
-
-  fn get_blend_mode(&self) -> Option<BlendMode> {
-    None
+  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+    let d = DrawablePt(self.position);
+    let repositioned = DrawParam { dest: d.into(), ..DrawParam::default() };
+    graphics::draw_ex(ctx, &self.sim, repositioned)
   }
 }

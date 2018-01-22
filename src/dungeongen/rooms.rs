@@ -4,21 +4,20 @@ extern crate rand;
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
-use self::ggez::graphics::{rectangle, DrawMode, DrawParam, Drawable, Point2,
-                           Rect, BlendMode};
+use self::ggez::graphics::{rectangle, DrawMode, Rect};
 
-use super::super::util::Meters;
+use super::{Point, Meters};
 
 #[derive(Debug)]
 pub struct Room {
   // TODO: Should be geo point, use ggez point in render part
-  pub center: Point2,
+  pub center: Point,
   pub width: f32,
   pub height: f32,
 }
 
 impl Room {
-  pub fn new(center: Point2, width: Meters, height: Meters) -> Room {
+  pub fn new(center: Point, width: Meters, height: Meters) -> Room {
     Room {
       center,
       width,
@@ -40,7 +39,7 @@ impl Room {
       sizer.ind_sample(&mut rng).abs().max(scaler / 30.0).min(scaler / 2.0) as
         f32
     };
-    Room::new(Point2::new(c_x, c_y), get_siz(), get_siz())
+    Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
   }
 
   /// Tests intersection with another room. Returns true if they intersect.
@@ -50,32 +49,18 @@ impl Room {
     !(r1.left() > r2.right() || r1.right() < r2.left() ||
       r1.top() > r2.bottom() || r1.bottom() < r2.top())
   }
-}
 
-impl Drawable for Room {
-  fn draw_ex(&self, ctx: &mut Context, param: DrawParam)
-             -> GameResult<()> {
-    let mut r: Rect = self.into();
-    r.x = self.center.x * param.scale.x;
-    r.y = self.center.y * param.scale.y;
-    r.w *= param.scale.x;
-    r.h *= param.scale.y;
+  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+    let r: Rect = self.into();
     rectangle(ctx, DrawMode::Fill, r)
-  }
-  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
-    // Does nothing
-  }
-
-  fn get_blend_mode(&self) -> Option<BlendMode> {
-    None
   }
 }
 
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
     Rect {
-      x: r.center.x,
-      y: r.center.y,
+      x: r.center.x(),
+      y: r.center.y(),
       w: r.width,
       h: r.height,
     }

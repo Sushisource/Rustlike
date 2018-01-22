@@ -75,7 +75,7 @@ impl CASim {
     self.gen_stage > 3
   }
 
-  /// Converts cellular automata space to unit space
+  /// Converts cellular automata space to unit space (scaled)
   pub fn uspace_boundary(&self, shift: Point) -> Vec<Point> {
     self.ca_boundary.iter().map(|&(x, y)| {
       let xp = ((x as f32) / (self.width as f32) + shift.x()) * self.scale;
