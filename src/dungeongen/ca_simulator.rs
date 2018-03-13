@@ -9,7 +9,7 @@ use self::ggez::graphics::Point2 as GPoint;
 
 use super::direction::Direction;
 use super::Point;
-use super::level_renderer::DrawablePt;
+use util::drawablept::DrawablePt;
 
 type CellGrid = Vec<Vec<bool>>;
 

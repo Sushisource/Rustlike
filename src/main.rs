@@ -5,9 +5,10 @@ use ggez::{ContextBuilder, graphics, conf, event};
 mod dungeongen;
 mod util;
 mod agents;
+mod world;
 
-use dungeongen::Level;
-use dungeongen::level_renderer::LevelRenderer;
+use world::{World};
+use world::render::WorldRender;
 
 fn main() {
   let cb = ContextBuilder::new("rougelike", "ggez")
@@ -20,9 +21,9 @@ fn main() {
 
   let ctx = &mut cb.build().unwrap();
 
-  let mut level = Level::new();
-  let mut level_render = LevelRenderer::new(&mut level, ctx);
+  let mut world = World::new();
+  let mut renderer = WorldRender::new(&mut world, ctx);
 
   graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
-  event::run(ctx, &mut level_render).unwrap();
+  event::run(ctx, &mut renderer).unwrap();
 }

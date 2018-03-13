@@ -1,8 +1,9 @@
-extern crate ggez;
 extern crate geo;
+extern crate ggez;
 
 pub mod level_renderer;
 pub mod direction;
+
 mod rooms;
 mod ca_simulator;
 mod blobstacle;
@@ -90,7 +91,7 @@ impl Level {
 
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
-    let test_pond = Blobstacle::new(self.middle());
+    let test_pond = Blobstacle::new(Point::new(30.0, 30.0));
     let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
     let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
     self.obstacles.push(test_pond);
@@ -109,6 +110,8 @@ impl Level {
     Point::new(p.x() * self.width, p.y() * self.height)
   }
 
-  fn middle(&self) -> Point { Point::new(self.width / 2.0, self.height / 2.0) }
+  pub fn middle(&self) -> Point {
+    Point::new(self.width / 2.0, self.height / 2.0)
+  }
 }
 

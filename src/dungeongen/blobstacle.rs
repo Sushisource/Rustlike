@@ -3,8 +3,8 @@ extern crate ggez;
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
 use self::ggez::graphics::DrawParam;
-use super::level_renderer::DrawablePt;
 
+use util::drawablept::DrawablePt;
 use super::ca_simulator::CASim;
 use super::Point;
 

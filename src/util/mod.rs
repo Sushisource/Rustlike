@@ -6,6 +6,8 @@ use self::ggez::Context;
 use self::ggez::graphics::{Font, Text};
 use super::agents::Agent;
 
+pub mod drawablept;
+
 pub type Meters = f32;
 pub type Point = self::geo::Point<f32>;
 
