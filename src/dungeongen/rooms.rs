@@ -10,7 +10,6 @@ use super::{Point, Meters};
 
 #[derive(Debug)]
 pub struct Room {
-  // TODO: Should be geo point, use ggez point in render part
   pub center: Point,
   pub width: f32,
   pub height: f32,

@@ -64,7 +64,7 @@ impl Level {
   fn tick_roomsim(&mut self) -> bool {
     // Room centers should be within the bounding box of the cave
     let cavebf: Vec<Point> = self.cave_sim.uspace_boundary(Point::new(0.0, 0.0))
-                                 .iter().map(|&p| self.uspace_to_wspace(p))
+                                 .iter().map(|&p| self.uspace_to_lspace(p))
                                  .collect();
     let caveb: MultiPoint<_> = cavebf.into();
     let cave_bb = caveb.bbox().unwrap();
@@ -100,13 +100,13 @@ impl Level {
     true
   }
 
-  /// Converts world space to unit space
-  fn wspace_to_uspace(&self, p: Point) -> Point {
+  /// Converts level space to unit space
+  pub fn lspace_to_uspace(&self, p: Point) -> Point {
     Point::new(p.x() / self.width, p.y() / self.height)
   }
 
-  /// Converts unit space to world space
-  fn uspace_to_wspace(&self, p: Point) -> Point {
+  /// Converts unit space to level space
+  pub fn uspace_to_lspace(&self, p: Point) -> Point {
     Point::new(p.x() * self.width, p.y() * self.height)
   }
 

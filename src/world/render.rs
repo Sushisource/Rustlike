@@ -9,7 +9,6 @@ use self::ggez::graphics::{Color, DrawParam, Vector2};
 use self::ggez::timer;
 use world::World;
 use agents::Agent;
-use dungeongen::level_renderer::LevelRenderer;
 use util::Assets;
 
 pub struct WorldRender<'a> {
@@ -56,11 +55,8 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     graphics::apply_transformations(ctx)?;
 
     // First thing that is drawn is the level itself
-    // TODO: This struct doesn't cost anything to make, so in theory this is
-    // fine, but it feels weird.
-    let lrender = LevelRenderer::new(&self.world.level, ctx);
-    lrender.draw(ctx)?;
-    let scaler = lrender.l_center_scale();
+    self.world.level.draw(ctx)?;
+    let scaler = self.world.level.l_center_scale(ctx);
 
     graphics::set_transform(ctx, DrawParam::default().into_matrix());
     graphics::apply_transformations(ctx)?;
