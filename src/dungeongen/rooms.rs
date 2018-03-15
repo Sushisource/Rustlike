@@ -6,7 +6,7 @@ use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics::{rectangle, DrawMode, Rect};
 
-use super::{Point, Meters};
+use super::{Meters, Point};
 
 #[derive(Debug)]
 pub struct Room {
@@ -25,9 +25,10 @@ impl Room {
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
-  pub fn new_rand((x_min, x_max): (Meters, Meters),
-                  (y_min, y_max): (Meters, Meters))
-                  -> Room {
+  pub fn new_rand(
+    (x_min, x_max): (Meters, Meters),
+    (y_min, y_max): (Meters, Meters),
+  ) -> Room {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
@@ -35,8 +36,11 @@ impl Room {
     let scaler = (x_max - x_min).min(y_max - y_min) as f64;
     let sizer = Normal::new(scaler / 10.0, scaler / 20.0);
     let mut get_siz = || {
-      sizer.ind_sample(&mut rng).abs().max(scaler / 30.0).min(scaler / 2.0) as
-        f32
+      sizer
+        .ind_sample(&mut rng)
+        .abs()
+        .max(scaler / 30.0)
+        .min(scaler / 2.0) as f32
     };
     Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
   }
@@ -45,8 +49,8 @@ impl Room {
   pub fn intersects(&self, other: &Room) -> bool {
     let r1: Rect = self.into();
     let r2: Rect = other.into();
-    !(r1.left() > r2.right() || r1.right() < r2.left() ||
-      r1.top() > r2.bottom() || r1.bottom() < r2.top())
+    !(r1.left() > r2.right() || r1.right() < r2.left() || r1.top() > r2.bottom()
+      || r1.bottom() < r2.top())
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
@@ -58,8 +62,9 @@ impl Room {
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
     Rect {
-      x: r.center.x(),
-      y: r.center.y(),
+      // GGEZ docs says x/y are center, they're actually top-left origin
+      x: r.center.x - r.width / 2.0,
+      y: r.center.y - r.height / 2.0,
       w: r.width,
       h: r.height,
     }

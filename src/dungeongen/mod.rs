@@ -1,5 +1,6 @@
-extern crate geo;
 extern crate ggez;
+extern crate nalgebra;
+extern crate ncollide;
 
 pub mod level_renderer;
 pub mod direction;
@@ -8,13 +9,16 @@ mod rooms;
 mod ca_simulator;
 mod blobstacle;
 
-use self::geo::MultiPoint;
-use self::geo::algorithm::boundingbox::BoundingBox;
-
+use std::sync::Arc;
 use super::util::{Meters, Point};
+use self::nalgebra as na;
+use self::na::Isometry2;
 use self::rooms::Room;
 use self::ca_simulator::CASim;
 use self::blobstacle::Blobstacle;
+use self::nalgebra::Point2;
+use self::ncollide::shape::{Polyline, Shape};
+use self::ncollide::bounding_volume::AABB;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -63,20 +67,16 @@ impl Level {
 
   fn tick_roomsim(&mut self) -> bool {
     // Room centers should be within the bounding box of the cave
-    let cavebf: Vec<Point> = self.cave_sim.uspace_boundary(Point::new(0.0, 0.0))
-                                 .iter().map(|&p| self.uspace_to_lspace(p))
-                                 .collect();
-    let caveb: MultiPoint<_> = cavebf.into();
-    let cave_bb = caveb.bbox().unwrap();
+    let cave_bb = self.cave_bound_box();
     if self.rooms.len() < 20 {
       loop {
         let room = Room::new_rand((0.0, self.width), (0.0, self.height));
         let avoids_other_rooms =
           self.rooms.iter().all(|ref r| !room.intersects(r));
-        let in_cave = room.center.x() < cave_bb.xmax && 
-                      room.center.x() > cave_bb.xmin &&
-                      room.center.y() < cave_bb.ymax &&
-                      room.center.y() > cave_bb.ymin;
+        let in_cave = room.center.x < cave_bb.maxs().x
+          && room.center.x > cave_bb.mins().x
+          && room.center.y < cave_bb.maxs().y
+          && room.center.y > cave_bb.mins().y;
         if avoids_other_rooms && in_cave {
           self.rooms.push(room);
           break;
@@ -87,6 +87,29 @@ impl Level {
       println!("Done placing rooms");
       true
     }
+  }
+
+  pub fn cave_bound_box(&self) -> AABB<Point> {
+    let cavebf: Vec<Point> = self.cave_bounds();
+    let cave_ixs: Vec<Point2<usize>> = (0..cavebf.len())
+      .map(|i| {
+        let to = if i + 1 == cavebf.len() { 0 } else { i + 1 };
+        Point2::new(i, to)
+      })
+      .collect();
+    let cave_polyline =
+      Polyline::new(Arc::new(cavebf), Arc::new(cave_ixs), None, None);
+    let cave_pos = na::one::<Isometry2<f32>>();
+    cave_polyline.aabb(&cave_pos)
+  }
+
+  fn cave_bounds(&self) -> Vec<Point> {
+    self
+      .cave_sim
+      .uspace_boundary(Point::new(0.0, 0.0))
+      .iter()
+      .map(|&p| self.uspace_to_lspace(p))
+      .collect()
   }
 
   fn place_obstacles(&mut self) -> bool {
@@ -102,16 +125,15 @@ impl Level {
 
   /// Converts level space to unit space
   pub fn lspace_to_uspace(&self, p: Point) -> Point {
-    Point::new(p.x() / self.width, p.y() / self.height)
+    Point::new(p.x / self.width, p.y / self.height)
   }
 
   /// Converts unit space to level space
   pub fn uspace_to_lspace(&self, p: Point) -> Point {
-    Point::new(p.x() * self.width, p.y() * self.height)
+    Point::new(p.x * self.width, p.y * self.height)
   }
 
   pub fn middle(&self) -> Point {
     Point::new(self.width / 2.0, self.height / 2.0)
   }
 }
-

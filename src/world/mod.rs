@@ -17,4 +17,9 @@ impl World {
     let player = Player::new(DrawablePt(level.middle()).into());
     World { level: level.into(), player }
   }
+
+  // Should probably actually return set of things
+  pub fn collide_check(&self) -> bool {
+    false
+  }
 }

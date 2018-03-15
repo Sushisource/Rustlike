@@ -51,8 +51,6 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
     graphics::clear(ctx);
-    graphics::set_transform(ctx, DrawParam::default().into_matrix());
-    graphics::apply_transformations(ctx)?;
 
     // First thing that is drawn is the level itself
     self.world.level.draw(ctx)?;
@@ -64,11 +62,6 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     self.world.player.draw(ctx, &mut self.assets, scaler.scale)?;
 
     graphics::present(ctx);
-    // And sleep for 0 seconds.
-    // This tells the OS that we're done using the CPU but it should
-    // get back to this program as soon as it can.
-    // This prevents the game from using 100% CPU all the time
-    // even if vsync is off.
     timer::sleep(Duration::from_secs(0));
     Ok(())
   }
@@ -94,6 +87,12 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       }
       Keycode::Down => {
         self.world.player.trans(Vector2::new(0.0, 1.0));
+      }
+      Keycode::Left => {
+        self.world.player.trans(Vector2::new(-1.0, 0.0));
+      }
+      Keycode::Right => {
+        self.world.player.trans(Vector2::new(1.0, 0.0));
       }
       _ => (), // Do nothing
     }

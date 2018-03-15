@@ -4,7 +4,7 @@ extern crate time;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam, Drawable, Point2};
+use self::ggez::graphics::{Color, DrawParam, Point2};
 
 use dungeongen;
 use dungeongen::Level;
@@ -24,12 +24,13 @@ impl Level {
     if self.gen_stage == 0 {
       &self.cave_sim.draw_evolution(ctx, sscale);
     } else {
-      // Next stage, we render the cave as a polygon and place rooms
-      graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
-      self.cave_sim.draw_ex(ctx, sscale)?;
-
       graphics::set_transform(ctx, center_scale.into_matrix());
       graphics::apply_transformations(ctx)?;
+      // Next stage, we render the cave as a polygon and place rooms
+      graphics::set_color(ctx, Color::new(0.5, 0.5, 0.5, 1.0))?;
+      // TODO: We also do this u->l conversion in the generator. Combine
+      // somehow?
+      self.cave_sim.draw(ctx, self.u_to_l_scale())?;
 
       if self.rooms.len() > 0 {
         for room in &self.rooms {
@@ -45,6 +46,15 @@ impl Level {
           obstacle.draw(ctx)?;
         }
       }
+      // Test drawing cave bounding box
+      let bb = self.cave_bound_box();
+      let broom = Room::new(
+        bb.center(),
+        bb.maxs().x - bb.mins().x,
+        bb.maxs().y - bb.mins().y,
+      );
+      graphics::set_color(ctx, Color::new(0.9, 0.0, 0.0, 0.2))?;
+      broom.draw(ctx)?;
       // Test center room of one sq unit
       let croom = Room::new(self.middle(), 1.0, 1.0);
       graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
@@ -56,6 +66,13 @@ impl Level {
   fn lspace_to_sspace(&self, ctx: &Context, p: LevelPoint) -> Point2 {
     let p = self.lspace_to_uspace(p);
     ctx.uspace_to_sspace(p)
+  }
+
+  fn u_to_l_scale(&self) -> DrawParam {
+    DrawParam {
+      scale: self.uspace_to_lspace(Point2::new(1.0, 1.0)),
+      ..Default::default()
+    }
   }
 
   pub fn l_center_scale(&self, ctx: &Context) -> DrawParam {

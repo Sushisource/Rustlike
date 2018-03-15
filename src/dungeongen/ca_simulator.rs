@@ -1,10 +1,10 @@
-extern crate rand;
 extern crate ggez;
+extern crate rand;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{DrawParam, Drawable, FilterMode, Image, DrawMode,
-                           Mesh, BlendMode};
+use self::ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image,
+                           Mesh};
 use self::ggez::graphics::Point2 as GPoint;
 
 use super::direction::Direction;
@@ -77,18 +77,25 @@ impl CASim {
 
   /// Converts cellular automata space to unit space (scaled)
   pub fn uspace_boundary(&self, shift: Point) -> Vec<Point> {
-    self.ca_boundary.iter().map(|&(x, y)| {
-      let xp = ((x as f32) / (self.width as f32) + shift.x()) * self.scale;
-      let yp = ((y as f32) / (self.height as f32) + shift.y()) * self.scale;
-      Point::new(xp, yp)
-    }).collect()
+    self
+      .ca_boundary
+      .iter()
+      .map(|&(x, y)| {
+        let xp = ((x as f32) / (self.width as f32) + shift.x) * self.scale;
+        let yp = ((y as f32) / (self.height as f32) + shift.y) * self.scale;
+        Point::new(xp, yp)
+      })
+      .collect()
   }
 
   pub fn uspace_gboundary(&self) -> Vec<GPoint> {
     // We shift by a half because we want to draw the sim centered around
     // the destination point.
-    self.uspace_boundary(Point::new(-0.5, -0.5)).into_iter()
-        .map(|p| DrawablePt(p).into()).collect()
+    self
+      .uspace_boundary(Point::new(-0.5, -0.5))
+      .into_iter()
+      .map(|p| DrawablePt(p).into())
+      .collect()
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -139,8 +146,10 @@ impl CASim {
       if !not_marked {
         marked_ct += 1;
       }
-      if in_width && in_height &&
-        self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
+      if in_width && in_height
+        && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize]
+        && not_marked
+      {
         cur_cell = cur_pt;
         self.ca_boundary.push(cur_cell);
         self.bounds_last_dir = dir.clone();
@@ -153,7 +162,6 @@ impl CASim {
       false
     }
   }
-
 
   fn tick_ca_sim(&mut self) -> bool {
     let mut growth_done = false;
@@ -168,7 +176,7 @@ impl CASim {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-            // Cell dead
+          // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
@@ -230,14 +238,19 @@ impl CASim {
   // GRAPHICS =================================================================
   // Not really sure it's good practice to put this here, but I can't put it
   // in Drawable impl.
-  pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam)
-                        -> GameResult<()> {
+  pub fn draw_evolution(
+    &self,
+    ctx: &mut Context,
+    param: DrawParam,
+  ) -> GameResult<()> {
     let ca_img_a = self.cave_ca_img(&self.ca_grid);
     let screen_scale = DrawablePt(Point::new(param.scale.x, param.scale.y));
-    let scalept = DrawablePt(
-      Point::new(1.0 / self.width as f32, 1.0 / self.height as f32)) * screen_scale;
-    let mut img = Image::from_rgba8(ctx, self.width as u16,
-                                    self.height as u16, &ca_img_a)?;
+    let scalept = DrawablePt(Point::new(
+      1.0 / self.width as f32,
+      1.0 / self.height as f32,
+    )) * screen_scale;
+    let mut img =
+      Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
     let mut scaled_params = param.clone();
     scaled_params.scale = scalept.into();
     scaled_params.dest = GPoint::new(0.0, 0.0);
@@ -248,8 +261,8 @@ impl CASim {
     let cave_bounds = self.uspace_gboundary();
     if !cave_bounds.is_empty() {
       // Line width also scales w/ draw param, so need to make it reasonable.
-      let line = Mesh::new_line(ctx, cave_bounds.as_slice(),
-                                4.0 / param.scale.x)?;
+      let line =
+        Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x)?;
       graphics::draw_ex(ctx, &line, param)?;
     }
     Ok(())
@@ -271,20 +284,10 @@ impl CASim {
     }
     img
   }
-}
 
-impl Drawable for CASim {
-  fn draw_ex(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-    let boundary = self.uspace_gboundary();
-    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, boundary.as_slice())?;
-    graphics::draw_ex(ctx, &mesh, param)?;
-    Ok(())
-  }
-  fn set_blend_mode(&mut self, _mode: Option<BlendMode>) {
-    // Does nothing
-  }
-
-  fn get_blend_mode(&self) -> Option<BlendMode> {
-    None
+  pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+    let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
+    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, bounds.as_slice())?;
+    graphics::draw_ex(ctx, &mesh, param)
   }
 }

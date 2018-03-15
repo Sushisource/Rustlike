@@ -1,7 +1,6 @@
 extern crate ggez;
 
 use self::ggez::{Context, GameResult};
-use self::ggez::graphics;
 use self::ggez::graphics::DrawParam;
 
 use util::drawablept::DrawablePt;
@@ -27,6 +26,6 @@ impl Blobstacle {
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
     let d = DrawablePt(self.position);
     let repositioned = DrawParam { dest: d.into(), ..DrawParam::default() };
-    graphics::draw_ex(ctx, &self.sim, repositioned)
+    self.sim.draw(ctx, repositioned)
   }
 }

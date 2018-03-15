@@ -1,4 +1,4 @@
-extern crate geo;
+extern crate nalgebra;
 extern crate ggez;
 
 use std::collections::HashMap;
@@ -10,7 +10,7 @@ pub mod drawablept;
 pub mod context_help;
 
 pub type Meters = f32;
-pub type Point = self::geo::Point<f32>;
+pub type Point = self::nalgebra::Point2<f32>;
 
 pub struct Assets {
   /// This map maps world sizes in meters -> font where the size as rendered

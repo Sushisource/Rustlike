@@ -36,6 +36,6 @@ impl ContextHelp for Context {
   fn uspace_to_sspace(&self, p: LevelPoint) -> Point2 {
     let sx = self.screen_x();
     let sy = self.screen_y();
-    Point2::new(p.x() * sx, p.y() * sy)
+    Point2::new(p.x * sx, p.y * sy)
   }
 }
