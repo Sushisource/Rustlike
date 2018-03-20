@@ -5,8 +5,9 @@ use self::ggez::{Context, GameResult};
 use self::ggez::event;
 use self::ggez::event::{Keycode, Mod};
 use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam, Vector2};
+use self::ggez::graphics::{Color, DrawParam, Drawable, Point2, Vector2};
 use self::ggez::timer;
+use self::ggez::mouse;
 use world::World;
 use agents::Agent;
 use util::Assets;
@@ -15,6 +16,7 @@ pub struct WorldRender<'a> {
   world: &'a mut World,
   fastmode: bool,
   assets: Assets,
+  debug: bool,
 }
 
 impl<'a> WorldRender<'a> {
@@ -24,6 +26,7 @@ impl<'a> WorldRender<'a> {
       world,
       fastmode: true,
       assets,
+      debug: true,
     }
   }
 
@@ -61,6 +64,17 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
     self.world.player.draw(ctx, &mut self.assets, scaler.scale)?;
 
+    // Debug info
+    if self.debug {
+      let mouse_p = mouse::get_position(ctx)?;
+      let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p);
+      let dbg_txt = self.assets.txt(
+        &format!("Mouse pos scrn: {} world: {}", mouse_p, w_mouse_p),
+        ctx,
+      );
+      dbg_txt.draw(ctx, Point2::new(0.0, 0.0), 0.0)?;
+    }
+
     graphics::present(ctx);
     timer::sleep(Duration::from_secs(0));
     Ok(())
@@ -93,6 +107,10 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       }
       Keycode::Right => {
         self.world.player.trans(Vector2::new(1.0, 0.0));
+      }
+      Keycode::Backquote => {
+        self.debug = !self.debug;
+        println!("Debug mode now {}", self.debug);
       }
       _ => (), // Do nothing
     }

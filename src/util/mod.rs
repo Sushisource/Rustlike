@@ -1,5 +1,5 @@
-extern crate nalgebra;
 extern crate ggez;
+extern crate nalgebra;
 
 use std::collections::HashMap;
 use self::ggez::Context;
@@ -31,12 +31,18 @@ impl Assets {
     }
   }
 
-  pub fn txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
+  pub fn agent_txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
     // TODO: Could be crashy
-    self.text_map.entry(agent.symbol()).or_insert(Text::new(
-      ctx,
-      agent.symbol(),
-      self.font_map.get(&agent.width()).unwrap(),
-    ).unwrap())
+    self.text_map.entry(agent.symbol()).or_insert(
+      Text::new(
+        ctx,
+        agent.symbol(),
+        self.font_map.get(&agent.width()).unwrap(),
+      ).unwrap(),
+    )
+  }
+
+  pub fn txt(&mut self, content: &str, ctx: &mut Context) -> Text {
+    Text::new(ctx, content, self.font_map.get(&1).unwrap()).unwrap()
   }
 }

@@ -67,6 +67,11 @@ impl Level {
     let p = self.lspace_to_uspace(p);
     ctx.uspace_to_sspace(p)
   }
+  
+  pub fn sspace_to_lspace(&self, ctx: &Context, p: Point2) -> Point2 {
+    let p = ctx.sspace_to_uspace(p);
+    self.uspace_to_lspace(p)
+  }
 
   fn u_to_l_scale(&self) -> DrawParam {
     DrawParam {

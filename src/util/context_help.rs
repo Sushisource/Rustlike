@@ -10,6 +10,7 @@ pub trait ContextHelp {
   fn screen_middle(&self) -> Point2;
   fn sscale(&self) -> DrawParam;
   fn uspace_to_sspace(&self, p: LevelPoint) -> Point2;
+  fn sspace_to_uspace(&self, p: Point2) -> Point2;
 }
 
 impl ContextHelp for Context {
@@ -37,5 +38,9 @@ impl ContextHelp for Context {
     let sx = self.screen_x();
     let sy = self.screen_y();
     Point2::new(p.x * sx, p.y * sy)
+  }
+
+  fn sspace_to_uspace(&self, p: Point2) -> Point2 {
+    Point2::new(p.x / self.screen_x(), p.y / self.screen_y())
   }
 }

@@ -29,7 +29,7 @@ impl Player {
       offset: Point2::new(1.5, 1.0),
       ..DrawParam::default()
     };
-    let txt = assets.txt(self, ctx);
+    let txt = assets.agent_txt(self, ctx);
     graphics::draw_ex(ctx, txt, repositioned)
   }
 }
