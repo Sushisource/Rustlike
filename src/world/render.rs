@@ -17,6 +17,8 @@ pub struct WorldRender<'a> {
   fastmode: bool,
   assets: Assets,
   debug: bool,
+  // TODO: Move
+  level_finished: bool,
 }
 
 impl<'a> WorldRender<'a> {
@@ -27,6 +29,7 @@ impl<'a> WorldRender<'a> {
       fastmode: true,
       assets,
       debug: true,
+      level_finished: false,
     }
   }
 
@@ -42,12 +45,15 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       return Ok(());
     }
 
-    // Tick the simulation
+    // Tick the simulation TODO: Move elsewhere.
     if !self.world.level.level_gen_finished {
       let i = if self.fastmode { 12 } else { 2 };
       for _ in 1..i {
         self.world.level.tick_level_gen();
       }
+    } else if !self.level_finished{
+      self.world.add_level_contents_to_collision();
+      self.level_finished = true
     }
     Ok(())
   }
@@ -73,6 +79,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
         ctx,
       );
       dbg_txt.draw(ctx, Point2::new(0.0, 0.0), 0.0)?;
+      self.world.collision_test(&w_mouse_p);
     }
 
     graphics::present(ctx);

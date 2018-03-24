@@ -1,12 +1,15 @@
 extern crate ggez;
+extern crate nalgebra as na;
+extern crate ncollide as nc;
 extern crate rand;
 
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics::{rectangle, DrawMode, Rect};
+use self::na::Vector2;
 
-use super::{Meters, Point};
+use super::{Meters, Point, RectRep};
 
 #[derive(Debug)]
 pub struct Room {
@@ -68,5 +71,12 @@ impl<'a> From<&'a Room> for Rect {
       w: r.width,
       h: r.height,
     }
+  }
+}
+
+impl<'a> Into<RectRep> for &'a Room {
+  // Must be done as into b/c of generics
+  fn into(self) -> RectRep {
+    RectRep::new(Vector2::new(self.width / 2.0, self.height / 2.0))
   }
 }
