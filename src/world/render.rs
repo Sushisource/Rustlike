@@ -63,7 +63,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
     // First thing that is drawn is the level itself
     self.world.level.draw(ctx)?;
-    let scaler = self.world.level.l_center_scale(ctx);
+    let scaler = self.world.level.lscale(ctx);
 
     graphics::set_transform(ctx, DrawParam::default().into_matrix());
     graphics::apply_transformations(ctx)?;

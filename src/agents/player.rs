@@ -25,8 +25,9 @@ impl Player {
     let d = Point2::new(self.pos.x * scale.x, self.pos.y * scale.y);
     let repositioned = DrawParam {
       dest: d,
-      // TODO: No clue why this offset is appropriate.
-      offset: Point2::new(1.5, 1.0),
+      // This offset is because the draw point is the upper-left corner of
+      // the text.
+      offset: Point2::new(0.60, 0.60),
       ..DrawParam::default()
     };
     let txt = assets.agent_txt(self, ctx);

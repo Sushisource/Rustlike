@@ -18,7 +18,7 @@ impl Level {
     graphics::set_transform(ctx, DrawParam::default().into_matrix());
     graphics::apply_transformations(ctx)?;
     let sscale = ctx.sscale();
-    let center_scale = self.l_center_scale(ctx);
+    let center_scale = self.lscale(ctx);
 
     // In the stage 0 we draw the CA evolution and the boundary
     if self.gen_stage == 0 {
@@ -80,10 +80,9 @@ impl Level {
     }
   }
 
-  pub fn l_center_scale(&self, ctx: &Context) -> DrawParam {
+  pub fn lscale(&self, ctx: &Context) -> DrawParam {
     return DrawParam {
       scale: self.lspace_to_sspace(ctx, LevelPoint::new(1.0, 1.0)),
-      offset: Point2::new(0.5, 0.5),
       ..Default::default()
     };
   }
