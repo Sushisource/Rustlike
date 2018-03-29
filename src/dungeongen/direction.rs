@@ -14,15 +14,27 @@ pub enum Direction {
 
 impl Direction {
   pub fn iterator() -> Iter<'static, Direction> {
-    static DIRECTIONS: [Direction; 8] = [Direction::North,
-                                         Direction::NorthEast,
-                                         Direction::East,
-                                         Direction::SouthEast,
-                                         Direction::South,
-                                         Direction::SouthWest,
-                                         Direction::West,
-                                         Direction::NorthWest];
+    static DIRECTIONS: [Direction; 8] = [
+      Direction::North,
+      Direction::NorthEast,
+      Direction::East,
+      Direction::SouthEast,
+      Direction::South,
+      Direction::SouthWest,
+      Direction::West,
+      Direction::NorthWest,
+    ];
     DIRECTIONS.into_iter()
+  }
+
+  pub fn compass() -> [Direction; 4] {
+    static DIRECTIONS: [Direction; 4] = [
+      Direction::North,
+      Direction::East,
+      Direction::South,
+      Direction::West,
+    ];
+    DIRECTIONS
   }
 
   pub fn to_tup(&self) -> (i32, i32) {

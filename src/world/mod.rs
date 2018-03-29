@@ -42,8 +42,9 @@ impl World {
     cgs.set_membership(&[2]);
     cgs.set_whitelist(&[1]);
     let collisions = self.collision.interferences_with_point(p, &cgs);
-    for c in collisions {
-      println!("{}", c.position());
-    }
+    // TODO: Something useful
+    // for c in collisions {
+    //   println!("{}", c.position());
+    // }
   }
 }

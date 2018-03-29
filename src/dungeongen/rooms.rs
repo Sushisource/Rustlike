@@ -10,20 +10,23 @@ use self::ggez::graphics::{rectangle, DrawMode, Rect};
 use self::na::Vector2;
 
 use super::{Meters, Point, RectRep};
+use super::direction::Direction;
 
 #[derive(Debug)]
 pub struct Room {
   pub center: Point,
   pub width: f32,
   pub height: f32,
+  door: Rect,
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters) -> Room {
+  pub fn new(center: Point, width: Meters, height: Meters, door: Rect) -> Room {
     Room {
       center,
       width,
       height,
+      door,
     }
   }
 
@@ -43,9 +46,26 @@ impl Room {
         .ind_sample(&mut rng)
         .abs()
         .max(scaler / 30.0)
+        // Rooms must be at least 1m sq so a door can fit, regardless of sizing params
+        .max(1.0)
         .min(scaler / 2.0) as f32
     };
-    Room::new(Point::new(c_x, c_y), get_siz(), get_siz())
+    let room_w = get_siz();
+    let room_h = get_siz();
+    // Add a door somewhere along the room edge
+    let side = *rng.choose(&Direction::compass()).unwrap();
+    let offset: f32 = rng.gen();
+    let (w, h) = match side {
+      Direction::North | Direction::South => (1.0, 0.2),
+      _ => (0.2, 1.0),
+    };
+    let door = Rect {
+      x: c_x + side.to_tup().0 as f32 * (room_w / 2.0),
+      y: c_y + side.to_tup().1 as f32 * (room_h / 2.0),
+      w,
+      h,
+    };
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door)
   }
 
   /// Tests intersection with another room. Returns true if they intersect.
