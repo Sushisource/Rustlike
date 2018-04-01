@@ -41,8 +41,9 @@ impl World {
     let mut cgs = nc::world::CollisionGroups::new();
     cgs.set_membership(&[2]);
     cgs.set_whitelist(&[1]);
-    let collisions = self.collision.interferences_with_point(p, &cgs);
+
     // TODO: Something useful
+//    let collisions = self.collision.interferences_with_point(p, &cgs);
     // for c in collisions {
     //   println!("{}", c.position());
     // }

@@ -27,14 +27,14 @@ impl Direction {
     DIRECTIONS.into_iter()
   }
 
-  pub fn compass() -> [Direction; 4] {
+  pub fn compass() -> &'static [Direction; 4] {
     static DIRECTIONS: [Direction; 4] = [
       Direction::North,
       Direction::East,
       Direction::South,
       Direction::West,
     ];
-    DIRECTIONS
+    &DIRECTIONS
   }
 
   pub fn to_tup(&self) -> (i32, i32) {

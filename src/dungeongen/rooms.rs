@@ -6,7 +6,7 @@ extern crate rand;
 use self::rand::{thread_rng, Rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
-use self::ggez::graphics::{rectangle, DrawMode, Rect};
+use self::ggez::graphics::{rectangle, DrawMode, Rect, Color, set_color};
 use self::na::Vector2;
 
 use super::{Meters, Point, RectRep};
@@ -39,29 +39,32 @@ impl Room {
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
     let c_y: f32 = rng.gen_range(y_min, y_max);
-    let scaler = (x_max - x_min).min(y_max - y_min) as f64;
-    let sizer = Normal::new(scaler / 10.0, scaler / 20.0);
-    let mut get_siz = || {
-      sizer
-        .ind_sample(&mut rng)
-        .abs()
-        .max(scaler / 30.0)
-        // Rooms must be at least 1m sq so a door can fit, regardless of sizing params
-        .max(1.0)
-        .min(scaler / 2.0) as f32
+    let (room_w, room_h) = {
+      let scaler = (x_max - x_min).min(y_max - y_min) as f64;
+      let sizer = Normal::new(scaler / 10.0, scaler / 20.0);
+      let mut get_siz = || {
+        sizer
+          .ind_sample(&mut rng)
+          .abs()
+          .max(scaler / 30.0)
+          // Rooms must be at least 1m sq so a door can fit, regardless of sizing params
+          .max(1.0)
+          .min(scaler / 2.0) as f32
+      };
+      (get_siz(), get_siz())
     };
-    let room_w = get_siz();
-    let room_h = get_siz();
     // Add a door somewhere along the room edge
-    let side = *rng.choose(&Direction::compass()).unwrap();
-    let offset: f32 = rng.gen();
-    let (w, h) = match side {
+    let side = rng.choose(Direction::compass()).unwrap();
+//    let offset: f32 = rng.gen();
+    let (w, h) = match *side {
       Direction::North | Direction::South => (1.0, 0.2),
       _ => (0.2, 1.0),
     };
     let door = Rect {
-      x: c_x + side.to_tup().0 as f32 * (room_w / 2.0),
-      y: c_y + side.to_tup().1 as f32 * (room_h / 2.0),
+      x: c_x + side.to_tup().0 as f32 * (room_w / 2.0)
+        - side.to_tup().0 as f32 * 0.1 - w / 2.0,
+      y: c_y + side.to_tup().1 as f32 * (room_h / 2.0)
+        - side.to_tup().1 as f32 * 0.1 - h / 2.0,
       w,
       h,
     };
@@ -78,7 +81,9 @@ impl Room {
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
     let r: Rect = self.into();
-    rectangle(ctx, DrawMode::Fill, r)
+    rectangle(ctx, DrawMode::Fill, r)?;
+    set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
+    rectangle(ctx, DrawMode::Fill, self.door)
   }
 }
 

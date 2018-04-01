@@ -8,7 +8,6 @@ use self::ggez::graphics::{Color, DrawParam, Point2};
 
 use dungeongen;
 use dungeongen::Level;
-use dungeongen::rooms::Room;
 use util::context_help::ContextHelp;
 
 pub type LevelPoint = dungeongen::Point;
@@ -47,18 +46,12 @@ impl Level {
         }
       }
       // Test drawing cave bounding box
-      let bb = self.cave_bound_box();
-      let broom = Room::new(
-        bb.center(),
-        bb.maxs().x - bb.mins().x,
-        bb.maxs().y - bb.mins().y,
-      );
-      graphics::set_color(ctx, Color::new(0.9, 0.0, 0.0, 0.2))?;
-      broom.draw(ctx)?;
+//      let bb = self.cave_bound_box();
+//      graphics::set_color(ctx, Color::new(0.9, 0.0, 0.0, 0.2))?;
+//      ctx.draw_bb(&bb)?;
       // Test center room of one sq unit
-      let croom = Room::new(self.middle(), 1.0, 1.0);
       graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
-      croom.draw(ctx)?;
+      ctx.center_rect(self.middle(), 1.0, 1.0)?;
     }
     Ok(())
   }
@@ -67,7 +60,7 @@ impl Level {
     let p = self.lspace_to_uspace(p);
     ctx.uspace_to_sspace(p)
   }
-  
+
   pub fn sspace_to_lspace(&self, ctx: &Context, p: Point2) -> Point2 {
     let p = ctx.sspace_to_uspace(p);
     self.uspace_to_lspace(p)
