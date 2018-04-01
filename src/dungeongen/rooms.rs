@@ -55,16 +55,23 @@ impl Room {
     };
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
-//    let offset: f32 = rng.gen();
-    let (w, h) = match *side {
-      Direction::North | Direction::South => (1.0, 0.2),
-      _ => (0.2, 1.0),
+    let (w, h, off_x, off_y) = match *side {
+      Direction::North | Direction::South => {
+        let offset_range = (room_w - 1.0) / 2.0;
+        let offset: f32 = rng.gen_range(-offset_range, offset_range);
+        (1.0, 0.2, offset, 0.0)
+      }
+      _ => {
+        let offset_range = (room_h - 1.0) / 2.0;
+        let offset: f32 = rng.gen_range(-offset_range, offset_range);
+        (0.2, 1.0, 0.0, offset)
+      },
     };
     let door = Rect {
       x: c_x + side.to_tup().0 as f32 * (room_w / 2.0)
-        - side.to_tup().0 as f32 * 0.1 - w / 2.0,
+        - side.to_tup().0 as f32 * 0.1 - w / 2.0 + off_x,
       y: c_y + side.to_tup().1 as f32 * (room_h / 2.0)
-        - side.to_tup().1 as f32 * 0.1 - h / 2.0,
+        - side.to_tup().1 as f32 * 0.1 - h / 2.0 + off_y,
       w,
       h,
     };
