@@ -72,11 +72,10 @@ impl Room {
         (WALL_THICKNESS, DOOR_WIDTH, 0.0, offset)
       }
     };
+    let sidetup = side.to_tup();
     let door = Rect {
-      x: c_x + side.to_tup().0 * (room_w / 2.0)
-        - side.to_tup().0 * (WALL_THICKNESS / 2.0) - w / 2.0 + off_x,
-      y: c_y + side.to_tup().1 * (room_h / 2.0)
-        - side.to_tup().1 * (WALL_THICKNESS / 2.0) - h / 2.0 + off_y,
+      x: c_x + sidetup.0 * (room_w / 2.0) - w / 2.0 + off_x,
+      y: c_y + sidetup.1 * (room_h / 2.0) - h / 2.0 + off_y,
       w,
       h,
     };
