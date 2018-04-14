@@ -1,5 +1,5 @@
 [package]
-name = "roguelike"
+name = "rustlike"
 version = "0.1.0"
 authors = ["Spencer Judge <sushisource@gmail.com>"]
 
@@ -9,3 +9,4 @@ time = "0.1"
 nalgebra = "0.14"
 ncollide = "0.14"
 rand = "*"
+derive-new = "0.5"

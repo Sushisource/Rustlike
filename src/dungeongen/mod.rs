@@ -2,24 +2,24 @@ extern crate ggez;
 extern crate nalgebra;
 extern crate ncollide as nc;
 
+use self::blobstacle::Blobstacle;
+use self::ca_simulator::CASim;
+use self::na::Isometry2;
+use self::nalgebra as na;
+use self::nalgebra::Point2;
+use self::nc::bounding_volume::AABB;
+use self::nc::shape::{Polyline, Shape, ShapeHandle2};
+use self::rooms::Room;
+use std::sync::Arc;
+use super::util::{Meters, Point, CollisionRect};
+use super::world::CollW;
+
 pub mod level_renderer;
 pub mod direction;
 
 mod rooms;
 mod ca_simulator;
 mod blobstacle;
-
-use std::sync::Arc;
-use super::util::{Meters, Point, RectRep};
-use super::world::CollW;
-use self::nalgebra as na;
-use self::na::Isometry2;
-use self::rooms::Room;
-use self::ca_simulator::CASim;
-use self::blobstacle::Blobstacle;
-use self::nalgebra::Point2;
-use self::nc::shape::{Polyline, Shape, ShapeHandle2};
-use self::nc::bounding_volume::AABB;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -149,7 +149,7 @@ impl Level {
     let q = nc::world::GeometricQueryType::Contacts(0.0, 0.0);
     // Add all rooms
     for r in &self.rooms {
-      let rr: RectRep = r.into();
+      let rr: CollisionRect = r.into();
       let shape = ShapeHandle2::new(rr);
       cw.add(Isometry2::new(r.center.coords, na::zero()), shape, cg, q, 0.0);
     }

@@ -46,8 +46,8 @@ impl Level {
         }
       }
       // Test center room of one sq unit
-      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
-      ctx.center_rect(self.middle(), 1.0, 1.0)?;
+//      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
+//      ctx.center_rect(self.middle(), 1.0, 1.0)?;
     }
     Ok(())
   }

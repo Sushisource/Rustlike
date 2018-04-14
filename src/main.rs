@@ -1,4 +1,6 @@
 extern crate ggez;
+#[macro_use]
+extern crate derive_new;
 
 use ggez::{ContextBuilder, graphics, conf, event};
 

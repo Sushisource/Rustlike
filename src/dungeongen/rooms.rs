@@ -3,38 +3,42 @@ extern crate nalgebra as na;
 extern crate ncollide as nc;
 extern crate rand;
 
-use self::rand::{thread_rng, Rng};
-use self::rand::distributions::{IndependentSample, Normal};
 use self::ggez::{Context, GameResult};
-use self::ggez::graphics::{rectangle, DrawMode, Rect, Color, set_color};
+use self::ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use self::na::Vector2;
-
-use super::{Meters, Point, RectRep};
+use self::rand::{Rng, thread_rng};
+use self::rand::distributions::{IndependentSample, Normal};
+use super::{Meters, Point, CollisionRect};
 use super::direction::Direction;
+
+static WALL_THICKNESS: Meters = 0.2;
+static DOOR_WIDTH: Meters = 1.1;
+
+trait CenterOriginRect {
+  fn center(&self) -> Point;
+  fn width(&self) -> Meters;
+  fn height(&self) -> Meters;
+}
 
 #[derive(Debug)]
 pub struct Room {
   pub center: Point,
-  pub width: f32,
-  pub height: f32,
+  pub width: Meters,
+  pub height: Meters,
   door: Rect,
+  door_side: Direction,
+  walls: Vec<Wall>,
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters, door: Rect) -> Room {
-    Room {
-      center,
-      width,
-      height,
-      door,
-    }
+  pub fn new(center: Point, width: Meters, height: Meters, door: Rect, door_side: Direction)
+             -> Room {
+    let walls = Room::gen_walls(center, width, height, door, door_side);
+    Room { center, width, height, door, door_side, walls }
   }
 
   /// Creates a new `room` randomly placed somewhere in the provided range
-  pub fn new_rand(
-    (x_min, x_max): (Meters, Meters),
-    (y_min, y_max): (Meters, Meters),
-  ) -> Room {
+  pub fn new_rand((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters)) -> Room {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
@@ -47,9 +51,10 @@ impl Room {
           .ind_sample(&mut rng)
           .abs()
           .max(scaler / 30.0)
-          // Rooms must be at least 1m sq so a door can fit, regardless of sizing params
-          .max(1.0)
-          .min(scaler / 2.0) as f32
+          // Rooms must be at least 1m sq so a door can fit, regardless of sizing params, plus
+          // a bit extra for wiggle room
+          .max((DOOR_WIDTH + 0.2).into())
+          .min(scaler / 2.0) as Meters
       };
       (get_siz(), get_siz())
     };
@@ -57,25 +62,73 @@ impl Room {
     let side = rng.choose(Direction::compass()).unwrap();
     let (w, h, off_x, off_y) = match *side {
       Direction::North | Direction::South => {
-        let offset_range = (room_w - 1.0) / 2.0;
+        let offset_range = (room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0;
         let offset: f32 = rng.gen_range(-offset_range, offset_range);
-        (1.0, 0.2, offset, 0.0)
+        (DOOR_WIDTH, WALL_THICKNESS, offset, 0.0)
       }
       _ => {
-        let offset_range = (room_h - 1.0) / 2.0;
+        let offset_range = (room_h - DOOR_WIDTH - WALL_THICKNESS) / 2.0;
         let offset: f32 = rng.gen_range(-offset_range, offset_range);
-        (0.2, 1.0, 0.0, offset)
-      },
+        (WALL_THICKNESS, DOOR_WIDTH, 0.0, offset)
+      }
     };
     let door = Rect {
-      x: c_x + side.to_tup().0 as f32 * (room_w / 2.0)
-        - side.to_tup().0 as f32 * 0.1 - w / 2.0 + off_x,
-      y: c_y + side.to_tup().1 as f32 * (room_h / 2.0)
-        - side.to_tup().1 as f32 * 0.1 - h / 2.0 + off_y,
+      x: c_x + side.to_tup().0 * (room_w / 2.0)
+        - side.to_tup().0 * (WALL_THICKNESS / 2.0) - w / 2.0 + off_x,
+      y: c_y + side.to_tup().1 * (room_h / 2.0)
+        - side.to_tup().1 * (WALL_THICKNESS / 2.0) - h / 2.0 + off_y,
       w,
       h,
     };
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door)
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door, *side)
+  }
+
+  /// Generates walls for the room, appropriately making a gap for the door
+  fn gen_walls(center: Point, width: Meters, height: Meters, door: Rect, door_side: Direction)
+               -> Vec<Wall> {
+    Direction::compass().iter().flat_map(|d| {
+      let has_door = door_side == *d;
+      let full_w = width + WALL_THICKNESS;
+      let full_h = height + WALL_THICKNESS;
+      match *d {
+        Direction::North | Direction::South => {
+          let yoffset = center.y + height / 2.0 * d.to_tup().1;
+          let wall_c = Point::new(center.x, yoffset);
+          if has_door {
+            // Since door is ggez rect, x is left edge.
+            let s1_rt_edge = door.x;
+            let s1_lf_edge = center.x - width / 2.0;
+            let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
+            let s2_rt_edge = center.x + width / 2.0;
+            let s2_lf_edge = door.x + door.w;
+            let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
+            let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
+            let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
+            vec![side1, side2]
+          } else {
+            vec![Wall::new(wall_c, full_w, WALL_THICKNESS)]
+          }
+        }
+        _ => {
+          let xoffset = center.x + width / 2.0 * d.to_tup().0;
+          let wall_c = Point::new(xoffset, center.y);
+          if has_door {
+            // Since door is ggez rect, y is top edge.
+            let s1_tp_edge = center.y - height / 2.0;
+            let s1_bt_edge = door.y;
+            let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
+            let s2_tp_edge = door.y + door.h;
+            let s2_bt_edge = center.y + height / 2.0;
+            let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
+            let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
+            let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
+            vec![side1, side2]
+          } else {
+            vec![Wall::new(wall_c, WALL_THICKNESS, full_h)]
+          }
+        }
+      }
+    }).collect()
   }
 
   /// Tests intersection with another room. Returns true if they intersect.
@@ -87,28 +140,62 @@ impl Room {
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-    let r: Rect = self.into();
-    rectangle(ctx, DrawMode::Fill, r)?;
+    for wall in &self.walls {
+      let r: Rect = wall.into();
+      rectangle(ctx, DrawMode::Fill, r)?;
+    }
     set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
     rectangle(ctx, DrawMode::Fill, self.door)
   }
 }
 
+impl CenterOriginRect for Room {
+  fn center(&self) -> Point { self.center }
+  fn width(&self) -> f32 { self.width }
+  fn height(&self) -> f32 { self.height }
+}
+
+
 impl<'a> From<&'a Room> for Rect {
   fn from(r: &Room) -> Rect {
     Rect {
       // GGEZ docs says x/y are center, they're actually top-left origin
-      x: r.center.x - r.width / 2.0,
-      y: r.center.y - r.height / 2.0,
-      w: r.width,
-      h: r.height,
+      x: r.center().x - r.width() / 2.0,
+      y: r.center().y - r.height() / 2.0,
+      w: r.width(),
+      h: r.height(),
     }
   }
 }
 
-impl<'a> Into<RectRep> for &'a Room {
-  // Must be done as into b/c of generics
-  fn into(self) -> RectRep {
-    RectRep::new(Vector2::new(self.width / 2.0, self.height / 2.0))
+impl<'a> From<&'a Wall> for Rect {
+  fn from(r: &Wall) -> Rect {
+    Rect {
+      // GGEZ docs says x/y are center, they're actually top-left origin
+      x: r.center().x - r.width() / 2.0,
+      y: r.center().y - r.height() / 2.0,
+      w: r.width(),
+      h: r.height(),
+    }
   }
+}
+
+impl<'a> Into<CollisionRect> for &'a Room {
+  // Must be done as into b/c of generics
+  fn into(self) -> CollisionRect {
+    CollisionRect::new(Vector2::new(self.width / 2.0, self.height / 2.0))
+  }
+}
+
+#[derive(new, Debug)]
+struct Wall {
+  center: Point,
+  width: Meters,
+  height: Meters,
+}
+
+impl CenterOriginRect for Wall {
+  fn center(&self) -> Point { self.center }
+  fn width(&self) -> f32 { self.width }
+  fn height(&self) -> f32 { self.height }
 }
