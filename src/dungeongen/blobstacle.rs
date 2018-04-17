@@ -2,16 +2,14 @@ extern crate ggez;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics::DrawParam;
-
-use util::drawablept::DrawablePt;
-use util::Point;
 use super::ca_simulator::CASim;
+use util::Point;
 
 /// Blobstacles are backed by a CA sim but have additional information like
 /// a position, ability to determine intersections, etc.
 pub struct Blobstacle {
   position: Point,
-  sim: CASim
+  sim: CASim,
 }
 
 impl Blobstacle {
@@ -24,8 +22,7 @@ impl Blobstacle {
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-    let d = DrawablePt(self.position);
-    let repositioned = DrawParam { dest: d.into(), ..DrawParam::default() };
+    let repositioned = DrawParam { dest: self.position, ..DrawParam::default() };
     self.sim.draw(ctx, repositioned)
   }
 }

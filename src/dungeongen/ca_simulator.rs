@@ -3,12 +3,9 @@ extern crate rand;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image,
-                           Mesh};
-use self::ggez::graphics::Point2 as GPoint;
+use self::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh};
 use super::direction::Direction;
 use util::Point;
-use util::drawablept::DrawablePt;
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -87,14 +84,10 @@ impl CASim {
       .collect()
   }
 
-  pub fn uspace_gboundary(&self) -> Vec<GPoint> {
+  pub fn uspace_gboundary(&self) -> Vec<Point> {
     // We shift by a half because we want to draw the sim centered around
     // the destination point.
-    self
-      .uspace_boundary(Point::new(-0.5, -0.5))
-      .into_iter()
-      .map(|p| DrawablePt(p).into())
-      .collect()
+    self.uspace_boundary(Point::new(-0.5, -0.5)).into_iter().collect()
   }
 
   fn smooth_cave_boundary(&mut self) -> bool {
@@ -235,24 +228,14 @@ impl CASim {
   }
 
   // GRAPHICS =================================================================
-  // Not really sure it's good practice to put this here, but I can't put it
-  // in Drawable impl.
-  pub fn draw_evolution(
-    &self,
-    ctx: &mut Context,
-    param: DrawParam,
-  ) -> GameResult<()> {
+  pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let ca_img_a = self.cave_ca_img(&self.ca_grid);
-    let screen_scale = DrawablePt(Point::new(param.scale.x, param.scale.y));
-    let scalept = DrawablePt(Point::new(
-      1.0 / self.width as f32,
-      1.0 / self.height as f32,
-    )) * screen_scale;
-    let mut img =
-      Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
+    let scalept = Point::new((1.0 / self.width as f32) * param.scale.x,
+                             (1.0 / self.height as f32) * param.scale.y);
+    let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
     let mut scaled_params = param.clone();
     scaled_params.scale = scalept.into();
-    scaled_params.dest = GPoint::new(0.0, 0.0);
+    scaled_params.dest = Point::new(0.0, 0.0);
     // Don't make my pixels all blurry
     img.set_filter(FilterMode::Nearest);
     img.draw_ex(ctx, scaled_params)?;

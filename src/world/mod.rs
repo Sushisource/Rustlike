@@ -4,7 +4,6 @@ extern crate ncollide as nc;
 
 use agents::player::Player;
 use dungeongen::level::Level;
-use util::drawablept::DrawablePt;
 use util::Point;
 
 pub mod render;
@@ -24,7 +23,7 @@ pub struct World {
 impl World {
   pub fn new() -> World {
     let level = Level::new();
-    let player = Player::new(DrawablePt(level.middle()).into());
+    let player = Player::new(level.middle());
     World {
       level: level.into(),
       player,

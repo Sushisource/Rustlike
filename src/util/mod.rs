@@ -2,12 +2,11 @@ extern crate ggez;
 extern crate nalgebra as na;
 extern crate ncollide as nc;
 
-use std::collections::HashMap;
 use self::ggez::Context;
 use self::ggez::graphics::{Font, Text};
+use std::collections::HashMap;
 use super::agents::Agent;
 
-pub mod drawablept;
 pub mod context_help;
 
 pub type Meters = f32;
