@@ -4,8 +4,8 @@ use self::ggez::{Context, GameResult};
 use self::ggez::graphics::DrawParam;
 
 use util::drawablept::DrawablePt;
+use util::Point;
 use super::ca_simulator::CASim;
-use super::Point;
 
 /// Blobstacles are backed by a CA sim but have additional information like
 /// a position, ability to determine intersections, etc.

@@ -9,16 +9,18 @@ mod util;
 mod agents;
 mod world;
 
-use world::{World};
+use world::World;
 use world::render::WorldRender;
 
 fn main() {
   let cb = ContextBuilder::new("rougelike", "ggez")
     .window_setup(conf::WindowSetup::default()
-      .title("Rougelike!")
+                    .title("Rougelike!")
+                  // TODO: Enable this and implement a fixed-ratio black bars solution or something
+                  //.resizable(true)
     )
     .window_mode(conf::WindowMode::default()
-      .dimensions(1365, 768)
+      .dimensions(1600, 900)
     );
 
   let ctx = &mut cb.build().unwrap();

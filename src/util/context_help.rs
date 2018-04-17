@@ -4,15 +4,14 @@ extern crate ncollide;
 use ggez::{Context, GameResult};
 use ggez::graphics::{Point2, DrawParam, rectangle, Rect, DrawMode};
 use self::ncollide::bounding_volume::AABB;
-use dungeongen::level_renderer::LevelPoint;
-use util::Meters;
+use util::{Meters, Point};
 
 pub trait ContextHelp {
   fn screen_x(&self) -> f32;
   fn screen_y(&self) -> f32;
   fn screen_middle(&self) -> Point2;
   fn sscale(&self) -> DrawParam;
-  fn uspace_to_sspace(&self, p: LevelPoint) -> Point2;
+  fn uspace_to_sspace(&self, p: Point) -> Point2;
   fn sspace_to_uspace(&self, p: Point2) -> Point2;
   fn center_rect(&mut self, center: Point2, w: Meters, h: Meters) -> GameResult<()>;
   fn draw_bb(&mut self, bb: &AABB<Point2>) -> GameResult<()>;
@@ -39,7 +38,7 @@ impl ContextHelp for Context {
     }
   }
 
-  fn uspace_to_sspace(&self, p: LevelPoint) -> Point2 {
+  fn uspace_to_sspace(&self, p: Point) -> Point2 {
     let sx = self.screen_x();
     let sy = self.screen_y();
     Point2::new(p.x * sx, p.y * sy)

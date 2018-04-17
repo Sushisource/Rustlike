@@ -8,8 +8,8 @@ use self::ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use self::na::Vector2;
 use self::rand::{Rng, thread_rng};
 use self::rand::distributions::{IndependentSample, Normal};
-use super::{Meters, Point, CollisionRect};
 use super::direction::Direction;
+use super::super::util::*;
 
 static WALL_THICKNESS: Meters = 0.2;
 static DOOR_WIDTH: Meters = 1.1;

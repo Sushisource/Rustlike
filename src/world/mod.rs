@@ -3,9 +3,9 @@ extern crate nalgebra as na;
 extern crate ncollide as nc;
 
 use agents::player::Player;
-use dungeongen::Level;
+use dungeongen::level::Level;
 use util::drawablept::DrawablePt;
-use super::util::Point;
+use util::Point;
 
 pub mod render;
 

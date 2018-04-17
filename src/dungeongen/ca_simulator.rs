@@ -3,12 +3,11 @@ extern crate rand;
 
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
-use self::ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image,
+use self::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image,
                            Mesh};
 use self::ggez::graphics::Point2 as GPoint;
-
 use super::direction::Direction;
-use super::Point;
+use util::Point;
 use util::drawablept::DrawablePt;
 
 type CellGrid = Vec<Vec<bool>>;
@@ -149,12 +148,12 @@ impl CASim {
       if in_width && in_height
         && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize]
         && not_marked
-      {
-        cur_cell = cur_pt;
-        self.ca_boundary.push(cur_cell);
-        self.bounds_last_dir = dir.clone();
-        break;
-      }
+        {
+          cur_cell = cur_pt;
+          self.ca_boundary.push(cur_cell);
+          self.bounds_last_dir = dir.clone();
+          break;
+        }
     }
     if marked_ct >= 2 {
       true
@@ -176,7 +175,7 @@ impl CASim {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-          // Cell dead
+            // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
