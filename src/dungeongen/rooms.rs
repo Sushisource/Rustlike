@@ -9,7 +9,7 @@ use self::na::Vector2;
 use self::rand::{Rng, thread_rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use super::direction::Direction;
-use super::super::util::*;
+use util::{CollisionRect, Meters, Point};
 
 static WALL_THICKNESS: Meters = 0.2;
 static DOOR_WIDTH: Meters = 1.1;
@@ -25,7 +25,7 @@ pub struct Room {
   pub center: Point,
   pub width: Meters,
   pub height: Meters,
-  door: Rect,
+  door: Rect, // TODO: Should probably just be a wall
   door_side: Direction,
   walls: Vec<Wall>,
 }
@@ -60,6 +60,12 @@ impl Room {
     };
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
+    let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, side);
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door, *side)
+  }
+
+  fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction) -> Rect {
+    let mut rng = thread_rng();
     let (w, h, off_x, off_y) = match *side {
       Direction::North | Direction::South => {
         let offset_range = (room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0;
@@ -79,7 +85,7 @@ impl Room {
       w,
       h,
     };
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door, *side)
+    door
   }
 
   /// Generates walls for the room, appropriately making a gap for the door
@@ -186,7 +192,7 @@ impl<'a> Into<CollisionRect> for &'a Room {
   }
 }
 
-#[derive(new, Debug)]
+#[derive(new, Debug, PartialEq)]
 struct Wall {
   center: Point,
   width: Meters,
@@ -197,4 +203,38 @@ impl CenterOriginRect for Wall {
   fn center(&self) -> Point { self.center }
   fn width(&self) -> f32 { self.width }
   fn height(&self) -> f32 { self.height }
+}
+
+// TESTS ================================================================================
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_wall_gen() {
+    let c_x = 10.0;
+    let c_y = 10.0;
+    let w = 5.0;
+    let h = 10.0;
+    let side = Direction::North;
+    let door = Room::gen_rand_door(c_x, c_y, w, h, &side);
+    let walls = Room::gen_walls(Point::new(c_x, c_y), w, h, door, side);
+    println!("{:?}", walls);
+    // South wall (recall south is +y)
+    assert_eq!(walls.len(), 5);
+    let sw = Wall::new(Point::new(10.0, 15.0),
+                       w + WALL_THICKNESS, WALL_THICKNESS);
+    assert!(walls.contains(&sw));
+    // West wall
+    let ww = Wall::new(Point::new(7.5, 10.0),
+                       WALL_THICKNESS, WALL_THICKNESS + h);
+    assert!(walls.contains(&ww));
+    // East wall
+    let ew = Wall::new(Point::new(12.5, 10.0),
+                       WALL_THICKNESS, WALL_THICKNESS + h);
+    assert!(walls.contains(&ew));
+    // I've stopped here because testing the north walls would involve duplicating a lot of
+    // the existing logic. Revisit if refactored.
+  }
 }
