@@ -3,14 +3,11 @@ extern crate nalgebra as na;
 extern crate ncollide as nc;
 
 use agents::player::Player;
+use collision::CollW;
 use dungeongen::level::Level;
 use util::Point;
 
 pub mod render;
-
-// TODO: Second param is wrong, represents defined-by-me data. Need
-// to have some kind of ID system for all entities
-pub type CollW = nc::world::CollisionWorld2<f32, f32>;
 
 /// The entire world. Contains all world objects, and handles interaction
 /// between subsystems.
@@ -41,10 +38,9 @@ impl World {
     cgs.set_membership(&[2]);
     cgs.set_whitelist(&[1]);
 
-    // TODO: Something useful
-//    let collisions = self.collision.interferences_with_point(p, &cgs);
-    // for c in collisions {
-    //   println!("{}", c.position());
-    // }
+    let collisions = self.collision.interferences_with_point(p, &cgs);
+     for c in collisions {
+       println!("{}", c.position());
+     }
   }
 }

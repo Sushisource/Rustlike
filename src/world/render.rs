@@ -11,6 +11,8 @@ use self::ggez::mouse;
 use world::World;
 use agents::Agent;
 use util::Assets;
+use util::context_help::ContextHelp;
+use collision::Compound2D;
 
 pub struct WorldRender<'a> {
   world: &'a mut World,
@@ -51,7 +53,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       for _ in 1..i {
         self.world.level.tick_level_gen();
       }
-    } else if !self.level_finished{
+    } else if !self.level_finished {
       self.world.add_level_contents_to_collision();
       self.level_finished = true
     }
@@ -63,14 +65,32 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
     // First thing that is drawn is the level itself
     self.world.level.draw(ctx)?;
-    let scaler = self.world.level.lscale(ctx);
+    // Render debug info that needs to be drawn at level scale
+    if self.debug {
+      // Render all collision bounding volumes
+      graphics::set_color(ctx, Color::new(0.0, 1.0, 0.0, 0.5))?;
+      for c in self.world.collision.collision_objects() {
+        let shape_h = c.shape();
+        if shape_h.is_shape::<Compound2D>() {
+          let o_comp = shape_h.as_shape::<Compound2D>();
+          if let Some(comp) = o_comp {
+            for s in comp.shapes() {
+              ctx.draw_bb(&s.1.aabb(&(s.0 * c.position())))?;
+            }
+          }
+        } else {
+          ctx.draw_bb(&c.shape().aabb(c.position()))?;
+        }
+      }
+    }
 
+    let scaler = self.world.level.lscale(ctx);
     graphics::set_transform(ctx, DrawParam::default().into_matrix());
     graphics::apply_transformations(ctx)?;
     graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
     self.world.player.draw(ctx, &mut self.assets, scaler.scale)?;
 
-    // Debug info
+    // Textual debug info
     if self.debug {
       let mouse_p = mouse::get_position(ctx)?;
       let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p);

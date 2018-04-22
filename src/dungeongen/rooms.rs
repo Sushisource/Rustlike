@@ -3,13 +3,16 @@ extern crate nalgebra as na;
 extern crate ncollide as nc;
 extern crate rand;
 
+use collision::{Collidable, CollisionRect, Shape2D};
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
-use self::na::Vector2;
+use self::na::{Vector2, Isometry2};
+use self::nc::ncollide_pipeline::world::CollisionGroups;
+use self::nc::shape::{ShapeHandle2, Compound2};
 use self::rand::{Rng, thread_rng};
 use self::rand::distributions::{IndependentSample, Normal};
 use super::direction::Direction;
-use util::{CollisionRect, Meters, Point};
+use util::{Meters, Point};
 
 static WALL_THICKNESS: Meters = 0.2;
 static DOOR_WIDTH: Meters = 1.1;
@@ -25,7 +28,8 @@ pub struct Room {
   pub center: Point,
   pub width: Meters,
   pub height: Meters,
-  door: Rect, // TODO: Should probably just be a wall
+  // TODO: Should probably just be a wall
+  door: Rect,
   door_side: Direction,
   walls: Vec<Wall>,
 }
@@ -185,10 +189,30 @@ impl<'a> From<&'a Wall> for Rect {
   }
 }
 
-impl<'a> Into<CollisionRect> for &'a Room {
+impl<'a> Into<CollisionRect> for &'a Wall {
   // Must be done as into b/c of generics
   fn into(self) -> CollisionRect {
     CollisionRect::new(Vector2::new(self.width / 2.0, self.height / 2.0))
+  }
+}
+
+// TODO: Doors, and how do we make them open/closed
+impl Collidable for Room {
+  fn location(&self) -> Point { self.center }
+  fn shape(&self) -> Shape2D {
+    let shapes = self.walls.iter().map(|w| {
+      let cr: CollisionRect = w.into();
+      // Wall locations need to be represented relative to the center of the room
+      let loc = Isometry2::new(w.center.coords - self.center.coords, na::zero());
+      (loc, ShapeHandle2::new(cr))
+    });
+    let whole_shape = Compound2::new(shapes.collect());
+    ShapeHandle2::new(whole_shape)
+  }
+  fn collision_group(&self) -> CollisionGroups {
+    let mut cg = nc::world::CollisionGroups::new();
+    cg.set_membership(&[1]);
+    return cg;
   }
 }
 
@@ -209,8 +233,6 @@ impl CenterOriginRect for Wall {
 
 #[cfg(test)]
 mod test {
-  use super::*;
-
   #[test]
   fn test_wall_gen() {
     let c_x = 10.0;

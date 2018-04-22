@@ -1,16 +1,16 @@
-extern crate ggez;
 #[macro_use]
 extern crate derive_new;
+extern crate ggez;
 
-use ggez::{ContextBuilder, graphics, conf, event};
+use ggez::{conf, ContextBuilder, event, graphics};
+use world::render::WorldRender;
+use world::World;
 
+mod agents;
+mod collision;
 mod dungeongen;
 mod util;
-mod agents;
 mod world;
-
-use world::World;
-use world::render::WorldRender;
 
 fn main() {
   let cb = ContextBuilder::new("rougelike", "ggez")

@@ -2,19 +2,19 @@ extern crate ggez;
 extern crate nalgebra as na;
 extern crate ncollide as nc;
 
+use collision::{CollW, GameObjRegistrar};
 use self::ggez::{Context, GameResult};
 use self::ggez::graphics;
 use self::ggez::graphics::{Color, DrawParam};
 use self::na::{Isometry2, Point2};
 use self::nc::bounding_volume::AABB;
-use self::nc::shape::{Polyline, Shape, ShapeHandle2};
+use self::nc::shape::{Polyline, Shape};
 use std::sync::Arc;
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
 use super::rooms::Room;
-use util::{CollisionRect, Meters, Point};
+use util::{Meters, Point};
 use util::context_help::ContextHelp;
-use world::CollW;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -137,16 +137,9 @@ impl Level {
   }
 
   pub fn populate_collision_world(&self, cw: &mut CollW) -> () {
-    // TODO: This group creation belongs somewhere central. Maybe it
-    // should be passed in, or this fn should be lifted up.
-    let mut cg = nc::world::CollisionGroups::new();
-    cg.set_membership(&[1]);
-    let q = nc::world::GeometricQueryType::Contacts(0.0, 0.0);
     // Add all rooms
     for r in &self.rooms {
-      let rr: CollisionRect = r.into();
-      let shape = ShapeHandle2::new(rr);
-      cw.add(Isometry2::new(r.center.coords, na::zero()), shape, cg, q, 0.0);
+      cw.register(r);
     }
   }
 

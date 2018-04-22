@@ -1,6 +1,5 @@
 extern crate ggez;
 extern crate nalgebra as na;
-extern crate ncollide as nc;
 
 use self::ggez::Context;
 use self::ggez::graphics::{Font, Text};
@@ -11,7 +10,6 @@ pub mod context_help;
 
 pub type Meters = f32;
 pub type Point = na::Point2<f32>;
-pub type CollisionRect = nc::shape::Cuboid<na::Vector2<f32>>;
 
 pub struct Assets {
   /// This map maps world sizes in meters -> font where the size as rendered
