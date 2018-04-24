@@ -1,18 +1,16 @@
-extern crate ggez;
-
-use std::time::Duration;
-use self::ggez::{Context, GameResult};
-use self::ggez::event;
-use self::ggez::event::{Keycode, Mod};
-use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam, Drawable, Point2, Vector2};
-use self::ggez::timer;
-use self::ggez::mouse;
-use world::World;
 use agents::Agent;
+use collision::Compound2D;
+use ggez::{Context, GameResult};
+use ggez::event;
+use ggez::event::{Keycode, Mod};
+use ggez::graphics;
+use ggez::graphics::{Color, Drawable, DrawParam, Point2, Vector2};
+use ggez::mouse;
+use ggez::timer;
+use std::time::Duration;
 use util::Assets;
 use util::context_help::ContextHelp;
-use collision::Compound2D;
+use world::World;
 
 pub struct WorldRender<'a> {
   world: &'a mut World,
@@ -30,7 +28,7 @@ impl<'a> WorldRender<'a> {
       world,
       fastmode: true,
       assets,
-      debug: true,
+      debug: false,
       level_finished: false,
     }
   }

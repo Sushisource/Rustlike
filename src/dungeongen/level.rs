@@ -1,14 +1,12 @@
-extern crate ggez;
-extern crate nalgebra as na;
-extern crate ncollide as nc;
-
 use collision::{CollW, GameObjRegistrar};
-use self::ggez::{Context, GameResult};
-use self::ggez::graphics;
-use self::ggez::graphics::{Color, DrawParam};
-use self::na::{Isometry2, Point2};
-use self::nc::bounding_volume::AABB;
-use self::nc::shape::{Polyline, Shape};
+use ggez::{Context, GameResult};
+use ggez::graphics;
+use ggez::graphics::{Color, DrawParam};
+use na;
+use na::{Isometry2, Point2};
+use nc::bounding_volume::AABB;
+use nc::shape::{Polyline, Shape};
+use rand::{thread_rng, Rng};
 use std::sync::Arc;
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
@@ -33,7 +31,8 @@ impl Level {
   pub fn new() -> Level {
     Level {
       // TODO: Right now the dimensions of this sim need to have the same ratio
-      // as the screen or it gets squished
+      // as the screen or it gets squished. It's also bad at taking up most of the available screen
+      // space.
       cave_sim: CASim::new(266, 150, 1.0),
       level_gen_finished: false,
       rooms: Vec::new(),
@@ -49,7 +48,7 @@ impl Level {
       0 => self.tick_cavesim(),
       1 => self.tick_roomsim(),
       2 => self.place_obstacles(),
-      // TODO: ensure all rooms are connected after placing obstacles (spanning tree)
+      // TODO: ensure all rooms are connected after placing obstacles
       _ => false,
     };
     if stage_complete {
@@ -65,19 +64,27 @@ impl Level {
   }
 
   fn tick_roomsim(&mut self) -> bool {
+    let mut rng = thread_rng();
     // Room centers should be within the bounding box of the cave
     let cave_bb = self.cave_bound_box();
     if self.rooms.len() < 20 {
       loop {
-        let room = Room::new_rand((0.0, self.width), (0.0, self.height));
-        let avoids_other_rooms =
-          self.rooms.iter().all(|ref r| !room.intersects(r));
-        let in_cave = room.center.x < cave_bb.maxs().x
-          && room.center.x > cave_bb.mins().x
-          && room.center.y < cave_bb.maxs().y
-          && room.center.y > cave_bb.mins().y;
-        if avoids_other_rooms && in_cave {
-          self.rooms.push(room);
+        let is_compound = rng.gen_weighted_bool(5);
+        let mut nu_rooms = Vec::new();
+        if is_compound {
+          nu_rooms.append(&mut Room::new_compound_room((cave_bb.mins().x, cave_bb.maxs().x),
+                                                       (cave_bb.mins().y, cave_bb.maxs().y)))
+        } else {
+          nu_rooms.push(Room::new_rand((cave_bb.mins().x, cave_bb.maxs().x),
+                                       (cave_bb.mins().y, cave_bb.maxs().y)));
+        }
+        // TODO: Could maybe just do this with the collision world?
+        let mut no_collisions = true;
+        for nr in nu_rooms.iter() {
+          no_collisions &= self.rooms.iter().all(|ref r| !nr.intersects(r));
+        }
+        if no_collisions {
+          self.rooms.append(&mut nu_rooms);
           break;
         }
       }
@@ -98,7 +105,7 @@ impl Level {
       .collect();
     let cave_polyline =
       Polyline::new(Arc::new(cavebf), Arc::new(cave_ixs), None, None);
-    let cave_pos = na::one::<Isometry2<f32>>();
+    let cave_pos = na::one::<Isometry2<Meters>>();
     cave_polyline.aabb(&cave_pos)
   }
 

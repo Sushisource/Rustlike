@@ -1,6 +1,9 @@
 #[macro_use]
 extern crate derive_new;
 extern crate ggez;
+extern crate nalgebra as na;
+extern crate ncollide as nc;
+extern crate rand;
 
 use ggez::{conf, ContextBuilder, event, graphics};
 use world::render::WorldRender;
