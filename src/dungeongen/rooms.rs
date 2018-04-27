@@ -63,7 +63,7 @@ impl Room {
     let prev_door = anchor.door;
     let prev_door_dir = anchor.door_side;
     let prev_door_c = Point::new(anchor.door.x + anchor.door.w / 2.0,
-                                 anchor.door.y - anchor.door.h / 2.0);
+                                 anchor.door.y + anchor.door.h / 2.0);
     let (ext_w, ext_h) = Room::gen_room_box();
     let (ext_x, ext_y) = match prev_door_dir {
       Direction::North => (prev_door_c.x, anchor.center().y - anchor.height / 2.0 - ext_h / 2.0),
@@ -97,8 +97,8 @@ impl Room {
         sizer
           .ind_sample(&mut rng)
           .abs()
-          // Rooms must be at least 1m sq so a door can fit, plus a bit extra for wiggle room
-          .max((DOOR_WIDTH + 0.2).into())
+          // Rooms need to be big enough to fit a door, and a little wiggle room
+          .max((DOOR_WIDTH * 2.0).into())
           .min(30.0) as Meters
       };
       (get_siz(), get_siz())
@@ -230,7 +230,6 @@ impl From<Wall> for Rect {
 impl Into<CollisionRect> for Wall {
   // Must be done as into b/c of generics
   fn into(self) -> CollisionRect {
-    assert!(self.width > 0.0 && self.height > 0.0, "Wall has negative w or h! {:?}", self);
     CollisionRect::new(Vector2::new(self.width / 2.0, self.height / 2.0))
   }
 }
@@ -272,6 +271,8 @@ impl CenterOriginRect for Wall {
 
 #[cfg(test)]
 mod test {
+  use super::*;
+
   #[test]
   fn test_wall_gen() {
     let c_x = 10.0;
@@ -279,6 +280,7 @@ mod test {
     let w = 5.0;
     let h = 10.0;
     let side = Direction::North;
+    // TODO: Have to de-randify this to improve test. Use seed or pass all params in.
     let door = Room::gen_rand_door(c_x, c_y, w, h, &side);
     let walls = Room::gen_walls(Point::new(c_x, c_y), w, h, door, side);
     println!("{:?}", walls);
@@ -286,15 +288,15 @@ mod test {
     assert_eq!(walls.len(), 5);
     let sw = Wall::new(Point::new(10.0, 15.0),
                        w + WALL_THICKNESS, WALL_THICKNESS);
-    assert!(walls.contains(&sw));
+    assert!(walls.contains(&(sw, Direction::South)));
     // West wall
     let ww = Wall::new(Point::new(7.5, 10.0),
                        WALL_THICKNESS, WALL_THICKNESS + h);
-    assert!(walls.contains(&ww));
+    assert!(walls.contains(&(ww, Direction::West)));
     // East wall
     let ew = Wall::new(Point::new(12.5, 10.0),
                        WALL_THICKNESS, WALL_THICKNESS + h);
-    assert!(walls.contains(&ew));
+    assert!(walls.contains(&(ew, Direction::East)));
     // I've stopped here because testing the north walls would involve duplicating a lot of
     // the existing logic. Revisit if refactored.
   }
