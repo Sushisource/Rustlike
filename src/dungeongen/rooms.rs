@@ -44,7 +44,7 @@ impl Room {
     let mut rng = thread_rng();
     let c_x: f32 = rng.gen_range(x_min, x_max);
     let c_y: f32 = rng.gen_range(y_min, y_max);
-    let (room_w, room_h) = Room::gen_room_box();
+    let (room_w, room_h) = Room::rand_room_box();
     let mut rng = thread_rng();
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
@@ -64,7 +64,7 @@ impl Room {
     let prev_door_dir = anchor.door_side;
     let prev_door_c = Point::new(anchor.door.x + anchor.door.w / 2.0,
                                  anchor.door.y + anchor.door.h / 2.0);
-    let (ext_w, ext_h) = Room::gen_room_box();
+    let (ext_w, ext_h) = Room::rand_room_box();
     let (ext_x, ext_y) = match prev_door_dir {
       Direction::North => (prev_door_c.x, anchor.center().y - anchor.height / 2.0 - ext_h / 2.0),
       Direction::South => (prev_door_c.x, anchor.center().y + anchor.height / 2.0 + ext_h / 2.0),
@@ -88,7 +88,7 @@ impl Room {
     vec![anchor, extension]
   }
 
-  fn gen_room_box() -> (Meters, Meters) {
+  fn rand_room_box() -> (Meters, Meters) {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
     let (room_w, room_h) = {
@@ -108,15 +108,20 @@ impl Room {
 
   fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction) -> Rect {
     let mut rng = thread_rng();
+    let offset_mul: f32 = rng.gen_range(-1.0, 1.0);
+    Room::gen_door(c_x, c_y, room_w, room_h, side, offset_mul)
+  }
+
+  /// Non-random door generation. `offset_multiplier` here is a value between -1.0 and 1.0
+  fn gen_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction,
+              offset_multiplier: f32) -> Rect {
     let (w, h, off_x, off_y) = match *side {
       Direction::North | Direction::South => {
-        let offset_range = (room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0;
-        let offset: f32 = rng.gen_range(-offset_range, offset_range);
+        let offset = ((room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0) * offset_multiplier;
         (DOOR_WIDTH, WALL_THICKNESS, offset, 0.0)
       }
       _ => {
-        let offset_range = (room_h - DOOR_WIDTH - WALL_THICKNESS) / 2.0;
-        let offset: f32 = rng.gen_range(-offset_range, offset_range);
+        let offset = ((room_h - DOOR_WIDTH - WALL_THICKNESS) / 2.0) * offset_multiplier;
         (WALL_THICKNESS, DOOR_WIDTH, 0.0, offset)
       }
     };
@@ -280,8 +285,7 @@ mod test {
     let w = 5.0;
     let h = 10.0;
     let side = Direction::North;
-    // TODO: Have to de-randify this to improve test. Use seed or pass all params in.
-    let door = Room::gen_rand_door(c_x, c_y, w, h, &side);
+    let door = Room::gen_door(c_x, c_y, w, h, &side, 0.0);
     let walls = Room::gen_walls(Point::new(c_x, c_y), w, h, door, side);
     println!("{:?}", walls);
     // South wall (recall south is +y)
@@ -297,7 +301,15 @@ mod test {
     let ew = Wall::new(Point::new(12.5, 10.0),
                        WALL_THICKNESS, WALL_THICKNESS + h);
     assert!(walls.contains(&(ew, Direction::East)));
-    // I've stopped here because testing the north walls would involve duplicating a lot of
-    // the existing logic. Revisit if refactored.
+    // North walls
+    let west_edge = c_x - w / 2.0;
+    let nw1 = Wall::new(Point::new(west_edge + (door.x - west_edge) / 2.0, 5.0),
+                        door.x - west_edge, WALL_THICKNESS);
+    assert!(walls.contains(&(nw1, Direction::North)));
+    let east_edge = c_x + w / 2.0;
+    let door_rt = door.x + door.w;
+    let nw2 = Wall::new(Point::new(door_rt + (east_edge - door_rt) / 2.0, 5.0),
+                        east_edge - door_rt, WALL_THICKNESS);
+    assert!(walls.contains(&(nw2, Direction::North)));
   }
 }
