@@ -38,16 +38,15 @@ pub struct Room {
   width: Meters,
   height: Meters,
   door: Door,
-  door_side: Direction,
   /// Tuple of wall, and side of the room that wall belongs to
   walls: Vec<(Wall, Direction)>,
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters, door: Door, door_side: Direction)
+  pub fn new(center: Point, width: Meters, height: Meters, door: Door)
              -> Room {
-    let walls = Room::gen_walls(center, width, height, door, door_side);
-    Room { center, width, height, door, door_side, walls }
+    let walls = Room::gen_walls(center, width, height, door, door.facing);
+    Room { center, width, height, door, walls }
   }
 
   /// Creates a new `Room` randomly placed somewhere in the provided range
@@ -60,7 +59,7 @@ impl Room {
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
     let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, side);
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door, *side)
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door)
   }
 
   /// Creates a new group of `Room`s that all touch each-other
@@ -72,7 +71,7 @@ impl Room {
     // Find the side the door is on, and tack on another room box there. We'll delete one wall
     // such that the two rooms now share a wall
     let prev_door = anchor.door;
-    let prev_door_dir = anchor.door_side;
+    let prev_door_dir = anchor.door.facing;
     let prev_door_c = anchor.door.center();
     let (ext_w, ext_h) = Room::rand_room_box();
     let (ext_x, ext_y) = match prev_door_dir {
@@ -86,7 +85,7 @@ impl Room {
       .filter(|x| **x != prev_door_dir.opposite()).collect();
     let side = rng.choose(&dirs_no_same_side).unwrap();
     let door = Room::gen_rand_door(ext_x, ext_y, ext_w, ext_h, side);
-    let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, **side);
+    let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door);
     // Generate walls as if we were using the door from the previous room, then use the walls
     // from that side in place of new room's "real" walls, so that we punch a hole where the door is
     let mut fixed_walls = Room::gen_walls(extension.center, ext_w, ext_h, prev_door,
@@ -144,7 +143,9 @@ impl Room {
     door
   }
 
-  /// Generates walls for the room, appropriately making a gap for the door
+  /// Generates walls for the room, appropriately making a gap for the door. `door_side` must
+  /// be passed even though `door` has a `facing` property, because you may want to punch a hole
+  /// in some walls using another room's door.
   fn gen_walls(center: Point, width: Meters, height: Meters, door: Door, door_side: Direction)
                -> Vec<(Wall, Direction)> {
     Direction::compass().iter().flat_map(|d| {
