@@ -18,22 +18,33 @@ trait CenterOriginRect {
   fn center(&self) -> Point;
   fn width(&self) -> Meters;
   fn height(&self) -> Meters;
+  fn left_edge(&self) -> Meters {
+    self.center().x - self.width() / 2.0
+  }
+  fn right_edge(&self) -> Meters {
+    self.center().x + self.width() / 2.0
+  }
+  fn top_edge(&self) -> Meters {
+    self.center().y - self.height() / 2.0
+  }
+  fn bottom_edge(&self) -> Meters {
+    self.center().y + self.height() / 2.0
+  }
 }
 
 #[derive(Debug)]
 pub struct Room {
-  pub center: Point,
-  pub width: Meters,
-  pub height: Meters,
-  // TODO: Should probably just be a wall
-  door: Rect,
+  center: Point,
+  width: Meters,
+  height: Meters,
+  door: Door,
   door_side: Direction,
   /// Tuple of wall, and side of the room that wall belongs to
   walls: Vec<(Wall, Direction)>,
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters, door: Rect, door_side: Direction)
+  pub fn new(center: Point, width: Meters, height: Meters, door: Door, door_side: Direction)
              -> Room {
     let walls = Room::gen_walls(center, width, height, door, door_side);
     Room { center, width, height, door, door_side, walls }
@@ -62,8 +73,7 @@ impl Room {
     // such that the two rooms now share a wall
     let prev_door = anchor.door;
     let prev_door_dir = anchor.door_side;
-    let prev_door_c = Point::new(anchor.door.x + anchor.door.w / 2.0,
-                                 anchor.door.y + anchor.door.h / 2.0);
+    let prev_door_c = anchor.door.center();
     let (ext_w, ext_h) = Room::rand_room_box();
     let (ext_x, ext_y) = match prev_door_dir {
       Direction::North => (prev_door_c.x, anchor.center().y - anchor.height / 2.0 - ext_h / 2.0),
@@ -106,7 +116,7 @@ impl Room {
     (room_w, room_h)
   }
 
-  fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction) -> Rect {
+  fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction) -> Door {
     let mut rng = thread_rng();
     let offset_mul: f32 = rng.gen_range(-1.0, 1.0);
     Room::gen_door(c_x, c_y, room_w, room_h, side, offset_mul)
@@ -114,7 +124,7 @@ impl Room {
 
   /// Non-random door generation. `offset_multiplier` here is a value between -1.0 and 1.0
   fn gen_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction,
-              offset_multiplier: f32) -> Rect {
+              offset_multiplier: f32) -> Door {
     let (w, h, off_x, off_y) = match *side {
       Direction::North | Direction::South => {
         let offset = ((room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0) * offset_multiplier;
@@ -126,17 +136,16 @@ impl Room {
       }
     };
     let sidetup = side.to_tup();
-    let door = Rect {
-      x: c_x + sidetup.0 * (room_w / 2.0) - w / 2.0 + off_x,
-      y: c_y + sidetup.1 * (room_h / 2.0) - h / 2.0 + off_y,
-      w,
-      h,
-    };
+    let door = Door::new(Point::new(c_x + sidetup.0 * (room_w / 2.0) + off_x,
+                                    c_y + sidetup.1 * (room_h / 2.0) + off_y),
+                         w,
+                         h,
+                         *side);
     door
   }
 
   /// Generates walls for the room, appropriately making a gap for the door
-  fn gen_walls(center: Point, width: Meters, height: Meters, door: Rect, door_side: Direction)
+  fn gen_walls(center: Point, width: Meters, height: Meters, door: Door, door_side: Direction)
                -> Vec<(Wall, Direction)> {
     Direction::compass().iter().flat_map(|d| {
       let d = *d; // This is a bit uggo
@@ -149,11 +158,11 @@ impl Room {
           let wall_c = Point::new(center.x, yoffset);
           if has_door {
             // Since door is ggez rect, x is left edge.
-            let s1_rt_edge = door.x;
+            let s1_rt_edge = door.left_edge();
             let s1_lf_edge = center.x - width / 2.0;
             let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
             let s2_rt_edge = center.x + width / 2.0;
-            let s2_lf_edge = door.x + door.w;
+            let s2_lf_edge = door.right_edge();
             let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
             let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
             let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
@@ -168,9 +177,9 @@ impl Room {
           if has_door {
             // Since door is ggez rect, y is top edge.
             let s1_tp_edge = center.y - height / 2.0;
-            let s1_bt_edge = door.y;
+            let s1_bt_edge = door.top_edge();
             let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
-            let s2_tp_edge = door.y + door.h;
+            let s2_tp_edge = door.bottom_edge();
             let s2_bt_edge = center.y + height / 2.0;
             let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
             let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
@@ -186,19 +195,19 @@ impl Room {
 
   /// Tests intersection with another room. Returns true if they intersect.
   pub fn intersects(&self, other: &Room) -> bool {
-    let r1: Rect = self.into();
-    let r2: Rect = other.into();
+    let r1: Rect = (self as &CenterOriginRect).into();
+    let r2: Rect = (other as &CenterOriginRect).into();
     !(r1.left() > r2.right() || r1.right() < r2.left() || r1.top() > r2.bottom()
       || r1.bottom() < r2.top())
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
     for &(wall, _) in &self.walls {
-      let r: Rect = wall.into();
+      let r: Rect = (&wall as &CenterOriginRect).into();
       rectangle(ctx, DrawMode::Fill, r)?;
     }
     set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
-    rectangle(ctx, DrawMode::Fill, self.door)
+    rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
   }
 }
 
@@ -206,30 +215,6 @@ impl CenterOriginRect for Room {
   fn center(&self) -> Point { self.center }
   fn width(&self) -> f32 { self.width }
   fn height(&self) -> f32 { self.height }
-}
-
-impl<'a> From<&'a Room> for Rect {
-  fn from(r: &Room) -> Rect {
-    Rect {
-      // GGEZ docs says x/y are center, they're actually top-left origin
-      x: r.center().x - r.width() / 2.0,
-      y: r.center().y - r.height() / 2.0,
-      w: r.width(),
-      h: r.height(),
-    }
-  }
-}
-
-impl From<Wall> for Rect {
-  fn from(r: Wall) -> Rect {
-    Rect {
-      // GGEZ docs says x/y are center, they're actually top-left origin
-      x: r.center().x - r.width() / 2.0,
-      y: r.center().y - r.height() / 2.0,
-      w: r.width(),
-      h: r.height(),
-    }
-  }
 }
 
 impl Into<CollisionRect> for Wall {
@@ -272,6 +257,31 @@ impl CenterOriginRect for Wall {
   fn height(&self) -> f32 { self.height }
 }
 
+#[derive(new, Debug, PartialEq, Copy, Clone)]
+pub struct Door {
+  center: Point,
+  width: Meters,
+  height: Meters,
+  facing: Direction,
+}
+
+impl CenterOriginRect for Door {
+  fn center(&self) -> Point { self.center }
+  fn width(&self) -> f32 { self.width }
+  fn height(&self) -> f32 { self.height }
+}
+
+impl<'a> Into<Rect> for &'a CenterOriginRect {
+  fn into(self) -> Rect {
+    Rect {
+      // GGEZ rect is top-left origin
+      x: self.center().x - self.width() / 2.0,
+      y: self.center().y - self.height() / 2.0,
+      w: self.width(),
+      h: self.height(),
+    }
+  }
+}
 // TESTS ================================================================================
 
 #[cfg(test)]
@@ -303,11 +313,11 @@ mod test {
     assert!(walls.contains(&(ew, Direction::East)));
     // North walls
     let west_edge = c_x - w / 2.0;
-    let nw1 = Wall::new(Point::new(west_edge + (door.x - west_edge) / 2.0, 5.0),
-                        door.x - west_edge, WALL_THICKNESS);
+    let nw1 = Wall::new(Point::new(west_edge + (door.left_edge() - west_edge) / 2.0, 5.0),
+                        door.left_edge() - west_edge, WALL_THICKNESS);
     assert!(walls.contains(&(nw1, Direction::North)));
     let east_edge = c_x + w / 2.0;
-    let door_rt = door.x + door.w;
+    let door_rt = door.right_edge();
     let nw2 = Wall::new(Point::new(door_rt + (east_edge - door_rt) / 2.0, 5.0),
                         east_edge - door_rt, WALL_THICKNESS);
     assert!(walls.contains(&(nw2, Direction::North)));
