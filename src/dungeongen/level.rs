@@ -6,7 +6,8 @@ use na;
 use na::{Isometry2, Point2};
 use nc::bounding_volume::AABB;
 use nc::shape::{Polyline, Shape};
-use rand::{thread_rng, Rng};
+use num::{FromPrimitive, ToPrimitive};
+use rand::{Rng, thread_rng};
 use std::sync::Arc;
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
@@ -22,9 +23,20 @@ pub struct Level {
   pub level_gen_finished: bool,
   pub rooms: Vec<Room>,
   pub obstacles: Vec<Blobstacle>,
-  gen_stage: u8,
+  gen_stage: LevelGenStage,
   width: Meters,
   height: Meters,
+  /// This collision world can be used during different stages of level generation to
+  /// make sure the stuff being generated isn't colliding with other stuff.
+  tmp_collw: CollW,
+}
+
+#[derive(PartialEq, Ord, PartialOrd, Eq, FromPrimitive, ToPrimitive)]
+enum LevelGenStage {
+  CaveSim,
+  RoomSim,
+  PlaceObstacles,
+  Done,
 }
 
 impl Level {
@@ -37,24 +49,26 @@ impl Level {
       level_gen_finished: false,
       rooms: Vec::new(),
       obstacles: Vec::new(),
-      gen_stage: 0,
+      gen_stage: LevelGenStage::CaveSim,
       width: 80.0,
       height: 45.0,
+      tmp_collw: CollW::new(0.02),
     }
   }
 
   pub fn tick_level_gen(&mut self) -> () {
     let stage_complete = match self.gen_stage {
-      0 => self.tick_cavesim(),
-      1 => self.tick_roomsim(),
-      2 => self.place_obstacles(),
-      // TODO: ensure all rooms are connected after placing obstacles
+      LevelGenStage::CaveSim => self.tick_cavesim(),
+      LevelGenStage::RoomSim => self.tick_roomsim(),
+      LevelGenStage::PlaceObstacles => self.place_obstacles(),
       _ => false,
     };
     if stage_complete {
-      self.gen_stage += 1
+      self.gen_stage = ToPrimitive::to_u8(&self.gen_stage)
+        .and_then(|v| FromPrimitive::from_u8(v + 1))
+        .unwrap_or(LevelGenStage::Done);
     }
-    if self.gen_stage == 3 {
+    if self.gen_stage == LevelGenStage::Done {
       self.level_gen_finished = true;
     }
   }
@@ -157,8 +171,7 @@ impl Level {
     let sscale = ctx.sscale();
     let center_scale = self.lscale(ctx);
 
-    // In the stage 0 we draw the CA evolution and the boundary
-    if self.gen_stage == 0 {
+    if self.gen_stage == LevelGenStage::CaveSim {
       &self.cave_sim.draw_evolution(ctx, sscale);
     } else {
       graphics::set_transform(ctx, center_scale.into_matrix());
@@ -212,5 +225,21 @@ impl Level {
       scale: self.lspace_to_sspace(ctx, Point::new(1.0, 1.0)),
       ..Default::default()
     };
+  }
+}
+
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  #[test]
+  fn test_no_room_collisions() {
+    let mut l = Level::new();
+    while l.gen_stage < LevelGenStage::PlaceObstacles {
+      l.tick_level_gen();
+    }
+    l.tmp_collw.update();
+    assert!(l.tmp_collw.contacts().next().is_none())
   }
 }
