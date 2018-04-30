@@ -1,4 +1,4 @@
-use collision::{Collidable, CollisionRect, Shape2D};
+use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::{Context, GameResult};
 use ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use na;
@@ -40,13 +40,15 @@ pub struct Room {
   door: Door,
   /// Tuple of wall, and side of the room that wall belongs to
   walls: Vec<(Wall, Direction)>,
+  is_compound: bool,
 }
 
+pub type CompoundRoom = Vec<Room>;
+
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters, door: Door)
-             -> Room {
+  pub fn new(center: Point, width: Meters, height: Meters, door: Door, is_compound: bool) -> Room {
     let walls = Room::gen_walls(center, width, height, door, door.facing);
-    Room { center, width, height, door, walls }
+    Room { center, width, height, door, walls, is_compound }
   }
 
   /// Creates a new `Room` randomly placed somewhere in the provided range
@@ -59,15 +61,16 @@ impl Room {
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
     let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, side);
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door)
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door, false)
   }
 
   /// Creates a new group of `Room`s that all touch each-other
   pub fn new_compound_room((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters))
-                           -> Vec<Room> {
+                           -> CompoundRoom {
     let mut rng = thread_rng();
     // Start with an "anchor" room
-    let anchor = Room::new_rand((x_min, x_max), (y_min, y_max));
+    let mut anchor = Room::new_rand((x_min, x_max), (y_min, y_max));
+    anchor.is_compound = true;
     // Find the side the door is on, and tack on another room box there. We'll delete one wall
     // such that the two rooms now share a wall
     let prev_door = anchor.door;
@@ -85,7 +88,7 @@ impl Room {
       .filter(|x| **x != prev_door_dir.opposite()).collect();
     let side = rng.choose(&dirs_no_same_side).unwrap();
     let door = Room::gen_rand_door(ext_x, ext_y, ext_w, ext_h, side);
-    let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door);
+    let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, true);
     // Generate walls as if we were using the door from the previous room, then use the walls
     // from that side in place of new room's "real" walls, so that we punch a hole where the door is
     let mut fixed_walls = Room::gen_walls(extension.center, ext_w, ext_h, prev_door,
@@ -96,6 +99,17 @@ impl Room {
 
     vec![anchor, extension]
   }
+
+  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+    for &(wall, _) in &self.walls {
+      let r: Rect = (&wall as &CenterOriginRect).into();
+      rectangle(ctx, DrawMode::Fill, r)?;
+    }
+    set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
+    rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
+  }
+
+  pub fn is_compound(&self) -> bool { self.is_compound }
 
   fn rand_room_box() -> (Meters, Meters) {
     // TODO: Configurable sizing parameters
@@ -137,9 +151,7 @@ impl Room {
     let sidetup = side.to_tup();
     let door = Door::new(Point::new(c_x + sidetup.0 * (room_w / 2.0) + off_x,
                                     c_y + sidetup.1 * (room_h / 2.0) + off_y),
-                         w,
-                         h,
-                         *side);
+                         w, h, *side);
     door
   }
 
@@ -193,23 +205,6 @@ impl Room {
       }
     }).collect()
   }
-
-  /// Tests intersection with another room. Returns true if they intersect.
-  pub fn intersects(&self, other: &Room) -> bool {
-    let r1: Rect = (self as &CenterOriginRect).into();
-    let r2: Rect = (other as &CenterOriginRect).into();
-    !(r1.left() > r2.right() || r1.right() < r2.left() || r1.top() > r2.bottom()
-      || r1.bottom() < r2.top())
-  }
-
-  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-    for &(wall, _) in &self.walls {
-      let r: Rect = (&wall as &CenterOriginRect).into();
-      rectangle(ctx, DrawMode::Fill, r)?;
-    }
-    set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
-    rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
-  }
 }
 
 impl CenterOriginRect for Room {
@@ -242,6 +237,9 @@ impl Collidable for Room {
     let mut cg = nc::world::CollisionGroups::new();
     cg.set_membership(&[1]);
     return cg;
+  }
+  fn coltype(&self) -> CollidableType {
+    if self.is_compound { CollidableType::CompoundRoomWall } else { CollidableType::RoomWall }
   }
 }
 

@@ -3,9 +3,10 @@ extern crate nalgebra as na;
 extern crate ncollide as nc;
 
 use agents::player::Player;
-use collision::CollW;
+use collision::{CollW, new_collw, CollidableDat, GameObjRegistrar};
 use dungeongen::level::Level;
 use util::Point;
+use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub mod render;
 
@@ -15,6 +16,8 @@ pub struct World {
   level: Level,
   player: Player,
   collision: CollW,
+  // TODO: Move to Specs and use that for entity IDs?
+  next_eid: AtomicUsize, // Could be atomic
 }
 
 impl World {
@@ -24,12 +27,17 @@ impl World {
     World {
       level: level.into(),
       player,
-      collision: CollW::new(0.02),
+      collision: new_collw(),
+      next_eid: AtomicUsize::new(0),
     }
   }
 
   fn add_level_contents_to_collision(&mut self) -> () {
-    self.level.populate_collision_world(&mut self.collision);
+    let rooms = self.level.produce_collidables();
+    for r in rooms {
+      let cw_dat = CollidableDat::new(r.coltype(), self.next_eid.fetch_add(1, Ordering::Relaxed));
+      self.collision.register(r, cw_dat);
+    }
     self.collision.update();
   }
 
@@ -39,8 +47,8 @@ impl World {
     cgs.set_whitelist(&[1]);
 
     let collisions = self.collision.interferences_with_point(p, &cgs);
-     for c in collisions {
-       println!("{}", c.position());
-     }
+    for c in collisions {
+      println!("{}", c.position());
+    }
   }
 }

@@ -1,10 +1,11 @@
-use collision::{CollW, GameObjRegistrar};
+use collision::{CollidableDat, CollidableType, CollW, GameObjRegistrar, new_collw, Collidable};
 use ggez::{Context, GameResult};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
 use na;
 use na::{Isometry2, Point2};
 use nc::bounding_volume::AABB;
+use nc::ncollide_pipeline::world::CollisionObjectHandle;
 use nc::shape::{Polyline, Shape};
 use num::{FromPrimitive, ToPrimitive};
 use rand::{Rng, thread_rng};
@@ -29,6 +30,7 @@ pub struct Level {
   /// This collision world can be used during different stages of level generation to
   /// make sure the stuff being generated isn't colliding with other stuff.
   tmp_collw: CollW,
+  tmp_ent_ct: usize,
 }
 
 #[derive(PartialEq, Ord, PartialOrd, Eq, FromPrimitive, ToPrimitive)]
@@ -52,7 +54,8 @@ impl Level {
       gen_stage: LevelGenStage::CaveSim,
       width: 80.0,
       height: 45.0,
-      tmp_collw: CollW::new(0.02),
+      tmp_collw: new_collw(),
+      tmp_ent_ct: 0,
     }
   }
 
@@ -81,25 +84,30 @@ impl Level {
     let mut rng = thread_rng();
     // Room centers should be within the bounding box of the cave
     let cave_bb = self.cave_bound_box();
+    let xrange = (cave_bb.mins().x, cave_bb.maxs().x);
+    let yrange = (cave_bb.mins().y, cave_bb.maxs().y);
     if self.rooms.len() < 20 {
       loop {
         let is_compound = rng.gen_weighted_bool(5);
         let mut nu_rooms = Vec::new();
         if is_compound {
-          nu_rooms.append(&mut Room::new_compound_room((cave_bb.mins().x, cave_bb.maxs().x),
-                                                       (cave_bb.mins().y, cave_bb.maxs().y)))
+          nu_rooms.append(&mut Room::new_compound_room(xrange, yrange))
         } else {
-          nu_rooms.push(Room::new_rand((cave_bb.mins().x, cave_bb.maxs().x),
-                                       (cave_bb.mins().y, cave_bb.maxs().y)));
+          nu_rooms.push(Room::new_rand(xrange, yrange));
         }
-        // TODO: Could maybe just do this with the collision world?
-        let mut no_collisions = true;
-        for nr in nu_rooms.iter() {
-          no_collisions &= self.rooms.iter().all(|ref r| !nr.intersects(r));
-        }
+        let cw_typ = if is_compound {
+          CollidableType::CompoundRoomWall
+        } else { CollidableType::RoomWall };
+        let cw_dat = CollidableDat::new(cw_typ, self.get_and_inc_eid());
+        let coll_handles: Vec<CollisionObjectHandle> =
+          nu_rooms.iter().map(|nr| self.tmp_collw.register(nr, cw_dat)).collect();
+        self.tmp_collw.update();
+        let no_collisions = self.tmp_collw.contacts().next().is_none();
         if no_collisions {
           self.rooms.append(&mut nu_rooms);
           break;
+        } else {
+          self.tmp_collw.remove(coll_handles.as_slice())
         }
       }
       false
@@ -157,11 +165,14 @@ impl Level {
     Point::new(self.width / 2.0, self.height / 2.0)
   }
 
-  pub fn populate_collision_world(&self, cw: &mut CollW) -> () {
-    // Add all rooms
-    for r in &self.rooms {
-      cw.register(r);
-    }
+  pub fn produce_collidables(&self) -> Vec<&Collidable> {
+    self.rooms.iter().map(|r| r as &Collidable).collect()
+  }
+
+  fn get_and_inc_eid(&mut self) -> usize {
+    let c_id = self.tmp_ent_ct;
+    self.tmp_ent_ct += 1;
+    c_id
   }
 
   // Rendering code below =============================================================
