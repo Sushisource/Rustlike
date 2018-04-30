@@ -109,8 +109,6 @@ impl Room {
     rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
   }
 
-  pub fn is_compound(&self) -> bool { self.is_compound }
-
   fn rand_room_box() -> (Meters, Meters) {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
