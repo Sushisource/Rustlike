@@ -1,9 +1,9 @@
 extern crate ggez;
 extern crate rand;
 
-use self::ggez::{Context, GameResult};
-use self::ggez::graphics;
-use self::ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh};
+use ggez::{Context, GameResult};
+use ggez::graphics;
+use ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh};
 use super::direction::Direction;
 use util::Point;
 

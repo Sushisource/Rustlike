@@ -1,7 +1,7 @@
 extern crate ggez;
 
-use self::ggez::{Context, GameResult};
-use self::ggez::graphics::DrawParam;
+use ggez::{Context, GameResult};
+use ggez::graphics::DrawParam;
 use super::ca_simulator::CASim;
 use util::Point;
 

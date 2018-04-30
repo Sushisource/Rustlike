@@ -1,8 +1,8 @@
 extern crate ggez;
 extern crate nalgebra as na;
 
-use self::ggez::Context;
-use self::ggez::graphics::{Font, Text};
+use ggez::Context;
+use ggez::graphics::{Font, Text};
 use std::collections::HashMap;
 use super::agents::Agent;
 

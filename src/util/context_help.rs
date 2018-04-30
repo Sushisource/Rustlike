@@ -1,9 +1,6 @@
-extern crate ggez;
-extern crate ncollide;
-
 use ggez::{Context, GameResult};
-use ggez::graphics::{Point2, DrawParam, rectangle, Rect, DrawMode};
-use self::ncollide::bounding_volume::AABB;
+use ggez::graphics::{DrawMode, DrawParam, Point2, Rect, rectangle};
+use nc::bounding_volume::AABB;
 use util::{Meters, Point};
 
 pub trait ContextHelp {
