@@ -170,9 +170,9 @@ impl Room {
           if has_door {
             // Since door is ggez rect, x is left edge.
             let s1_rt_edge = door.left_edge();
-            let s1_lf_edge = center.x - width / 2.0;
+            let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
             let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
-            let s2_rt_edge = center.x + width / 2.0;
+            let s2_rt_edge = center.x + width / 2.0 + WALL_THICKNESS / 2.0;
             let s2_lf_edge = door.right_edge();
             let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
             let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
@@ -187,11 +187,11 @@ impl Room {
           let wall_c = Point::new(xoffset, center.y);
           if has_door {
             // Since door is ggez rect, y is top edge.
-            let s1_tp_edge = center.y - height / 2.0;
+            let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
             let s1_bt_edge = door.top_edge();
             let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
             let s2_tp_edge = door.bottom_edge();
-            let s2_bt_edge = center.y + height / 2.0;
+            let s2_bt_edge = center.y + height / 2.0 + WALL_THICKNESS / 2.0;
             let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
             let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
             let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
@@ -309,11 +309,11 @@ mod test {
                        WALL_THICKNESS, WALL_THICKNESS + h);
     assert!(walls.contains(&(ew, Direction::East)));
     // North walls
-    let west_edge = c_x - w / 2.0;
+    let west_edge = c_x - w / 2.0 - WALL_THICKNESS / 2.0;
     let nw1 = Wall::new(Point::new(west_edge + (door.left_edge() - west_edge) / 2.0, 5.0),
                         door.left_edge() - west_edge, WALL_THICKNESS);
     assert!(walls.contains(&(nw1, Direction::North)));
-    let east_edge = c_x + w / 2.0;
+    let east_edge = c_x + w / 2.0 + WALL_THICKNESS / 2.0;
     let door_rt = door.right_edge();
     let nw2 = Wall::new(Point::new(door_rt + (east_edge - door_rt) / 2.0, 5.0),
                         east_edge - door_rt, WALL_THICKNESS);
