@@ -99,7 +99,6 @@ impl CASim {
     true
   }
 
-  // TODO: This can get stuck
   fn tick_cave_boundary(&mut self) -> bool {
     // Inspect grid, starting top left and work around clockwise building poly
     let mut cur_cell = (0, 0);
@@ -128,7 +127,8 @@ impl CASim {
       let rest = Direction::iterator().take_while(|x| **x != in_dir);
       first.chain(rest)
     };
-    let mut marked_ct = 0;
+    let mut marked_encountered = 0;
+    let mut pushed_one = false;
     for dir in dirs {
       let cur_pt = dir.dir_from_tup(cur_cell);
       // Bounds check, followed by cell present check
@@ -136,7 +136,7 @@ impl CASim {
       let in_height = cur_pt.1 >= 0 && cur_pt.1 <= self.height as i32;
       let not_marked = !self.ca_boundary.contains(&cur_pt);
       if !not_marked {
-        marked_ct += 1;
+        marked_encountered += 1;
       }
       if in_width && in_height
         && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize]
@@ -145,10 +145,19 @@ impl CASim {
           cur_cell = cur_pt;
           self.ca_boundary.push(cur_cell);
           self.bounds_last_dir = dir.clone();
+          pushed_one = true;
           break;
         }
     }
-    if marked_ct >= 2 {
+    if !pushed_one {
+      // If we didn't add anything to the boundary then we're gonna get stuck. Avoid that
+      // by removing the cell we're currently on. We don't really care about mangling the
+      // underlying ca sim.
+      if let Some((x, y)) = self.ca_boundary.pop() {
+        self.ca_grid[x as usize][y as usize] = false;
+      }
+    }
+    if marked_encountered >= 2 {
       true
     } else {
       false
@@ -183,7 +192,10 @@ impl CASim {
     }
     self.ca_grid = ca_grid_next;
     if growth_done {
-      // Trim all the "danglers" - these prevent boundary from forming
+      // Trim all the "danglers" - these prevent boundary from forming properly. The boundary
+      // algorithm can recover from danglers created by this pass, but the first pass avoids
+      // some weird behavior where the whole cave can get clipped badly. This could be improved
+      // I'm sure.
       for x in 0..(self.width - 1) {
         for y in 0..(self.height - 1) {
           let nc = self.neighbor_count(x, y);
@@ -271,5 +283,25 @@ impl CASim {
     let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
     let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, bounds.as_slice())?;
     graphics::draw_ex(ctx, &mesh, param)
+  }
+}
+
+#[cfg(test)]
+mod test {
+  extern crate timebomb;
+  use super::*;
+  use self::timebomb::timeout_ms;
+
+  #[test]
+  fn test_boundary_doesnt_get_stuck() {
+    let mut tsim = CASim::new(10, 10, 1.0);
+    tsim.ca_grid[3][3] = true;
+    tsim.ca_grid[3][2] = true;
+    tsim.ca_grid[4][3] = true;
+    tsim.ca_grid[4][2] = true;
+    tsim.ca_grid[5][1] = true;
+    timeout_ms(move || {
+      while !tsim.tick_cave_boundary() {}
+    }, 1000)
   }
 }
