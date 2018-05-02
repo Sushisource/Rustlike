@@ -41,6 +41,7 @@ pub struct CollidableDat {
 pub enum CollidableType {
   RoomWall,
   CompoundRoomWall,
+  Generic, // When the type doesn't really matter
 }
 
 pub trait GameObjRegistrar {
@@ -71,5 +72,58 @@ impl BroadPhasePairFilter<Point, Isometry2<Meters>, CollidableDat> for SameEntit
     // that might touch, with the same id.
     if b1.data().id == b2.data().id { return false; };
     true
+  }
+}
+
+pub struct CollGroups;
+
+/// The syntax is { fn_name [member,ship] [white,list] [black,list] } where the white and black
+/// lists are optional
+macro_rules! new_coll_grp {
+  { $name:ident [$( $m:expr ),+] } => {
+    new_coll_grp! { $name [$($m),*] [] [] }
+  };
+  { $name:ident [$( $m:expr ),+] [$( $w:expr ),+] } => {
+    new_coll_grp! { $name [$($m),*] [$($w),*] [] }
+  };
+  { $name:ident [$( $m:expr ),+] [$( $w:expr ),*] [$( $b:expr ),*] } => {
+      pub fn $name () -> CollisionGroups {
+        let mut cg = CollisionGroups::new();
+        cg.set_membership(&[$($m,)*]);
+        cg.set_whitelist(&[$($w,)*]);
+        cg.set_blacklist(&[$($b,)*]);
+        cg
+      }
+  };
+}
+
+impl CollGroups {
+  new_coll_grp! { wall_cg [1] }
+}
+
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  new_coll_grp! { test_cg [1, 2, 3] }
+  new_coll_grp! { test_cg2 [1, 2, 3] [1,2] }
+  new_coll_grp! { test_cg3 [1, 2, 3] [1,2] [3,4] }
+
+  #[test]
+  fn test_group_gen() {
+    let tcg = test_cg();
+    assert!(tcg.is_member_of(1));
+    assert!(tcg.is_member_of(2));
+    assert!(tcg.is_member_of(3));
+    assert!(!tcg.is_member_of(4));
+    let tcg2 = test_cg2();
+    assert!(tcg2.is_group_whitelisted(1));
+    assert!(tcg2.is_group_whitelisted(2));
+    assert!(!tcg2.is_group_whitelisted(3));
+    let tcg3 = test_cg3();
+    assert!(tcg3.is_group_blacklisted(3));
+    assert!(tcg3.is_group_blacklisted(4));
+    assert!(!tcg3.is_group_blacklisted(1));
   }
 }

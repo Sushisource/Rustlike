@@ -1,9 +1,8 @@
-use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
+use collision::{Collidable, CollidableType, CollisionRect, Shape2D, CollGroups};
 use ggez::{Context, GameResult};
 use ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use na;
 use na::{Isometry2, Vector2};
-use nc;
 use nc::ncollide_pipeline::world::CollisionGroups;
 use nc::shape::{Compound2, ShapeHandle2};
 use rand::{Rng, thread_rng};
@@ -30,6 +29,15 @@ trait CenterOriginRect {
   fn bottom_edge(&self) -> Meters {
     self.center().y + self.height() / 2.0
   }
+}
+
+impl Collidable for CenterOriginRect {
+  fn location(&self) -> Point { self.center() }
+  fn shape(&self) -> Shape2D {
+    ShapeHandle2::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
+  }
+  fn collision_group(&self) -> CollisionGroups { CollGroups::wall_cg() }
+  fn coltype(&self) -> CollidableType { CollidableType::Generic }
 }
 
 #[derive(Debug)]
@@ -231,11 +239,7 @@ impl Collidable for Room {
     let whole_shape = Compound2::new(shapes.collect());
     ShapeHandle2::new(whole_shape)
   }
-  fn collision_group(&self) -> CollisionGroups {
-    let mut cg = nc::world::CollisionGroups::new();
-    cg.set_membership(&[1]);
-    return cg;
-  }
+  fn collision_group(&self) -> CollisionGroups { CollGroups::wall_cg() }
   fn coltype(&self) -> CollidableType {
     if self.is_compound { CollidableType::CompoundRoomWall } else { CollidableType::RoomWall }
   }

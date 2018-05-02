@@ -95,9 +95,8 @@ impl Level {
         } else {
           nu_rooms.push(Room::new_rand(xrange, yrange));
         }
-        let cw_typ = if is_compound {
-          CollidableType::CompoundRoomWall
-        } else { CollidableType::RoomWall };
+        let cw_typ =
+          if is_compound { CollidableType::CompoundRoomWall } else { CollidableType::RoomWall };
         let cw_dat = CollidableDat::new(cw_typ, self.get_and_inc_eid());
         let coll_handles: Vec<CollisionObjectHandle> =
           nu_rooms.iter().map(|nr| self.tmp_collw.register(nr, cw_dat)).collect();
