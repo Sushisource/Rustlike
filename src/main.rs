@@ -7,6 +7,8 @@ extern crate num;
 #[macro_use]
 extern crate num_derive;
 extern crate rand;
+#[macro_use]
+extern crate roguelike_derive;
 
 use ggez::{conf, ContextBuilder, event, graphics};
 use world::render::WorldRender;

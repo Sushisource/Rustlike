@@ -1,4 +1,4 @@
-use collision::{Collidable, CollidableType, CollisionRect, Shape2D, CollGroups};
+use collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::{Context, GameResult};
 use ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use na;
@@ -36,15 +36,26 @@ impl Collidable for CenterOriginRect {
   fn shape(&self) -> Shape2D {
     ShapeHandle2::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
   }
-  fn collision_group(&self) -> CollisionGroups { CollGroups::wall_cg() }
+  fn collision_group(&self) -> CollisionGroups { CollisionGroups::new() }
   fn coltype(&self) -> CollidableType { CollidableType::Generic }
 }
 
-#[derive(Debug)]
-pub struct Room {
+#[derive(new, Debug, PartialEq, Copy, Clone)]
+pub struct CenteredRect {
   center: Point,
   width: Meters,
   height: Meters,
+}
+
+impl CenterOriginRect for CenteredRect {
+  fn center(&self) -> Point { self.center }
+  fn width(&self) -> f32 { self.width }
+  fn height(&self) -> f32 { self.height }
+}
+
+#[derive(Debug, CenterOriginRect)]
+pub struct Room {
+  cr: CenteredRect,
   door: Door,
   /// Tuple of wall, and side of the room that wall belongs to
   walls: Vec<(Wall, Direction)>,
@@ -56,7 +67,7 @@ pub type CompoundRoom = Vec<Room>;
 impl Room {
   pub fn new(center: Point, width: Meters, height: Meters, door: Door, is_compound: bool) -> Room {
     let walls = Room::gen_walls(center, width, height, door, door.facing);
-    Room { center, width, height, door, walls, is_compound }
+    Room { cr: CenteredRect::new(center, width, height), door, walls, is_compound }
   }
 
   /// Creates a new `Room` randomly placed somewhere in the provided range
@@ -86,10 +97,10 @@ impl Room {
     let prev_door_c = anchor.door.center();
     let (ext_w, ext_h) = Room::rand_room_box();
     let (ext_x, ext_y) = match prev_door_dir {
-      Direction::North => (prev_door_c.x, anchor.center().y - anchor.height / 2.0 - ext_h / 2.0),
-      Direction::South => (prev_door_c.x, anchor.center().y + anchor.height / 2.0 + ext_h / 2.0),
-      Direction::East => (anchor.center().x + anchor.width / 2.0 + ext_w / 2.0, prev_door_c.y),
-      Direction::West => (anchor.center().x - anchor.width / 2.0 - ext_w / 2.0, prev_door_c.y),
+      Direction::North => (prev_door_c.x, anchor.center().y - anchor.height() / 2.0 - ext_h / 2.0),
+      Direction::South => (prev_door_c.x, anchor.center().y + anchor.height() / 2.0 + ext_h / 2.0),
+      Direction::East => (anchor.center().x + anchor.width() / 2.0 + ext_w / 2.0, prev_door_c.y),
+      Direction::West => (anchor.center().x - anchor.width() / 2.0 - ext_w / 2.0, prev_door_c.y),
       _ => panic!("Impossible door side chosen during room generation"),
     };
     let dirs_no_same_side: Vec<&Direction> = Direction::compass().iter()
@@ -99,7 +110,7 @@ impl Room {
     let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, true);
     // Generate walls as if we were using the door from the previous room, then use the walls
     // from that side in place of new room's "real" walls, so that we punch a hole where the door is
-    let mut fixed_walls = Room::gen_walls(extension.center, ext_w, ext_h, prev_door,
+    let mut fixed_walls = Room::gen_walls(extension.center(), ext_w, ext_h, prev_door,
                                           prev_door_dir.opposite());
     fixed_walls.retain(|&(_, d)| d == prev_door_dir.opposite());
     extension.walls.retain(|&(_, d)| d != prev_door_dir.opposite());
@@ -155,9 +166,10 @@ impl Room {
       }
     };
     let sidetup = side.to_tup();
-    let door = Door::new(Point::new(c_x + sidetup.0 * (room_w / 2.0) + off_x,
-                                    c_y + sidetup.1 * (room_h / 2.0) + off_y),
-                         w, h, *side);
+    let door = Door::new(CenteredRect::new(Point::new(c_x + sidetup.0 * (room_w / 2.0) + off_x,
+                                                      c_y + sidetup.1 * (room_h / 2.0) + off_y),
+                                           w, h),
+                         *side);
     door
   }
 
@@ -213,12 +225,6 @@ impl Room {
   }
 }
 
-impl CenterOriginRect for Room {
-  fn center(&self) -> Point { self.center }
-  fn width(&self) -> f32 { self.width }
-  fn height(&self) -> f32 { self.height }
-}
-
 impl Into<CollisionRect> for Wall {
   // Must be done as into b/c of generics
   fn into(self) -> CollisionRect {
@@ -228,12 +234,12 @@ impl Into<CollisionRect> for Wall {
 
 // TODO: Doors, and how do we make them open/closed
 impl Collidable for Room {
-  fn location(&self) -> Point { self.center }
+  fn location(&self) -> Point { self.center() }
   fn shape(&self) -> Shape2D {
     let shapes = self.walls.iter().map(|&(w, _)| {
       let cr: CollisionRect = w.into();
       // Wall locations need to be represented relative to the center of the room
-      let loc = Isometry2::new(w.center.coords - self.center.coords, na::zero());
+      let loc = Isometry2::new(w.center.coords - self.center().coords, na::zero());
       (loc, ShapeHandle2::new(cr))
     });
     let whole_shape = Compound2::new(shapes.collect());
@@ -245,31 +251,12 @@ impl Collidable for Room {
   }
 }
 
-#[derive(new, Debug, PartialEq, Copy, Clone)]
-struct Wall {
-  center: Point,
-  width: Meters,
-  height: Meters,
-}
+type Wall = CenteredRect;
 
-impl CenterOriginRect for Wall {
-  fn center(&self) -> Point { self.center }
-  fn width(&self) -> f32 { self.width }
-  fn height(&self) -> f32 { self.height }
-}
-
-#[derive(new, Debug, PartialEq, Copy, Clone)]
+#[derive(new, Debug, PartialEq, Copy, Clone, CenterOriginRect)]
 pub struct Door {
-  center: Point,
-  width: Meters,
-  height: Meters,
+  cr: CenteredRect,
   facing: Direction,
-}
-
-impl CenterOriginRect for Door {
-  fn center(&self) -> Point { self.center }
-  fn width(&self) -> f32 { self.width }
-  fn height(&self) -> f32 { self.height }
 }
 
 impl<'a> Into<Rect> for &'a CenterOriginRect {

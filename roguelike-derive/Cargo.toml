@@ -1,0 +1,11 @@
+[package]
+name = "roguelike-derive"
+version = "0.1.0"
+authors = ["Spencer Judge <sushisource@gmail.com>"]
+
+[dependencies]
+syn = { version = "0.13.3", features = ["derive", "parsing", "printing", "clone-impls", "extra-traits", "proc-macro"] }
+quote = "0.5.2"
+
+[lib]
+proc-macro = true

@@ -14,3 +14,9 @@ num-derive = "0.2"
 num-traits = "0.2"
 num = "0.1"
 timebomb = "*"
+
+[workspace]
+members = ["roguelike-derive"]
+
+[dependencies.roguelike-derive]
+path = "roguelike-derive"
