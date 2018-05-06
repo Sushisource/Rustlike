@@ -126,6 +126,7 @@ mod test {
     assert!(tcg.is_member_of(2));
     assert!(tcg.is_member_of(3));
     assert!(!tcg.is_member_of(4));
+    assert!(tcg.is_group_whitelisted(1));
     let tcg2 = test_cg2();
     assert!(tcg2.is_group_whitelisted(1));
     assert!(tcg2.is_group_whitelisted(2));

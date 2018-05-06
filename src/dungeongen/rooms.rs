@@ -9,49 +9,10 @@ use rand::{Rng, thread_rng};
 use rand::distributions::{IndependentSample, Normal};
 use super::direction::Direction;
 use util::{Meters, Point};
+use util::geom::{CenteredRect, CenterOriginRect};
 
 static WALL_THICKNESS: Meters = 0.2;
 static DOOR_WIDTH: Meters = 1.1;
-
-trait CenterOriginRect {
-  fn center(&self) -> Point;
-  fn width(&self) -> Meters;
-  fn height(&self) -> Meters;
-  fn left_edge(&self) -> Meters {
-    self.center().x - self.width() / 2.0
-  }
-  fn right_edge(&self) -> Meters {
-    self.center().x + self.width() / 2.0
-  }
-  fn top_edge(&self) -> Meters {
-    self.center().y - self.height() / 2.0
-  }
-  fn bottom_edge(&self) -> Meters {
-    self.center().y + self.height() / 2.0
-  }
-}
-
-impl Collidable for CenterOriginRect {
-  fn location(&self) -> Point { self.center() }
-  fn shape(&self) -> Shape2D {
-    ShapeHandle2::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
-  }
-  fn collision_group(&self) -> CollisionGroups { CollisionGroups::new() }
-  fn coltype(&self) -> CollidableType { CollidableType::Generic }
-}
-
-#[derive(new, Debug, PartialEq, Copy, Clone)]
-pub struct CenteredRect {
-  center: Point,
-  width: Meters,
-  height: Meters,
-}
-
-impl CenterOriginRect for CenteredRect {
-  fn center(&self) -> Point { self.center }
-  fn width(&self) -> f32 { self.width }
-  fn height(&self) -> f32 { self.height }
-}
 
 #[derive(Debug, CenterOriginRect)]
 pub struct Room {
@@ -225,10 +186,12 @@ impl Room {
   }
 }
 
+type Wall = CenteredRect;
+
 impl Into<CollisionRect> for Wall {
   // Must be done as into b/c of generics
   fn into(self) -> CollisionRect {
-    CollisionRect::new(Vector2::new(self.width / 2.0, self.height / 2.0))
+    CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0))
   }
 }
 
@@ -239,7 +202,7 @@ impl Collidable for Room {
     let shapes = self.walls.iter().map(|&(w, _)| {
       let cr: CollisionRect = w.into();
       // Wall locations need to be represented relative to the center of the room
-      let loc = Isometry2::new(w.center.coords - self.center().coords, na::zero());
+      let loc = Isometry2::new(w.center().coords - self.center().coords, na::zero());
       (loc, ShapeHandle2::new(cr))
     });
     let whole_shape = Compound2::new(shapes.collect());
@@ -251,25 +214,12 @@ impl Collidable for Room {
   }
 }
 
-type Wall = CenteredRect;
-
 #[derive(new, Debug, PartialEq, Copy, Clone, CenterOriginRect)]
 pub struct Door {
   cr: CenteredRect,
   facing: Direction,
 }
 
-impl<'a> Into<Rect> for &'a CenterOriginRect {
-  fn into(self) -> Rect {
-    Rect {
-      // GGEZ rect is top-left origin
-      x: self.center().x - self.width() / 2.0,
-      y: self.center().y - self.height() / 2.0,
-      w: self.width(),
-      h: self.height(),
-    }
-  }
-}
 // TESTS ================================================================================
 
 #[cfg(test)]

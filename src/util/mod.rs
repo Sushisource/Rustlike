@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use super::agents::Agent;
 
 pub mod context_help;
+pub mod geom;
 
 pub type Meters = f32;
 pub type Point = na::Point2<f32>;
