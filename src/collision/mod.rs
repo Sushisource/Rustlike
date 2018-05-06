@@ -81,10 +81,19 @@ pub struct CollGroups;
 /// lists are optional
 macro_rules! new_coll_grp {
   { $name:ident [$( $m:expr ),+] } => {
-    new_coll_grp! { $name [$($m),*] [] [] }
+      pub fn $name () -> CollisionGroups {
+        let mut cg = CollisionGroups::new();
+        cg.set_membership(&[$($m,)*]);
+        cg
+      }
   };
   { $name:ident [$( $m:expr ),+] [$( $w:expr ),+] } => {
-    new_coll_grp! { $name [$($m),*] [$($w),*] [] }
+      pub fn $name () -> CollisionGroups {
+        let mut cg = CollisionGroups::new();
+        cg.set_membership(&[$($m,)*]);
+        cg.set_whitelist(&[$($w,)*]);
+        cg
+      }
   };
   { $name:ident [$( $m:expr ),+] [$( $w:expr ),*] [$( $b:expr ),*] } => {
       pub fn $name () -> CollisionGroups {
