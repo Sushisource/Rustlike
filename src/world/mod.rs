@@ -1,12 +1,10 @@
-extern crate ggez;
-extern crate nalgebra as na;
-extern crate ncollide as nc;
+extern crate ncollide2d as nc;
 
 use agents::player::Player;
-use collision::{CollW, new_collw, CollidableDat, GameObjRegistrar};
+use collision::{CollidableDat, CollW, GameObjRegistrar, new_collw};
 use dungeongen::level::Level;
-use util::Point;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use util::Point;
 
 pub mod render;
 

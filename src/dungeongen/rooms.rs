@@ -3,8 +3,8 @@ use ggez::{Context, GameResult};
 use ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use na;
 use na::{Isometry2, Vector2};
-use nc::ncollide_pipeline::world::CollisionGroups;
-use nc::shape::{Compound2, ShapeHandle2};
+use nc::shape::{Compound, ShapeHandle};
+use nc::world::CollisionGroups;
 use rand::{Rng, thread_rng};
 use rand::distributions::{IndependentSample, Normal};
 use super::direction::Direction;
@@ -80,6 +80,13 @@ impl Room {
     vec![anchor, extension]
   }
 
+  /// Creates a new `Room` with a door centered along the wall of the provided direction
+  pub fn new_with_centered_door(center: Point, width: Meters, height: Meters, door_side: Direction)
+                                -> Room {
+    let door = Room::gen_door(center.x, center.y, width, height, &door_side, 0.0);
+    Room::new(center, width, height, door, false)
+  }
+
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
     for &(wall, _) in &self.walls {
       let r: Rect = (&wall as &CenterOriginRect).into();
@@ -87,6 +94,16 @@ impl Room {
     }
     set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
     rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
+  }
+
+  /// Returns a collidable that can be used during room placement to ensure there is enough space
+  /// on either side of the Room's door to accommodate the player.
+  pub fn floormat(&self) -> CenteredRect {
+    let wider = self.door.width() > self.door.height();
+    let expander = if wider { (0.0, DOOR_WIDTH) } else { (DOOR_WIDTH, 0.0) };
+    let fm = CenteredRect::new(self.door.center(),
+                               self.door.width() + expander.0, self.door.height() + expander.1);
+    fm
   }
 
   fn rand_room_box() -> (Meters, Meters) {
@@ -149,7 +166,6 @@ impl Room {
           let yoffset = center.y + height / 2.0 * d.to_tup().1;
           let wall_c = Point::new(center.x, yoffset);
           if has_door {
-            // Since door is ggez rect, x is left edge.
             let s1_rt_edge = door.left_edge();
             let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
             let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
@@ -167,7 +183,6 @@ impl Room {
           let xoffset = center.x + width / 2.0 * d.to_tup().0;
           let wall_c = Point::new(xoffset, center.y);
           if has_door {
-            // Since door is ggez rect, y is top edge.
             let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
             let s1_bt_edge = door.top_edge();
             let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
@@ -195,7 +210,6 @@ impl Into<CollisionRect> for Wall {
   }
 }
 
-// TODO: Doors, and how do we make them open/closed
 impl Collidable for Room {
   fn location(&self) -> Point { self.center() }
   fn shape(&self) -> Shape2D {
@@ -203,10 +217,10 @@ impl Collidable for Room {
       let cr: CollisionRect = w.into();
       // Wall locations need to be represented relative to the center of the room
       let loc = Isometry2::new(w.center().coords - self.center().coords, na::zero());
-      (loc, ShapeHandle2::new(cr))
+      (loc, ShapeHandle::new(cr))
     });
-    let whole_shape = Compound2::new(shapes.collect());
-    ShapeHandle2::new(whole_shape)
+    let whole_shape = Compound::new(shapes.collect());
+    ShapeHandle::new(whole_shape)
   }
   fn collision_group(&self) -> CollisionGroups { CollGroups::wall_cg() }
   fn coltype(&self) -> CollidableType {

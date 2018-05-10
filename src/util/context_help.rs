@@ -11,7 +11,7 @@ pub trait ContextHelp {
   fn uspace_to_sspace(&self, p: Point) -> Point2;
   fn sspace_to_uspace(&self, p: Point2) -> Point2;
   fn center_rect(&mut self, center: Point2, w: Meters, h: Meters) -> GameResult<()>;
-  fn draw_bb(&mut self, bb: &AABB<Point2>) -> GameResult<()>;
+  fn draw_bb(&mut self, bb: &AABB<Meters>) -> GameResult<()>;
 }
 
 impl ContextHelp for Context {
@@ -55,7 +55,7 @@ impl ContextHelp for Context {
               })
   }
 
-  fn draw_bb(&mut self, bb: &AABB<Point2>) -> GameResult<()> {
+  fn draw_bb(&mut self, bb: &AABB<Meters>) -> GameResult<()> {
     let bh = bb.maxs().y - bb.mins().y;
     let bw = bb.maxs().x - bb.mins().x;
     self.center_rect(bb.center(), bw, bh)

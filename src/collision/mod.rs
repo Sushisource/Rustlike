@@ -1,16 +1,16 @@
 extern crate nalgebra as na;
-extern crate ncollide as nc;
+extern crate ncollide2d as nc;
 
 use na::Isometry2;
 use nc::broad_phase::BroadPhasePairFilter;
-use nc::ncollide_pipeline::world::{CollisionGroups, CollisionObjectHandle, CollisionObject2};
-use nc::shape::{Compound2, Cuboid2, ShapeHandle2};
+use nc::shape::{Compound, Cuboid, ShapeHandle};
+use nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
 use util::{Meters, Point};
 
-pub type CollW = nc::world::CollisionWorld2<Meters, CollidableDat>;
-pub type CollisionRect = Cuboid2<Meters>;
-pub type Shape2D = ShapeHandle2<Meters>;
-pub type Compound2D = Compound2<Meters>;
+pub type CollW = nc::world::CollisionWorld<Meters, CollidableDat>;
+pub type CollisionRect = Cuboid<Meters>;
+pub type Shape2D = ShapeHandle<Meters>;
+pub type Compound2D = Compound<Meters>;
 
 pub fn new_collw() -> CollW {
   let mut retme = CollW::new(0.02);
@@ -44,17 +44,18 @@ pub enum CollidableType {
   Generic, // When the type doesn't really matter
 }
 
-pub trait GameObjRegistrar {
-  fn register(&mut self, register_me: &Collidable, dat: CollidableDat) -> CollisionObjectHandle;
-  fn register_with_group(&mut self, register_me: &Collidable, group: CollisionGroups,
+pub trait GameObjRegistrar<T> where T: Collidable + ?Sized {
+  fn register(&mut self, register_me: &T, dat: CollidableDat) -> CollisionObjectHandle;
+  fn register_with_group(&mut self, register_me: &T, group: CollisionGroups,
                          dat: CollidableDat) -> CollisionObjectHandle;
 }
 
-impl GameObjRegistrar for CollW {
-  fn register(&mut self, register_me: &Collidable, dat: CollidableDat) -> CollisionObjectHandle {
+impl<T: Collidable + ?Sized> GameObjRegistrar<T> for CollW {
+  fn register(&mut self, register_me: &T, dat: CollidableDat) -> CollisionObjectHandle {
     self.register_with_group(register_me, register_me.collision_group(), dat)
   }
-  fn register_with_group(&mut self, register_me: &Collidable, group: CollisionGroups,
+
+  fn register_with_group(&mut self, register_me: &T, group: CollisionGroups,
                          dat: CollidableDat) -> CollisionObjectHandle {
     let q = nc::world::GeometricQueryType::Contacts(0.0, 0.0);
     self.add(Isometry2::new(register_me.location().coords, na::zero()), register_me.shape(),
@@ -64,10 +65,10 @@ impl GameObjRegistrar for CollW {
 
 struct SameEntityFilter;
 
-impl BroadPhasePairFilter<Point, Isometry2<Meters>, CollidableDat> for SameEntityFilter {
+impl BroadPhasePairFilter<Meters, CollidableDat> for SameEntityFilter {
   fn is_pair_valid(&self,
-                   b1: &CollisionObject2<Meters, CollidableDat>,
-                   b2: &CollisionObject2<Meters, CollidableDat>) -> bool {
+                   b1: &CollisionObject<Meters, CollidableDat>,
+                   b2: &CollisionObject<Meters, CollidableDat>) -> bool {
     // Disable self-collision. Compound rooms for example are composed of multiple collidables
     // that might touch, with the same id.
     if b1.data().id == b2.data().id { return false; };

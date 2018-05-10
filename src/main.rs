@@ -2,7 +2,7 @@
 extern crate derive_new;
 extern crate ggez;
 extern crate nalgebra as na;
-extern crate ncollide as nc;
+extern crate ncollide2d as nc;
 extern crate num;
 #[macro_use]
 extern crate num_derive;

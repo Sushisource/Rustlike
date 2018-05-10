@@ -1,20 +1,20 @@
-use collision::{CollidableDat, CollidableType, CollW, GameObjRegistrar, new_collw, Collidable};
+use collision::{Collidable, CollidableDat, CollidableType, CollW, GameObjRegistrar, new_collw};
 use ggez::{Context, GameResult};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
 use na;
-use na::{Isometry2, Point2};
+use na::Isometry2;
 use nc::bounding_volume::AABB;
-use nc::ncollide_pipeline::world::CollisionObjectHandle;
 use nc::shape::{Polyline, Shape};
+use nc::world::CollisionObjectHandle;
 use num::{FromPrimitive, ToPrimitive};
 use rand::{Rng, thread_rng};
-use std::sync::Arc;
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
 use super::rooms::Room;
 use util::{Meters, Point};
 use util::context_help::ContextHelp;
+use util::geom::CenterOriginRect;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -98,10 +98,8 @@ impl Level {
         let cw_typ =
           if is_compound { CollidableType::CompoundRoomWall } else { CollidableType::RoomWall };
         let cw_dat = CollidableDat::new(cw_typ, self.get_and_inc_eid());
-        let coll_handles: Vec<CollisionObjectHandle> =
-          nu_rooms.iter().map(|nr| self.tmp_collw.register(nr, cw_dat)).collect();
-        self.tmp_collw.update();
-        let no_collisions = self.tmp_collw.contacts().next().is_none();
+        let (coll_handles, no_collisions) =
+          Level::check_room_collisions(&mut self.tmp_collw, &nu_rooms, cw_dat);
         if no_collisions {
           self.rooms.append(&mut nu_rooms);
           break;
@@ -116,16 +114,20 @@ impl Level {
     }
   }
 
-  pub fn cave_bound_box(&self) -> AABB<Point> {
+  fn check_room_collisions(collw: &mut CollW, nu_rooms: &Vec<Room>, cw_dat: CollidableDat)
+                           -> (Vec<CollisionObjectHandle>, bool) {
+    let coll_handles: Vec<CollisionObjectHandle> = nu_rooms.iter().flat_map(|nr| {
+      let floormat: &CenterOriginRect = &nr.floormat();
+      vec![collw.register(nr, cw_dat), collw.register(floormat, cw_dat)]
+    }).collect();
+    collw.update();
+    let no_collisions = collw.contact_pairs().next().is_none();
+    (coll_handles, no_collisions)
+  }
+
+  pub fn cave_bound_box(&self) -> AABB<Meters> {
     let cavebf: Vec<Point> = self.cave_bounds();
-    let cave_ixs: Vec<Point2<usize>> = (0..cavebf.len())
-      .map(|i| {
-        let to = if i + 1 == cavebf.len() { 0 } else { i + 1 };
-        Point2::new(i, to)
-      })
-      .collect();
-    let cave_polyline =
-      Polyline::new(Arc::new(cavebf), Arc::new(cave_ixs), None, None);
+    let cave_polyline = Polyline::new(cavebf);
     let cave_pos = na::one::<Isometry2<Meters>>();
     cave_polyline.aabb(&cave_pos)
   }
@@ -242,6 +244,7 @@ impl Level {
 #[cfg(test)]
 mod test {
   use super::*;
+  use super::super::direction::Direction;
 
   #[test]
   fn test_no_room_collisions() {
@@ -250,6 +253,22 @@ mod test {
       l.tick_level_gen();
     }
     l.tmp_collw.update();
-    assert!(l.tmp_collw.contacts().next().is_none())
+    assert!(l.tmp_collw.contact_pairs().next().is_none())
+  }
+
+  #[test]
+  fn test_room_floormats_work() {
+    let mut collw = new_collw();
+    // The bottom wall of this room is @ 2.0
+    let room1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 4.0, 4.0, Direction::South);
+    let dat1 = CollidableDat::new(CollidableType::RoomWall, 1);
+    // The top wall of this room is @ 2.25 (too close)
+    let room2 = Room::new_with_centered_door(Point::new(0.0, 4.0), 4.0, 3.5, Direction::East);
+    let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room1], dat1);
+    assert!(no_collisions);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room2], dat2);
+    // There should be collisions!
+    assert!(!no_collisions);
   }
 }

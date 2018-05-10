@@ -1,8 +1,8 @@
 use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::graphics::Rect;
 use na::Vector2;
-use nc::ncollide_pipeline::world::CollisionGroups;
-use nc::shape::ShapeHandle2;
+use nc::shape::ShapeHandle;
+use nc::world::CollisionGroups;
 use util::{Meters, Point};
 
 pub trait CenterOriginRect {
@@ -26,7 +26,7 @@ pub trait CenterOriginRect {
 impl Collidable for CenterOriginRect {
   fn location(&self) -> Point { self.center() }
   fn shape(&self) -> Shape2D {
-    ShapeHandle2::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
+    ShapeHandle::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
   }
   fn collision_group(&self) -> CollisionGroups { CollisionGroups::new() }
   fn coltype(&self) -> CollidableType { CollidableType::Generic }
