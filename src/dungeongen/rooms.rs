@@ -48,36 +48,44 @@ impl Room {
   pub fn new_compound_room((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters))
                            -> CompoundRoom {
     let mut rng = thread_rng();
-    // Start with an "anchor" room
-    let mut anchor = Room::new_rand((x_min, x_max), (y_min, y_max));
-    anchor.is_compound = true;
-    // Find the side the door is on, and tack on another room box there. We'll delete one wall
-    // such that the two rooms now share a wall
-    let prev_door = anchor.door;
-    let prev_door_dir = anchor.door.facing;
-    let prev_door_c = anchor.door.center();
-    let (ext_w, ext_h) = Room::rand_room_box();
-    let (ext_x, ext_y) = match prev_door_dir {
-      Direction::North => (prev_door_c.x, anchor.center().y - anchor.height() / 2.0 - ext_h / 2.0),
-      Direction::South => (prev_door_c.x, anchor.center().y + anchor.height() / 2.0 + ext_h / 2.0),
-      Direction::East => (anchor.center().x + anchor.width() / 2.0 + ext_w / 2.0, prev_door_c.y),
-      Direction::West => (anchor.center().x - anchor.width() / 2.0 - ext_w / 2.0, prev_door_c.y),
-      _ => panic!("Impossible door side chosen during room generation"),
-    };
-    let dirs_no_same_side: Vec<&Direction> = Direction::compass().iter()
-      .filter(|x| **x != prev_door_dir.opposite()).collect();
-    let side = rng.choose(&dirs_no_same_side).unwrap();
-    let door = Room::gen_rand_door(ext_x, ext_y, ext_w, ext_h, side);
-    let mut extension = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, true);
-    // Generate walls as if we were using the door from the previous room, then use the walls
-    // from that side in place of new room's "real" walls, so that we punch a hole where the door is
-    let mut fixed_walls = Room::gen_walls(extension.center(), ext_w, ext_h, prev_door,
-                                          prev_door_dir.opposite());
-    fixed_walls.retain(|&(_, d)| d == prev_door_dir.opposite());
-    extension.walls.retain(|&(_, d)| d != prev_door_dir.opposite());
-    extension.walls.append(&mut fixed_walls);
-
-    vec![anchor, extension]
+    // The initial room
+    let mut starter = Room::new_rand((x_min, x_max), (y_min, y_max));
+    starter.is_compound = true;
+    let mut rooms = vec![starter];
+    let num_extensions = rng.gen_range(1, 5);
+    for _ in 0..num_extensions {
+      let extension = {
+        let lastr = rooms.last().unwrap();
+        // Find the side the door is on, and tack on another room box there. We'll delete one wall
+        // such that the two rooms now share a wall
+        let prev_door = lastr.door;
+        let prev_door_dir = lastr.door.facing;
+        let prev_door_c = lastr.door.center();
+        let (ext_w, ext_h) = Room::rand_room_box();
+        let (ext_x, ext_y) = match prev_door_dir {
+          Direction::North => (prev_door_c.x, lastr.center().y - lastr.height() / 2.0 - ext_h / 2.0),
+          Direction::South => (prev_door_c.x, lastr.center().y + lastr.height() / 2.0 + ext_h / 2.0),
+          Direction::East => (lastr.center().x + lastr.width() / 2.0 + ext_w / 2.0, prev_door_c.y),
+          Direction::West => (lastr.center().x - lastr.width() / 2.0 - ext_w / 2.0, prev_door_c.y),
+          _ => panic!("Impossible door side chosen during room generation"),
+        };
+        let dirs_no_same_side: Vec<&Direction> = Direction::compass().iter()
+          .filter(|x| **x != prev_door_dir.opposite()).collect();
+        let side = rng.choose(&dirs_no_same_side).unwrap();
+        let door = Room::gen_rand_door(ext_x, ext_y, ext_w, ext_h, side);
+        let mut ext = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, true);
+        // Generate walls as if we were using the door from the previous room, then use the walls
+        // from that side in place of new room's "real" walls, so that we punch a hole where the door is
+        let mut fixed_walls = Room::gen_walls(ext.center(), ext_w, ext_h, prev_door,
+                                              prev_door_dir.opposite());
+        fixed_walls.retain(|&(_, d)| d == prev_door_dir.opposite());
+        ext.walls.retain(|&(_, d)| d != prev_door_dir.opposite());
+        ext.walls.append(&mut fixed_walls);
+        ext
+      };
+      rooms.push(extension);
+    }
+    rooms
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction

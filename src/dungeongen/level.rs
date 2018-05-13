@@ -11,7 +11,6 @@ use num::{FromPrimitive, ToPrimitive};
 use rand::{Rng, thread_rng};
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
-use super::direction::Direction;
 use super::rooms::Room;
 use util::{Meters, Point};
 use util::context_help::ContextHelp;
@@ -261,6 +260,7 @@ mod test {
   extern crate timebomb;
 
   use super::*;
+  use super::direction::Direction;
   use self::timebomb::timeout_ms;
 
   #[test]
