@@ -11,6 +11,7 @@ use num::{FromPrimitive, ToPrimitive};
 use rand::{Rng, thread_rng};
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
+use super::direction::Direction;
 use super::rooms::Room;
 use util::{Meters, Point};
 use util::context_help::ContextHelp;
@@ -86,6 +87,20 @@ impl Level {
     let cave_bb = self.cave_bound_box();
     let xrange = (cave_bb.mins().x, cave_bb.maxs().x);
     let yrange = (cave_bb.mins().y, cave_bb.maxs().y);
+    /* TODO: Re-enable once ncollide bug is fixed: https://github.com/sebcrozet/ncollide/issues/201
+    if self.rooms.len() < 1 {
+      // First run through add the cave BB to the collision world so we don't get rooms too far
+      // outside of the cave. To get the four walls, it's easy to convert the BB into a "room".
+      let cave_bb_room = Room::new_with_centered_door(cave_bb.center(),
+                                                      cave_bb.half_extents().x * 2.0,
+                                                      cave_bb.half_extents().y * 2.0,
+                                                      Direction::North);
+      let nxt_id = self.get_and_inc_eid();
+      self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
+      self.tmp_collw.update();
+      self.rooms.push(cave_bb_room);
+    }
+    */
     if self.rooms.len() < 20 {
       loop {
         let is_compound = rng.gen_weighted_bool(5);
@@ -243,17 +258,36 @@ impl Level {
 
 #[cfg(test)]
 mod test {
+  extern crate timebomb;
+
   use super::*;
-  use super::super::direction::Direction;
+  use self::timebomb::timeout_ms;
 
   #[test]
   fn test_no_room_collisions() {
-    let mut l = Level::new();
-    while l.gen_stage < LevelGenStage::PlaceObstacles {
-      l.tick_level_gen();
-    }
-    l.tmp_collw.update();
-    assert!(l.tmp_collw.contact_pairs().next().is_none())
+    timeout_ms(|| {
+      let mut l = Level::new();
+      while l.gen_stage < LevelGenStage::PlaceObstacles {
+        l.tick_level_gen();
+      }
+      l.tmp_collw.update();
+      assert!(l.tmp_collw.contact_pairs().next().is_none())
+    }, 3000)
+  }
+
+  #[test]
+  #[ignore] // Fails due to ncollide bug https://github.com/sebcrozet/ncollide/issues/201
+  fn test_rooms_can_nest() {
+    let mut collw = new_collw();
+    // The bottom wall of this room is @ 2.0
+    let room1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::South);
+    let dat1 = CollidableDat::new(CollidableType::RoomWall, 1);
+    // The top wall of this room is @ 2.25 (too close)
+    let room2 = Room::new_with_centered_door(Point::new(0.0, 0.0), 3.0, 3.0, Direction::North);
+    let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
+    Level::check_room_collisions(&mut collw, &vec![room1], dat1);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room2], dat2);
+    assert!(no_collisions);
   }
 
   #[test]

@@ -2,6 +2,7 @@ extern crate nalgebra as na;
 extern crate ncollide2d as nc;
 
 use na::Isometry2;
+use nc::bounding_volume::AABB;
 use nc::broad_phase::BroadPhasePairFilter;
 use nc::shape::{Compound, Cuboid, ShapeHandle};
 use nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
@@ -29,6 +30,13 @@ pub trait Collidable {
   fn collision_group(&self) -> CollisionGroups;
   /// This collidable's type to be used in `CollidableDat`
   fn coltype(&self) -> CollidableType;
+}
+
+impl Collidable for AABB<Meters> {
+  fn location(&self) -> Point { self.center() }
+  fn shape(&self) -> Shape2D { ShapeHandle::new(CollisionRect::new(self.half_extents())) }
+  fn collision_group(&self) -> CollisionGroups { CollisionGroups::new() }
+  fn coltype(&self) -> CollidableType { CollidableType::Generic }
 }
 
 #[derive(new, Eq, PartialEq, Debug, Copy, Clone)]

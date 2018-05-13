@@ -288,8 +288,8 @@ impl CASim {
 
 #[cfg(test)]
 mod test {
-  extern crate timebomb;
   use super::*;
+  extern crate timebomb;
   use self::timebomb::timeout_ms;
 
   #[test]

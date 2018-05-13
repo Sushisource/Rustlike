@@ -100,7 +100,7 @@ impl Room {
   /// on either side of the Room's door to accommodate the player.
   pub fn floormat(&self) -> CenteredRect {
     let wider = self.door.width() > self.door.height();
-    let expander = if wider { (0.0, DOOR_WIDTH) } else { (DOOR_WIDTH, 0.0) };
+    let expander = if wider { (0.0, DOOR_WIDTH * 1.5) } else { (DOOR_WIDTH * 1.5, 0.0) };
     let fm = CenteredRect::new(self.door.center(),
                                self.door.width() + expander.0, self.door.height() + expander.1);
     fm
@@ -157,7 +157,7 @@ impl Room {
   fn gen_walls(center: Point, width: Meters, height: Meters, door: Door, door_side: Direction)
                -> Vec<(Wall, Direction)> {
     Direction::compass().iter().flat_map(|d| {
-      let d = *d; // This is a bit uggo
+      let d = *d;
       let has_door = door_side == d;
       let full_w = width + WALL_THICKNESS;
       let full_h = height + WALL_THICKNESS;
