@@ -128,6 +128,7 @@ impl Level {
     }
   }
 
+  /// Returns a tuple of (collision handles, were any collisions)
   fn check_room_collisions(collw: &mut CollW, nu_rooms: &Vec<Room>, cw_dat: CollidableDat)
                            -> (Vec<CollisionObjectHandle>, bool) {
     let coll_handles: Vec<CollisionObjectHandle> = nu_rooms.iter().flat_map(|nr| {
@@ -135,8 +136,7 @@ impl Level {
       vec![collw.register(nr, cw_dat), collw.register(floormat, cw_dat)]
     }).collect();
     collw.update();
-    let no_collisions = collw.contact_pairs().next().is_none();
-    (coll_handles, no_collisions)
+    return (coll_handles, !collw.contact_pairs().any(|p| p.2.num_contacts() > 0))
   }
 
   pub fn cave_bound_box(&self) -> AABB<Meters> {
@@ -260,7 +260,7 @@ mod test {
   extern crate timebomb;
 
   use super::*;
-  use super::direction::Direction;
+  use super::super::direction::Direction;
   use self::timebomb::timeout_ms;
 
   #[test]
@@ -276,13 +276,10 @@ mod test {
   }
 
   #[test]
-  #[ignore] // Fails due to ncollide bug https://github.com/sebcrozet/ncollide/issues/201
   fn test_rooms_can_nest() {
     let mut collw = new_collw();
-    // The bottom wall of this room is @ 2.0
     let room1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::South);
     let dat1 = CollidableDat::new(CollidableType::RoomWall, 1);
-    // The top wall of this room is @ 2.25 (too close)
     let room2 = Room::new_with_centered_door(Point::new(0.0, 0.0), 3.0, 3.0, Direction::North);
     let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
     Level::check_room_collisions(&mut collw, &vec![room1], dat1);

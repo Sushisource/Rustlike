@@ -1,6 +1,6 @@
-max_width = 80
+max_width = 100
 tab_spaces = 2
-single_line_if_else_max_width = 80
+single_line_if_else_max_width = 100
 chain_one_line_max = 70
 
 control_style = "Legacy"

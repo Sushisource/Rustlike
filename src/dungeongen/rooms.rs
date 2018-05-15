@@ -44,6 +44,14 @@ impl Room {
     Room::new(Point::new(c_x, c_y), room_w, room_h, door, false)
   }
 
+// TODO:
+// The algorithm starts with one room, placed at random in an empty
+// grid. Then, it draws another room on another grid, which it slides like a
+// piece of cellophane over the level until the new room fits snugly against an
+// existing room without touching or overlapping. When there’s a fit, it
+// transfers the room from the cellophane to the master grid and punches out a
+// door. It does that repeatedly until it can’t fit any more rooms
+
   /// Creates a new group of `Room`s that all touch each-other
   pub fn new_compound_room((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters))
                            -> CompoundRoom {

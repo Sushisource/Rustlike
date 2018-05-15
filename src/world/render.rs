@@ -47,7 +47,8 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
     // Tick the simulation TODO: Move elsewhere.
     if !self.world.level.level_gen_finished {
-      let i = if self.fastmode { 12 } else { 2 };
+      // TODO: Configurable fastmode speed
+      let i = if self.fastmode { 40 } else { 2 };
       for _ in 1..i {
         self.world.level.tick_level_gen();
       }
