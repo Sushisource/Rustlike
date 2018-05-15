@@ -11,6 +11,7 @@ use num::{FromPrimitive, ToPrimitive};
 use rand::{Rng, thread_rng};
 use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
+use super::direction::Direction;
 use super::rooms::Room;
 use util::{Meters, Point};
 use util::context_help::ContextHelp;
@@ -86,7 +87,6 @@ impl Level {
     let cave_bb = self.cave_bound_box();
     let xrange = (cave_bb.mins().x, cave_bb.maxs().x);
     let yrange = (cave_bb.mins().y, cave_bb.maxs().y);
-    /* TODO: Re-enable once ncollide bug is fixed: https://github.com/sebcrozet/ncollide/issues/201
     if self.rooms.len() < 1 {
       // First run through add the cave BB to the collision world so we don't get rooms too far
       // outside of the cave. To get the four walls, it's easy to convert the BB into a "room".
@@ -97,9 +97,7 @@ impl Level {
       let nxt_id = self.get_and_inc_eid();
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
-      self.rooms.push(cave_bb_room);
     }
-    */
     if self.rooms.len() < 20 {
       loop {
         let is_compound = rng.gen_weighted_bool(5);
@@ -260,7 +258,6 @@ mod test {
   extern crate timebomb;
 
   use super::*;
-  use super::super::direction::Direction;
   use self::timebomb::timeout_ms;
 
   #[test]
