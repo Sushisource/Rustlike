@@ -7,6 +7,7 @@ use ggez::graphics;
 use ggez::graphics::{Color, Drawable, DrawParam, Point2, Vector2};
 use ggez::mouse;
 use ggez::timer;
+use std;
 use std::time::Duration;
 use util::Assets;
 use util::context_help::ContextHelp;
@@ -112,7 +113,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     &mut self,
     _ctx: &mut Context,
     keycode: Keycode,
-    _keymod: Mod,
+    keymod: Mod,
     _repeat: bool,
   ) {
     match keycode {
@@ -137,6 +138,9 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       Keycode::Backquote => {
         self.debug = !self.debug;
         println!("Debug mode now {}", self.debug);
+      }
+      Keycode::Q if keymod.contains(event::LCTRLMOD) => {
+        std::process::exit(0);
       }
       _ => (), // Do nothing
     }
