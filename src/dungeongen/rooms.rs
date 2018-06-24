@@ -65,7 +65,7 @@ impl Room {
     let mut compound_rm = Compound::new(vec![(origin(), starter.shape())]);
 
     let mut rooms = vec![starter];
-    let num_extensions = 1;//rng.gen_range(1, 5);
+    let num_extensions = rng.gen_range(1, 5);
 
     // TODO: Can still create overlaps sometimes
     // Not sure if this is gonna work. Might be better to do by hand with a grid.
@@ -76,6 +76,7 @@ impl Room {
       let (ext_w, ext_h) = Room::rand_room_box();
       let ext_s: &CenterOriginRect = &CenteredRect::new(Point::from_coordinates(offset.into()),
                                                         ext_w, ext_h);
+      // TODO: FIX unwraps
       // Now we use time-of-impact to figure out how to much the new extension needs to be
       // moved in order to be touching the existing compound room. The existing room is placed
       // at the origin and the new room is placed far a way, with a velocity towards the origin.
@@ -89,7 +90,7 @@ impl Room {
         query::time_of_impact(&origin(), &Vector2::zeros(), &compound_rm,
                               &ext_s.location(), &to_origin, ext_shape).unwrap()
       };
-      let shift_by: Translation2<Meters> = Translation2::from_vector(to_origin * toi);
+      let shift_by = Translation2::from_vector(to_origin * toi);
       let mut new_loc = ext_s.location().clone();
       new_loc.append_translation_mut(&shift_by);
 
@@ -98,8 +99,21 @@ impl Room {
         let esh = ext_s.shape();
         let ext_shape: &CollisionRect = esh.as_shape().unwrap();
         query::contact(&origin(), &compound_rm, &new_loc, ext_shape, WALL_THICKNESS)
-      };
+      }.unwrap();
       println!("Penetration: {:?}", penetration);
+      // Move extension in the direction of the penetrartion normal until penetration is 0
+      let flush_shift = Translation2::from_vector(
+        penetration.normal.unwrap() * (-WALL_THICKNESS / 2.0) +
+          (penetration.normal.unwrap() * penetration.depth));
+      println!("shift: {:?}", flush_shift);
+      new_loc.append_translation_mut(&flush_shift);
+
+      let penetration = {
+        let esh = ext_s.shape();
+        let ext_shape: &CollisionRect = esh.as_shape().unwrap();
+        query::contact(&origin(), &compound_rm, &new_loc, ext_shape, WALL_THICKNESS)
+      }.unwrap();
+      println!("Penetration2: {:?}", penetration);
 
       let new_comp_shapes = [compound_rm.shapes(), vec![(new_loc, ext_s.shape())].as_slice()].concat();
       compound_rm = Compound::new(new_comp_shapes);
@@ -110,10 +124,7 @@ impl Room {
       nuroom.is_compound = true;
       rooms.push(nuroom);
     }
-    let r1 = Room::new_with_centered_door(Point::new(10.0, 10.0), 10.0, 10.0, Direction::North);
-    let r2 = Room::new_with_centered_door(Point::new(10.0, 20.0), 10.0, 10.15, Direction::North);
-    vec![r1, r2]
-//    rooms
+    rooms
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction
@@ -312,7 +323,7 @@ mod test {
   }
 
   #[test]
-  fn test_compound_penetration() {
+  fn test_compound_penetration() { // This is really more a test of nalgebra
     let mut r1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::North);
     r1.is_compound = true;
     let starter_loc = r1.location();
@@ -320,7 +331,8 @@ mod test {
 
     let r2 = Room::new_with_centered_door(Point::new(0.0, 10.0), 10.0, 10.15, Direction::North);
     let r2_s = r2.shape();
-    let r2_shape: &CollisionRect = r2_s.as_shape().unwrap();
+    println!("r2: {:?}", r2);
+    let r2_shape: &Compound<Meters> = r2_s.as_shape().unwrap();
     let penetration = query::contact(&origin(), &compound_rm, &r2.location(), r2_shape,
                                      WALL_THICKNESS);
     assert!(penetration.is_some())

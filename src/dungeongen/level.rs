@@ -98,7 +98,6 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
-    // TODO: REVERT
     if self.rooms.len() < 1 {
       loop {
         let is_compound = rng.gen_bool(5.0 / 5.0);
@@ -135,7 +134,7 @@ impl Level {
       vec![collw.register(nr, cw_dat), collw.register(floormat, cw_dat)]
     }).collect();
     collw.update();
-    return (coll_handles, !collw.contact_pairs().any(|p| p.2.num_contacts() > 0))
+    (coll_handles, !collw.contact_pairs().any(|p| p.2.num_contacts() > 0))
   }
 
   pub fn cave_bound_box(&self) -> AABB<Meters> {
