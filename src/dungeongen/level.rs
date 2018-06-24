@@ -98,9 +98,10 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
-    if self.rooms.len() < 20 {
+    // TODO: REVERT
+    if self.rooms.len() < 1 {
       loop {
-        let is_compound = rng.gen_weighted_bool(5);
+        let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
           nu_rooms.append(&mut Room::new_compound_room(xrange, yrange))
@@ -155,12 +156,13 @@ impl Level {
 
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
-    let test_pond = Blobstacle::new(Point::new(30.0, 30.0));
-    let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
-    let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
-    self.obstacles.push(test_pond);
-    self.obstacles.push(test_pond2);
-    self.obstacles.push(test_pond3);
+    // TODO: Re-enable / do something actually useful when I get to this point
+//    let test_pond = Blobstacle::new(Point::new(30.0, 30.0));
+//    let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
+//    let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
+//    self.obstacles.push(test_pond);
+//    self.obstacles.push(test_pond2);
+//    self.obstacles.push(test_pond3);
     true
   }
 

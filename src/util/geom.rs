@@ -1,6 +1,7 @@
 use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::graphics::Rect;
-use na::Vector2;
+use na;
+use na::{Vector2, Isometry2};
 use nc::shape::ShapeHandle;
 use nc::world::CollisionGroups;
 use util::{Meters, Point};
@@ -24,7 +25,7 @@ pub trait CenterOriginRect {
 }
 
 impl Collidable for CenterOriginRect {
-  fn location(&self) -> Point { self.center() }
+  fn location(&self) -> Isometry2<Meters> { Isometry2::new(self.center().coords, na::zero()) }
   fn shape(&self) -> Shape2D {
     ShapeHandle::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
   }
@@ -54,5 +55,19 @@ impl<'a> Into<Rect> for &'a CenterOriginRect {
       w: self.width(),
       h: self.height(),
     }
+  }
+}
+
+pub fn origin() -> Isometry2<Meters> { Isometry2::new(Vector2::zeros(), 0.0) }
+
+#[derive(new, Debug, PartialEq, Copy, Clone)]
+pub struct PolarVec {
+  pub distance: Meters,
+  pub angle: f32
+}
+
+impl Into<Vector2<Meters>> for PolarVec {
+  fn into(self) -> Vector2<Meters> {
+    Vector2::new(self.distance * self.angle.cos(), self.distance * self.angle.sin())
   }
 }

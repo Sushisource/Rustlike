@@ -6,7 +6,7 @@ use nc::bounding_volume::AABB;
 use nc::broad_phase::BroadPhasePairFilter;
 use nc::shape::{Compound, Cuboid, ShapeHandle};
 use nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
-use util::{Meters, Point};
+use util::Meters;
 
 pub type CollW = nc::world::CollisionWorld<Meters, CollidableDat>;
 pub type CollisionRect = Cuboid<Meters>;
@@ -23,7 +23,7 @@ pub fn new_collw() -> CollW {
 /// pretty much everything on-screen that isn't UI.
 pub trait Collidable {
   /// This object's location in world coordinates
-  fn location(&self) -> Point;
+  fn location(&self) -> Isometry2<Meters>;
   /// Defines how the object is collided with
   fn shape(&self) -> Shape2D;
   /// The collision group this object belongs to
@@ -33,7 +33,7 @@ pub trait Collidable {
 }
 
 impl Collidable for AABB<Meters> {
-  fn location(&self) -> Point { self.center() }
+  fn location(&self) -> Isometry2<Meters> { Isometry2::new(self.center().coords, na::zero()) }
   fn shape(&self) -> Shape2D { ShapeHandle::new(CollisionRect::new(self.half_extents())) }
   fn collision_group(&self) -> CollisionGroups { CollisionGroups::new() }
   fn coltype(&self) -> CollidableType { CollidableType::Generic }
@@ -66,8 +66,7 @@ impl<T: Collidable + ?Sized> GameObjRegistrar<T> for CollW {
   fn register_with_group(&mut self, register_me: &T, group: CollisionGroups,
                          dat: CollidableDat) -> CollisionObjectHandle {
     let q = nc::world::GeometricQueryType::Contacts(0.0, 0.0);
-    self.add(Isometry2::new(register_me.location().coords, na::zero()), register_me.shape(),
-             group, q, dat)
+    self.add(register_me.location(), register_me.shape(), group, q, dat)
   }
 }
 

@@ -2,14 +2,16 @@ use collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::{Context, GameResult};
 use ggez::graphics::{Color, DrawMode, Rect, rectangle, set_color};
 use na;
-use na::{Isometry2, Vector2};
+use na::{Isometry2, Vector2, Translation2};
+use nc::query;
 use nc::shape::{Compound, ShapeHandle};
 use nc::world::CollisionGroups;
 use rand::{Rng, thread_rng};
-use rand::distributions::{IndependentSample, Normal};
+use rand::distributions::{Distribution, Normal};
+use std::f32::consts::PI;
 use super::direction::Direction;
 use util::{Meters, Point};
-use util::geom::{CenteredRect, CenterOriginRect};
+use util::geom::{CenteredRect, CenterOriginRect, origin, PolarVec};
 
 static WALL_THICKNESS: Meters = 0.2;
 static DOOR_WIDTH: Meters = 1.1;
@@ -44,13 +46,13 @@ impl Room {
     Room::new(Point::new(c_x, c_y), room_w, room_h, door, false)
   }
 
-// TODO:
-// The algorithm starts with one room, placed at random in an empty
-// grid. Then, it draws another room on another grid, which it slides like a
-// piece of cellophane over the level until the new room fits snugly against an
-// existing room without touching or overlapping. When there’s a fit, it
-// transfers the room from the cellophane to the master grid and punches out a
-// door. It does that repeatedly until it can’t fit any more rooms
+  // TODO:
+  // The algorithm starts with one room, placed at random in an empty
+  // grid. Then, it draws another room on another grid, which it slides like a
+  // piece of cellophane over the level until the new room fits snugly against an
+  // existing room without touching or overlapping. When there’s a fit, it
+  // transfers the room from the cellophane to the master grid and punches out a
+  // door. It does that repeatedly until it can’t fit any more rooms
 
   /// Creates a new group of `Room`s that all touch each-other
   pub fn new_compound_room((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters))
@@ -59,41 +61,59 @@ impl Room {
     // The initial room
     let mut starter = Room::new_rand((x_min, x_max), (y_min, y_max));
     starter.is_compound = true;
+    let starter_loc = starter.location();
+    let mut compound_rm = Compound::new(vec![(origin(), starter.shape())]);
+
     let mut rooms = vec![starter];
-    let num_extensions = rng.gen_range(1, 5);
+    let num_extensions = 1;//rng.gen_range(1, 5);
+
+    // TODO: Can still create overlaps sometimes
+    // Not sure if this is gonna work. Might be better to do by hand with a grid.
+    println!("extensions: {:?} ------------------------------", num_extensions);
     for _ in 0..num_extensions {
-      let extension = {
-        let lastr = rooms.last().unwrap();
-        // Find the side the door is on, and tack on another room box there. We'll delete one wall
-        // such that the two rooms now share a wall
-        let prev_door = lastr.door;
-        let prev_door_dir = lastr.door.facing;
-        let prev_door_c = lastr.door.center();
-        let (ext_w, ext_h) = Room::rand_room_box();
-        let (ext_x, ext_y) = match prev_door_dir {
-          Direction::North => (prev_door_c.x, lastr.center().y - lastr.height() / 2.0 - ext_h / 2.0),
-          Direction::South => (prev_door_c.x, lastr.center().y + lastr.height() / 2.0 + ext_h / 2.0),
-          Direction::East => (lastr.center().x + lastr.width() / 2.0 + ext_w / 2.0, prev_door_c.y),
-          Direction::West => (lastr.center().x - lastr.width() / 2.0 - ext_w / 2.0, prev_door_c.y),
-          _ => panic!("Impossible door side chosen during room generation"),
-        };
-        let dirs_no_same_side: Vec<&Direction> = Direction::compass().iter()
-          .filter(|x| **x != prev_door_dir.opposite()).collect();
-        let side = rng.choose(&dirs_no_same_side).unwrap();
-        let door = Room::gen_rand_door(ext_x, ext_y, ext_w, ext_h, side);
-        let mut ext = Room::new(Point::new(ext_x, ext_y), ext_w, ext_h, door, true);
-        // Generate walls as if we were using the door from the previous room, then use the walls
-        // from that side in place of new room's "real" walls, so that we punch a hole where the door is
-        let mut fixed_walls = Room::gen_walls(ext.center(), ext_w, ext_h, prev_door,
-                                              prev_door_dir.opposite());
-        fixed_walls.retain(|&(_, d)| d == prev_door_dir.opposite());
-        ext.walls.retain(|&(_, d)| d != prev_door_dir.opposite());
-        ext.walls.append(&mut fixed_walls);
-        ext
+      // First we must place the new extension room somewhere away from the current compound room
+      let offset = PolarVec::new(200.0, rng.gen_range(0.0, PI * 2.0));
+      let (ext_w, ext_h) = Room::rand_room_box();
+      let ext_s: &CenterOriginRect = &CenteredRect::new(Point::from_coordinates(offset.into()),
+                                                        ext_w, ext_h);
+      // Now we use time-of-impact to figure out how to much the new extension needs to be
+      // moved in order to be touching the existing compound room. The existing room is placed
+      // at the origin and the new room is placed far a way, with a velocity towards the origin.
+      let ext_coords: &Vector2<Meters> = &ext_s.center().coords;
+      let to_origin = na::normalize(&-ext_coords);
+      let toi = {
+        let esh = ext_s.shape();
+        let ext_shape: &CollisionRect = esh.as_shape().unwrap();
+        // Immediately unwrap because by construction these things must impact and if they don't
+        // that's a bug.
+        query::time_of_impact(&origin(), &Vector2::zeros(), &compound_rm,
+                              &ext_s.location(), &to_origin, ext_shape).unwrap()
       };
-      rooms.push(extension);
+      let shift_by: Translation2<Meters> = Translation2::from_vector(to_origin * toi);
+      let mut new_loc = ext_s.location().clone();
+      new_loc.append_translation_mut(&shift_by);
+
+      // The now-touching rooms may not be completely flush. Fix that.
+      let penetration = {
+        let esh = ext_s.shape();
+        let ext_shape: &CollisionRect = esh.as_shape().unwrap();
+        query::contact(&origin(), &compound_rm, &new_loc, ext_shape, WALL_THICKNESS)
+      };
+      println!("Penetration: {:?}", penetration);
+
+      let new_comp_shapes = [compound_rm.shapes(), vec![(new_loc, ext_s.shape())].as_slice()].concat();
+      compound_rm = Compound::new(new_comp_shapes);
+      // Re-add the starter location to the new room, so that it doesn't stay in local space.
+      new_loc.append_translation_mut(&starter_loc.translation);
+      let mut nuroom = Room::new_with_centered_door(Point::from_coordinates(new_loc.translation.vector),
+                                                    ext_w, ext_h, Direction::North);
+      nuroom.is_compound = true;
+      rooms.push(nuroom);
     }
-    rooms
+    let r1 = Room::new_with_centered_door(Point::new(10.0, 10.0), 10.0, 10.0, Direction::North);
+    let r2 = Room::new_with_centered_door(Point::new(10.0, 20.0), 10.0, 10.15, Direction::North);
+    vec![r1, r2]
+//    rooms
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction
@@ -129,7 +149,7 @@ impl Room {
       let sizer = Normal::new(5.0, 3.0);
       let mut get_siz = || {
         sizer
-          .ind_sample(&mut rng)
+          .sample(&mut rng)
           .abs()
           // Rooms need to be big enough to fit a door, and a little wiggle room
           .max((DOOR_WIDTH * 2.0).into())
@@ -227,7 +247,7 @@ impl Into<CollisionRect> for Wall {
 }
 
 impl Collidable for Room {
-  fn location(&self) -> Point { self.center() }
+  fn location(&self) -> Isometry2<Meters> { Isometry2::new(self.center().coords, na::zero()) }
   fn shape(&self) -> Shape2D {
     let shapes = self.walls.iter().map(|&(w, _)| {
       let cr: CollisionRect = w.into();
@@ -289,5 +309,20 @@ mod test {
     let nw2 = Wall::new(Point::new(door_rt + (east_edge - door_rt) / 2.0, 5.0),
                         east_edge - door_rt, WALL_THICKNESS);
     assert!(walls.contains(&(nw2, Direction::North)));
+  }
+
+  #[test]
+  fn test_compound_penetration() {
+    let mut r1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::North);
+    r1.is_compound = true;
+    let starter_loc = r1.location();
+    let mut compound_rm = Compound::new(vec![(origin(), r1.shape())]);
+
+    let r2 = Room::new_with_centered_door(Point::new(0.0, 10.0), 10.0, 10.15, Direction::North);
+    let r2_s = r2.shape();
+    let r2_shape: &CollisionRect = r2_s.as_shape().unwrap();
+    let penetration = query::contact(&origin(), &compound_rm, &r2.location(), r2_shape,
+                                     WALL_THICKNESS);
+    assert!(penetration.is_some())
   }
 }
