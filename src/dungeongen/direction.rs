@@ -28,12 +28,8 @@ impl Direction {
   }
 
   pub fn compass() -> &'static [Direction; 4] {
-    static DIRECTIONS: [Direction; 4] = [
-      Direction::North,
-      Direction::East,
-      Direction::South,
-      Direction::West,
-    ];
+    static DIRECTIONS: [Direction; 4] =
+      [Direction::North, Direction::East, Direction::South, Direction::West];
     &DIRECTIONS
   }
 

@@ -1,21 +1,21 @@
-use collision::{Collidable, CollidableDat, CollidableType, CollW, GameObjRegistrar, new_collw};
-use ggez::{Context, GameResult};
+use super::blobstacle::Blobstacle;
+use super::ca_simulator::CASim;
+use super::direction::Direction;
+use super::rooms::Room;
+use collision::{new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
+use ggez::{Context, GameResult};
 use na;
 use na::Isometry2;
 use nc::bounding_volume::AABB;
 use nc::shape::{Polyline, Shape};
 use nc::world::CollisionObjectHandle;
 use num::{FromPrimitive, ToPrimitive};
-use rand::{Rng, thread_rng};
-use super::blobstacle::Blobstacle;
-use super::ca_simulator::CASim;
-use super::direction::Direction;
-use super::rooms::Room;
-use util::{Meters, Point};
+use rand::{thread_rng, Rng};
 use util::context_help::ContextHelp;
 use util::geom::CenterOriginRect;
+use util::{Meters, Point};
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -90,10 +90,12 @@ impl Level {
     if self.rooms.len() < 1 {
       // First run through add the cave BB to the collision world so we don't get rooms too far
       // outside of the cave. To get the four walls, it's easy to convert the BB into a "room".
-      let cave_bb_room = Room::new_with_centered_door(cave_bb.center(),
-                                                      cave_bb.half_extents().x * 2.0,
-                                                      cave_bb.half_extents().y * 2.0,
-                                                      Direction::North);
+      let cave_bb_room = Room::new_with_centered_door(
+        cave_bb.center(),
+        cave_bb.half_extents().x * 2.0,
+        cave_bb.half_extents().y * 2.0,
+        Direction::North,
+      );
       let nxt_id = self.get_and_inc_eid();
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
@@ -103,7 +105,7 @@ impl Level {
         let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
-          nu_rooms.append(&mut Room::new_compound_room(xrange, yrange))
+          nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange))
         } else {
           nu_rooms.push(Room::new_rand(xrange, yrange));
         }
@@ -127,12 +129,17 @@ impl Level {
   }
 
   /// Returns a tuple of (collision handles, were any collisions)
-  fn check_room_collisions(collw: &mut CollW, nu_rooms: &Vec<Room>, cw_dat: CollidableDat)
-                           -> (Vec<CollisionObjectHandle>, bool) {
-    let coll_handles: Vec<CollisionObjectHandle> = nu_rooms.iter().flat_map(|nr| {
-      let floormat: &CenterOriginRect = &nr.floormat();
-      vec![collw.register(nr, cw_dat), collw.register(floormat, cw_dat)]
-    }).collect();
+  fn check_room_collisions(
+    collw: &mut CollW,
+    nu_rooms: &Vec<Room>,
+    cw_dat: CollidableDat,
+  ) -> (Vec<CollisionObjectHandle>, bool) {
+    let coll_handles: Vec<CollisionObjectHandle> = nu_rooms
+      .iter()
+      .flat_map(|nr| {
+        let floormat: &CenterOriginRect = &nr.floormat();
+        vec![collw.register(nr, cw_dat), collw.register(&floormat, cw_dat)]
+      }).collect();
     collw.update();
     (coll_handles, !collw.contact_pairs().any(|p| p.2.num_contacts() > 0))
   }
@@ -156,12 +163,12 @@ impl Level {
   fn place_obstacles(&mut self) -> bool {
     // Grow some ponds using our CA generation method
     // TODO: Re-enable / do something actually useful when I get to this point
-//    let test_pond = Blobstacle::new(Point::new(30.0, 30.0));
-//    let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
-//    let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
-//    self.obstacles.push(test_pond);
-//    self.obstacles.push(test_pond2);
-//    self.obstacles.push(test_pond3);
+    //    let test_pond = Blobstacle::new(Point::new(30.0, 30.0));
+    //    let test_pond2 = Blobstacle::new(Point::new(5.5, 5.1));
+    //    let test_pond3 = Blobstacle::new(Point::new(20.8, 20.8));
+    //    self.obstacles.push(test_pond);
+    //    self.obstacles.push(test_pond2);
+    //    self.obstacles.push(test_pond3);
     true
   }
 
@@ -222,8 +229,8 @@ impl Level {
         }
       }
       // Test center room of one sq unit
-//      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
-//      ctx.center_rect(self.middle(), 1.0, 1.0)?;
+      //      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
+      //      ctx.center_rect(self.middle(), 1.0, 1.0)?;
     }
     Ok(())
   }
@@ -239,38 +246,34 @@ impl Level {
   }
 
   fn u_to_l_scale(&self) -> DrawParam {
-    DrawParam {
-      scale: self.uspace_to_lspace(Point::new(1.0, 1.0)),
-      ..Default::default()
-    }
+    DrawParam { scale: self.uspace_to_lspace(Point::new(1.0, 1.0)), ..Default::default() }
   }
 
   pub fn lscale(&self, ctx: &Context) -> DrawParam {
-    return DrawParam {
-      scale: self.lspace_to_sspace(ctx, Point::new(1.0, 1.0)),
-      ..Default::default()
-    };
+    DrawParam { scale: self.lspace_to_sspace(ctx, Point::new(1.0, 1.0)), ..Default::default() }
   }
 }
-
 
 #[cfg(test)]
 mod test {
   extern crate timebomb;
 
-  use super::*;
   use self::timebomb::timeout_ms;
+  use super::*;
 
   #[test]
   fn test_no_room_collisions() {
-    timeout_ms(|| {
-      let mut l = Level::new();
-      while l.gen_stage < LevelGenStage::PlaceObstacles {
-        l.tick_level_gen();
-      }
-      l.tmp_collw.update();
-      assert!(l.tmp_collw.contact_pairs().next().is_none())
-    }, 3000)
+    timeout_ms(
+      || {
+        let mut l = Level::new();
+        while l.gen_stage < LevelGenStage::PlaceObstacles {
+          l.tick_level_gen();
+        }
+        l.tmp_collw.update();
+        assert!(l.tmp_collw.contact_pairs().next().is_none())
+      },
+      3000,
+    )
   }
 
   #[test]

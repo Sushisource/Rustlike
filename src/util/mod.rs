@@ -1,10 +1,10 @@
 extern crate ggez;
 extern crate nalgebra as na;
 
-use ggez::Context;
-use ggez::graphics::{Font, Text};
-use std::collections::HashMap;
 use super::agents::Agent;
+use ggez::graphics::{Font, Text};
+use ggez::Context;
+use std::collections::HashMap;
 
 pub mod context_help;
 pub mod geom;
@@ -25,20 +25,13 @@ impl Assets {
   pub fn new(ctx: &mut Context) -> Assets {
     let mut m = HashMap::new();
     m.insert(1, Font::new(ctx, "/Hack-Bold.ttf", 14).unwrap());
-    Assets {
-      font_map: m,
-      text_map: HashMap::new(),
-    }
+    Assets { font_map: m, text_map: HashMap::new() }
   }
 
   pub fn agent_txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
     // TODO: Could be crashy
     self.text_map.entry(agent.symbol()).or_insert(
-      Text::new(
-        ctx,
-        agent.symbol(),
-        self.font_map.get(&agent.width()).unwrap(),
-      ).unwrap(),
+      Text::new(ctx, agent.symbol(), self.font_map.get(&agent.width()).unwrap()).unwrap(),
     )
   }
 

@@ -6,8 +6,8 @@ authors = ["Spencer Judge <sushisource@gmail.com>"]
 [dependencies]
 ggez = "0.4"
 time = "0.1"
-nalgebra = "0.15"
-ncollide2d = "0.16"
+nalgebra = "0.16"
+ncollide2d = "0.17"
 rand = "0.5"
 derive-new = "0.5"
 num-derive = "0.2"

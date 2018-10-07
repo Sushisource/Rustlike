@@ -4,7 +4,7 @@ extern crate syn;
 extern crate quote;
 
 use proc_macro::TokenStream;
-use syn::{Data, Fields, Type, Ident, PathSegment, Path, TypePath, Field};
+use syn::{Data, Field, Fields, Ident, Path, PathSegment, Type, TypePath};
 
 #[proc_macro_derive(CenterOriginRect)]
 pub fn cor_derive(input: TokenStream) -> TokenStream {
@@ -15,7 +15,6 @@ pub fn cor_derive(input: TokenStream) -> TokenStream {
   gen.into()
 }
 
-
 fn impl_cor(ast: &syn::DeriveInput) -> quote::Tokens {
   let type_name = Ident::from("CenteredRect");
   let type_pathseg: PathSegment = type_name.into();
@@ -24,8 +23,10 @@ fn impl_cor(ast: &syn::DeriveInput) -> quote::Tokens {
   // Find the field of the struct which is the CenteredRect
   if let Data::Struct(ref sstruct) = ast.data {
     if let Fields::Named(ref fields) = sstruct.fields {
-      let maybe_crfield = fields.named.iter().find(|f| f.ty == Type::Path(
-        TypePath { qself: None, path: type_path.clone() }));
+      let maybe_crfield = fields
+        .named
+        .iter()
+        .find(|f| f.ty == Type::Path(TypePath { qself: None, path: type_path.clone() }));
       if let Some(&Field { ident: Some(identity), .. }) = maybe_crfield {
         quote! {
           impl CenterOriginRect for #name {
@@ -34,7 +35,9 @@ fn impl_cor(ast: &syn::DeriveInput) -> quote::Tokens {
             fn height(&self) -> f32 { self.#identity.height }
           }
         }
-      } else { panic!("No field with type CenteredRect found") }
+      } else {
+        panic!("No field with type CenteredRect found")
+      }
     } else {
       panic!("No named fields (must declare a CenteredRect field)!")
     }

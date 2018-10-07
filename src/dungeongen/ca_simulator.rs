@@ -1,10 +1,10 @@
 extern crate ggez;
 extern crate rand;
 
-use ggez::{Context, GameResult};
-use ggez::graphics;
-use ggez::graphics::{Drawable, DrawMode, DrawParam, FilterMode, Image, Mesh};
 use super::direction::Direction;
+use ggez::graphics;
+use ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh};
+use ggez::{Context, GameResult};
 use util::Point;
 
 type CellGrid = Vec<Vec<bool>>;
@@ -80,8 +80,7 @@ impl CASim {
         let xp = ((x as f32) / (self.width as f32) + shift.x) * self.scale;
         let yp = ((y as f32) / (self.height as f32) + shift.y) * self.scale;
         Point::new(xp, yp)
-      })
-      .collect()
+      }).collect()
   }
 
   pub fn uspace_gboundary(&self) -> Vec<Point> {
@@ -138,16 +137,13 @@ impl CASim {
       if !not_marked {
         marked_encountered += 1;
       }
-      if in_width && in_height
-        && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize]
-        && not_marked
-        {
-          cur_cell = cur_pt;
-          self.ca_boundary.push(cur_cell);
-          self.bounds_last_dir = dir.clone();
-          pushed_one = true;
-          break;
-        }
+      if in_width && in_height && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
+        cur_cell = cur_pt;
+        self.ca_boundary.push(cur_cell);
+        self.bounds_last_dir = dir.clone();
+        pushed_one = true;
+        break;
+      }
     }
     if !pushed_one {
       // If we didn't add anything to the boundary then we're gonna get stuck. Avoid that
@@ -177,7 +173,7 @@ impl CASim {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-            // Cell dead
+          // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
@@ -242,8 +238,10 @@ impl CASim {
   // GRAPHICS =================================================================
   pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let ca_img_a = self.cave_ca_img(&self.ca_grid);
-    let scalept = Point::new((1.0 / self.width as f32) * param.scale.x,
-                             (1.0 / self.height as f32) * param.scale.y);
+    let scalept = Point::new(
+      (1.0 / self.width as f32) * param.scale.x,
+      (1.0 / self.height as f32) * param.scale.y,
+    );
     let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
     let mut scaled_params = param.clone();
     scaled_params.scale = scalept.into();
@@ -255,8 +253,7 @@ impl CASim {
     let cave_bounds = self.uspace_gboundary();
     if !cave_bounds.is_empty() {
       // Line width also scales w/ draw param, so need to make it reasonable.
-      let line =
-        Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x)?;
+      let line = Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x)?;
       graphics::draw_ex(ctx, &line, param)?;
     }
     Ok(())
@@ -300,8 +297,11 @@ mod test {
     tsim.ca_grid[4][3] = true;
     tsim.ca_grid[4][2] = true;
     tsim.ca_grid[5][1] = true;
-    timeout_ms(move || {
-      while !tsim.tick_cave_boundary() {}
-    }, 1000)
+    timeout_ms(
+      move || {
+        while !tsim.tick_cave_boundary() {}
+      },
+      1000,
+    )
   }
 }

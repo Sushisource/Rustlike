@@ -1,5 +1,5 @@
+use ggez::graphics::{rectangle, DrawMode, DrawParam, Point2, Rect};
 use ggez::{Context, GameResult};
-use ggez::graphics::{DrawMode, DrawParam, Point2, Rect, rectangle};
 use nc::bounding_volume::AABB;
 use util::{Meters, Point};
 
@@ -16,11 +16,11 @@ pub trait ContextHelp {
 
 impl ContextHelp for Context {
   fn screen_x(&self) -> f32 {
-    return self.conf.window_mode.width as f32;
+    self.conf.window_mode.width as f32
   }
 
   fn screen_y(&self) -> f32 {
-    return self.conf.window_mode.height as f32;
+    self.conf.window_mode.height as f32
   }
 
   fn screen_middle(&self) -> Point2 {
@@ -46,13 +46,7 @@ impl ContextHelp for Context {
   }
 
   fn center_rect(&mut self, c: Point2, w: Meters, h: Meters) -> GameResult<()> {
-    rectangle(self, DrawMode::Fill,
-              Rect {
-                x: c.coords.x - w / 2.0,
-                y: c.coords.y - h / 2.0,
-                w,
-                h,
-              })
+    rectangle(self, DrawMode::Fill, Rect { x: c.coords.x - w / 2.0, y: c.coords.y - h / 2.0, w, h })
   }
 
   fn draw_bb(&mut self, bb: &AABB<Meters>) -> GameResult<()> {

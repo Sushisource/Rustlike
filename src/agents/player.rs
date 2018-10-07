@@ -1,10 +1,10 @@
 extern crate ggez;
 extern crate nalgebra;
 
-use ggez::{Context, GameResult};
+use super::Agent;
 use ggez::graphics;
 use ggez::graphics::{DrawParam, Point2, Vector2};
-use super::Agent;
+use ggez::{Context, GameResult};
 use util::Assets;
 
 static PLAYER_SYM: &'static str = "@";
@@ -14,13 +14,14 @@ pub struct Player {
 }
 
 impl Player {
-  pub fn new(pos: Point2) -> Player { Player { pos } }
+  pub fn new(pos: Point2) -> Player {
+    Player { pos }
+  }
 
   /// Currently we have to pass scale in here separately b/c we don't want
   /// the overal transform to scale our text, since we handle that with
   /// font sizes.
-  pub fn draw(&self, ctx: &mut Context, assets: &mut Assets,
-              scale: Point2) -> GameResult<()> {
+  pub fn draw(&self, ctx: &mut Context, assets: &mut Assets, scale: Point2) -> GameResult<()> {
     let d = Point2::new(self.pos.x * scale.x, self.pos.y * scale.y);
     let repositioned = DrawParam {
       dest: d,
@@ -35,10 +36,18 @@ impl Player {
 }
 
 impl Agent for Player {
-  fn width(&self) -> u32 { 1 }
-  fn height(&self) -> u32 { 1 }
-  fn symbol(&self) -> &'static str { PLAYER_SYM }
-  fn pos(&self) -> Point2 { self.pos }
+  fn width(&self) -> u32 {
+    1
+  }
+  fn height(&self) -> u32 {
+    1
+  }
+  fn symbol(&self) -> &'static str {
+    PLAYER_SYM
+  }
+  fn pos(&self) -> Point2 {
+    self.pos
+  }
 
   fn trans(&mut self, by: Vector2) {
     self.pos = self.pos + by;

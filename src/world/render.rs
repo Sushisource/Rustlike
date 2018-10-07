@@ -1,16 +1,16 @@
 use agents::Agent;
 use collision::Compound2D;
-use ggez::{Context, GameResult};
 use ggez::event;
 use ggez::event::{Keycode, Mod};
 use ggez::graphics;
-use ggez::graphics::{Color, Drawable, DrawParam, Point2, Vector2};
+use ggez::graphics::{Color, DrawParam, Drawable, Point2, Vector2};
 use ggez::mouse;
 use ggez::timer;
+use ggez::{Context, GameResult};
 use std;
 use std::time::Duration;
-use util::Assets;
 use util::context_help::ContextHelp;
+use util::Assets;
 use world::World;
 
 pub struct WorldRender<'a> {
@@ -25,13 +25,7 @@ pub struct WorldRender<'a> {
 impl<'a> WorldRender<'a> {
   pub fn new(world: &'a mut World, ctx: &mut Context) -> WorldRender<'a> {
     let assets = Assets::new(ctx);
-    WorldRender {
-      world,
-      fastmode: true,
-      assets,
-      debug: false,
-      level_finished: false,
-    }
+    WorldRender { world, fastmode: true, assets, debug: false, level_finished: false }
   }
 
   fn stop_render(&mut self) -> () {
@@ -94,10 +88,8 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     if self.debug {
       let mouse_p = mouse::get_position(ctx)?;
       let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p);
-      let dbg_txt = self.assets.txt(
-        &format!("Mouse pos scrn: {} world: {}", mouse_p, w_mouse_p),
-        ctx,
-      );
+      let dbg_txt =
+        self.assets.txt(&format!("Mouse pos scrn: {} world: {}", mouse_p, w_mouse_p), ctx);
       dbg_txt.draw(ctx, Point2::new(0.0, 0.0), 0.0)?;
       self.world.collision_test(&w_mouse_p);
     }
@@ -109,13 +101,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
   // Handle key events. These just map keyboard events and alter our input
   // state appropriately.
-  fn key_down_event(
-    &mut self,
-    _ctx: &mut Context,
-    keycode: Keycode,
-    keymod: Mod,
-    _repeat: bool,
-  ) {
+  fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, _repeat: bool) {
     match keycode {
       Keycode::Space => {
         self.stop_render();

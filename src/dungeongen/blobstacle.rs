@@ -1,8 +1,8 @@
 extern crate ggez;
 
-use ggez::{Context, GameResult};
-use ggez::graphics::DrawParam;
 use super::ca_simulator::CASim;
+use ggez::graphics::DrawParam;
+use ggez::{Context, GameResult};
 use util::Point;
 
 /// Blobstacles are backed by a CA sim but have additional information like

@@ -10,7 +10,7 @@ extern crate rand;
 #[macro_use]
 extern crate roguelike_derive;
 
-use ggez::{conf, ContextBuilder, event, graphics};
+use ggez::{conf, event, graphics, ContextBuilder};
 use world::render::WorldRender;
 use world::World;
 

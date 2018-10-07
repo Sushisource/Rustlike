@@ -1,7 +1,7 @@
 extern crate ncollide2d as nc;
 
 use agents::player::Player;
-use collision::{CollidableDat, CollW, GameObjRegistrar, new_collw};
+use collision::{new_collw, CollW, CollidableDat, GameObjRegistrar};
 use dungeongen::level::Level;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use util::Point;
@@ -22,12 +22,7 @@ impl World {
   pub fn new() -> World {
     let level = Level::new();
     let player = Player::new(level.middle());
-    World {
-      level: level.into(),
-      player,
-      collision: new_collw(),
-      next_eid: AtomicUsize::new(0),
-    }
+    World { level: level.into(), player, collision: new_collw(), next_eid: AtomicUsize::new(0) }
   }
 
   fn add_level_contents_to_collision(&mut self) -> () {
