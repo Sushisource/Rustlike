@@ -100,12 +100,12 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
-    if self.rooms.len() < 1 {
+    if self.rooms.len() < 15 {
       loop {
         let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
-          nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange))
+          nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange));
         } else {
           nu_rooms.push(Room::new_rand(xrange, yrange));
         }
@@ -118,7 +118,7 @@ impl Level {
           self.rooms.append(&mut nu_rooms);
           break;
         } else {
-          self.tmp_collw.remove(coll_handles.as_slice())
+          self.tmp_collw.remove(coll_handles.as_slice());
         }
       }
       false
@@ -137,11 +137,12 @@ impl Level {
     let coll_handles: Vec<CollisionObjectHandle> = nu_rooms
       .iter()
       .flat_map(|nr| {
+        // TODO: Re-enable floormats somehow
         let floormat: &CenterOriginRect = &nr.floormat();
-        vec![collw.register(nr, cw_dat), collw.register(&floormat, cw_dat)]
+        vec![collw.register(nr, cw_dat) /*, collw.register(&floormat, cw_dat)*/]
       }).collect();
     collw.update();
-    (coll_handles, !collw.contact_pairs().any(|p| p.2.num_contacts() > 0))
+    (coll_handles, has_no_collisions(collw))
   }
 
   pub fn cave_bound_box(&self) -> AABB<Meters> {
@@ -228,7 +229,7 @@ impl Level {
           obstacle.draw(ctx)?;
         }
       }
-      // Test center room of one sq unit
+      //       Test center room of one sq unit
       //      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
       //      ctx.center_rect(self.middle(), 1.0, 1.0)?;
     }
@@ -254,6 +255,10 @@ impl Level {
   }
 }
 
+fn has_no_collisions(collw: &CollW) -> bool {
+  !collw.contact_pairs().any(|p| p.2.num_contacts() > 0)
+}
+
 #[cfg(test)]
 mod test {
   extern crate timebomb;
@@ -270,7 +275,7 @@ mod test {
           l.tick_level_gen();
         }
         l.tmp_collw.update();
-        assert!(l.tmp_collw.contact_pairs().next().is_none())
+        assert!(has_no_collisions(&l.tmp_collw))
       },
       3000,
     )

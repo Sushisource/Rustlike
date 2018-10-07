@@ -98,12 +98,6 @@ pub struct GridRect {
   pub top_left: IntPoint,
 }
 
-//impl GridRect {
-//  fn set_center(&mut self, c: &IntPoint) {
-//    self.top_left = IntPoint::new(c.x - self.width / 2, c.y - self.height / 2);
-//  }
-//}
-
 impl CenterOriginRect for GridRect {
   fn center(&self) -> Point {
     Point::new(
@@ -127,9 +121,6 @@ pub fn snap_to_existing_rooms(
   new_room: GridRect,
   exit_angle: f32,
 ) -> GridRect {
-  // TODO: Still messing it up. Obvi, centers can't always be int points. A 1x1 square at 0
-  // would mean a 4x1 square to the right would be at 2.5. Perhaps I should stop using center
-  // coordinates. Then the grid walker might work? Stash has integer center.
   let walk_vec: Vector2<Meters> = PolarVec::new(1000.0, exit_angle).into();
   let walk_to_pt = IntPoint::new(walk_vec.x as i32, walk_vec.y as i32);
   let walk_list = walk_grid(IntPoint::new(0, 0), walk_to_pt);
@@ -149,9 +140,7 @@ pub fn snap_to_existing_rooms(
       Vector2::new(walkpt.x as f32 + nr_shape_half_w, walkpt.y as f32 + nr_shape_half_h),
       0.0,
     );
-    println!("CurPt ({:?}, {:?})", cur_pt.translation.vector.x, cur_pt.translation.vector.y);
     let contact = query::contact(&origin(), &compound_room, &cur_pt, &nr_shape, 0.0);
-    println!("contact {:?}", contact);
     let is_contact = contact.is_some();
 
     if !is_contact {
@@ -162,7 +151,6 @@ pub fn snap_to_existing_rooms(
   }
   let intified: Vector2<i32> =
     Vector2::new(last_pt.translation.vector.x as i32, last_pt.translation.vector.y as i32);
-  println!("Done! {} {} {:?}", orig_w, orig_h, intified);
   GridRect::new(orig_w, orig_h, IntPoint::from_coordinates(intified))
 }
 
@@ -222,7 +210,6 @@ mod test {
     let moved = snap_to_existing_rooms(&existing, new, PI / 2.0);
     assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 1)), moved);
     existing.push(moved);
-    println!("!!!!!!!!!!!!!!!! RIGHT !!!!!!!!!11");
     // Right
     let new = GridRect::new(4, 1, IntPoint::new(0, 0));
     let moved = snap_to_existing_rooms(&existing, new, 0.0);

@@ -26,9 +26,7 @@ pub struct Room {
 
 impl<'a> Into<Room> for &'a GridRect {
   fn into(self) -> Room {
-    let mut nc: Point = na::convert(self.center());
-    nc.x = nc.x + 20.0;
-    nc.y = nc.y + 20.0;
+    let nc: Point = na::convert(self.center());
     // TODO: Door stuff.
     Room::new(
       nc,
@@ -75,13 +73,20 @@ impl Room {
     let mut rooms = vec![starter];
     let num_extensions = rng.gen_range(1, 5);
 
-    println!("extensions: {:?} ------------------------------", num_extensions);
     for _ in 0..num_extensions {
       let exit_angle = rng.gen_range(0.0, PI * 2.0);
       let new = Room::rand_grid_room();
       let moved = snap_to_existing_rooms(&rooms, new, exit_angle);
       rooms.push(moved);
     }
+
+    let c_x: f32 = rng.gen_range(x_min, x_max);
+    let c_y: f32 = rng.gen_range(y_min, y_max);
+    for r in rooms.iter_mut() {
+      r.top_left.x += c_x as i32;
+      r.top_left.y += c_y as i32;
+    }
+
     rooms.iter().map(|r| r.into()).collect()
   }
 
@@ -121,9 +126,19 @@ impl Room {
   fn rand_grid_room() -> GridRect {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
-    let width: u32 = rng.gen_range(1, 20);
-    let height: u32 = rng.gen_range(1, 20);
-    GridRect::new(width, height, IntPoint::new(0, 0))
+    let (room_w, room_h) = {
+      let sizer = Normal::new(5.0, 3.0);
+      let mut get_siz = || {
+        sizer
+          .sample(&mut rng)
+          .abs()
+          // Rooms need to be big enough to fit a door, and a little wiggle room
+          .max((DOOR_WIDTH * 2.0).into())
+          .min(30.0) as u32
+      };
+      (get_siz(), get_siz())
+    };
+    GridRect::new(room_w, room_h, IntPoint::new(0, 0))
   }
 
   fn rand_room_box() -> (Meters, Meters) {
