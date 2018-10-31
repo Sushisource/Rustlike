@@ -138,7 +138,7 @@ impl Level {
       .iter()
       .flat_map(|nr| {
         // TODO: Re-enable floormats somehow
-        let floormat: &CenterOriginRect = &nr.floormat();
+        let _floormat: &CenterOriginRect = &nr.floormat();
         vec![collw.register(nr, cw_dat) /*, collw.register(&floormat, cw_dat)*/]
       }).collect();
     collw.update();

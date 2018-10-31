@@ -5,7 +5,6 @@ use na::{Isometry2, Vector2};
 use nc::query;
 use nc::shape::{Compound, ShapeHandle};
 use nc::world::CollisionGroups;
-use std::f32::consts::PI;
 use util::{Meters, Point};
 
 pub trait CenterOriginRect {
@@ -151,7 +150,7 @@ pub fn snap_to_existing_rooms(
   }
   let intified: Vector2<i32> =
     Vector2::new(last_pt.translation.vector.x as i32, last_pt.translation.vector.y as i32);
-  GridRect::new(orig_w, orig_h, IntPoint::from_coordinates(intified))
+  GridRect::new(orig_w, orig_h, IntPoint::from(intified))
 }
 
 fn compoundify(shapes: &Vec<impl Collidable>) -> Compound<f32> {
@@ -166,8 +165,8 @@ fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
   let ny = dy.abs() as f32;
   let sign_x = if dx > 0 { 1 } else { -1 };
   let sign_y = if dy > 0 { 1 } else { -1 };
-  let mut p = p1.clone();
-  let mut points = vec![p.clone()];
+  let mut p = Clone::clone(&p1);
+  let mut points = vec![Clone::clone(&p)];
   let (mut ix, mut iy) = (0.0, 0.0);
   while ix < nx || iy < ny {
     if (0.5 + ix) / nx == (0.5 + iy) / ny {
@@ -185,7 +184,7 @@ fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
       p.y += sign_y;
       iy += 1.0;
     }
-    points.push(p.clone())
+    points.push(Clone::clone(&p))
   }
   points
 }
@@ -193,6 +192,7 @@ fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
 #[cfg(test)]
 mod test {
   use super::*;
+  use std::f32::consts::PI;
 
   #[test]
   fn test_simple_snap() {

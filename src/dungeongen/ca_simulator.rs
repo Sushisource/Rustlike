@@ -48,7 +48,7 @@ impl CASim {
     }
   }
 
-  pub fn generate(&mut self) {
+  pub fn _generate(&mut self) {
     while !self.tick() {}
   }
 

@@ -13,11 +13,11 @@ pub struct Blobstacle {
 }
 
 impl Blobstacle {
-  pub fn new(pos: Point) -> Blobstacle {
+  pub fn _new(pos: Point) -> Blobstacle {
     // TODO: I think this number is effectively "blob width in world units"
     // But need to verify that.
     let mut sim = CASim::new(128, 128, 10.0);
-    sim.generate();
+    sim._generate();
     Blobstacle { position: pos, sim }
   }
 
