@@ -33,8 +33,8 @@ impl Direction {
     &DIRECTIONS
   }
 
-  pub fn to_tup(&self) -> (f32, f32) {
-    match *self {
+  pub fn to_tup(self) -> (f32, f32) {
+    match self {
       Direction::North => (0.0, -1.0),
       Direction::NorthEast => (1.0, -1.0),
       Direction::East => (1.0, 0.0),
@@ -46,13 +46,13 @@ impl Direction {
     }
   }
 
-  pub fn dir_from_tup(&self, other: (i32, i32)) -> (i32, i32) {
+  pub fn dir_from_tup(self, other: (i32, i32)) -> (i32, i32) {
     let modifier = self.to_tup();
     (other.0 + modifier.0 as i32, other.1 + modifier.1 as i32)
   }
 
-  pub fn opposite(&self) -> Direction {
-    match *self {
+  pub fn opposite(self) -> Direction {
+    match self {
       Direction::North => Direction::South,
       Direction::NorthEast => Direction::SouthWest,
       Direction::East => Direction::West,

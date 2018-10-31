@@ -55,7 +55,7 @@ impl Room {
     let mut rng = thread_rng();
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
-    let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, side);
+    let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, *side);
     Room::new(Point::new(c_x, c_y), room_w, room_h, door, false)
   }
 
@@ -76,7 +76,7 @@ impl Room {
     for _ in 0..num_extensions {
       let exit_angle = rng.gen_range(0.0, PI * 2.0);
       let new = Room::rand_grid_room();
-      let moved = snap_to_existing_rooms(&rooms, new, exit_angle);
+      let moved = snap_to_existing_rooms(&rooms, &new, exit_angle);
       rooms.push(moved);
     }
 
@@ -97,7 +97,7 @@ impl Room {
     height: Meters,
     door_side: Direction,
   ) -> Room {
-    let door = Room::gen_door(center.x, center.y, width, height, &door_side, 0.0);
+    let door = Room::gen_door(center.x, center.y, width, height, door_side, 0.0);
     Room::new(center, width, height, door, false)
   }
 
@@ -159,7 +159,7 @@ impl Room {
     (room_w, room_h)
   }
 
-  fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: &Direction) -> Door {
+  fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: Direction) -> Door {
     let mut rng = thread_rng();
     let offset_mul: f32 = rng.gen_range(-1.0, 1.0);
     Room::gen_door(c_x, c_y, room_w, room_h, side, offset_mul)
@@ -171,10 +171,10 @@ impl Room {
     c_y: f32,
     room_w: f32,
     room_h: f32,
-    side: &Direction,
+    side: Direction,
     offset_multiplier: f32,
   ) -> Door {
-    let (w, h, off_x, off_y) = match *side {
+    let (w, h, off_x, off_y) = match side {
       Direction::North | Direction::South => {
         let offset = ((room_w - DOOR_WIDTH - WALL_THICKNESS) / 2.0) * offset_multiplier;
         (DOOR_WIDTH, WALL_THICKNESS, offset, 0.0)
@@ -194,7 +194,7 @@ impl Room {
         w,
         h,
       ),
-      *side,
+      side,
     )
   }
 
@@ -309,7 +309,7 @@ mod test {
     let w = 5.0;
     let h = 10.0;
     let side = Direction::North;
-    let door = Room::gen_door(c_x, c_y, w, h, &side, 0.0);
+    let door = Room::gen_door(c_x, c_y, w, h, side, 0.0);
     let walls = Room::gen_walls(Point::new(c_x, c_y), w, h, door, side);
     println!("{:?}", walls);
     // South wall (recall south is +y)

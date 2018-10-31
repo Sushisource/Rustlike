@@ -30,12 +30,13 @@ impl Assets {
 
   pub fn agent_txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
     // TODO: Could be crashy
-    self.text_map.entry(agent.symbol()).or_insert(
-      Text::new(ctx, agent.symbol(), self.font_map.get(&agent.width()).unwrap()).unwrap(),
+    let font = &self.font_map[&agent.width()];
+    self.text_map.entry(agent.symbol()).or_insert_with(
+      || Text::new(ctx, agent.symbol(), font).unwrap()
     )
   }
 
   pub fn txt(&mut self, content: &str, ctx: &mut Context) -> Text {
-    Text::new(ctx, content, self.font_map.get(&1).unwrap()).unwrap()
+    Text::new(ctx, content, &self.font_map[&1]).unwrap()
   }
 }

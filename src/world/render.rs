@@ -91,7 +91,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       let dbg_txt =
         self.assets.txt(&format!("Mouse pos scrn: {} world: {}", mouse_p, w_mouse_p), ctx);
       dbg_txt.draw(ctx, Point2::new(0.0, 0.0), 0.0)?;
-      self.world.collision_test(&w_mouse_p);
+      self.world.collision_test(w_mouse_p);
     }
 
     graphics::present(ctx);

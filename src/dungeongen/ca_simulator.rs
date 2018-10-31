@@ -59,7 +59,7 @@ impl CASim {
       2 => self.smooth_cave_boundary(),
       3 => {
         // Make sure boundary is fully conected
-        let back_to_first = self.ca_boundary[0].clone();
+        let back_to_first = self.ca_boundary[0];
         self.ca_boundary.push(back_to_first);
         true
       }
@@ -140,7 +140,7 @@ impl CASim {
       if in_width && in_height && self.ca_grid[cur_pt.0 as usize][cur_pt.1 as usize] && not_marked {
         cur_cell = cur_pt;
         self.ca_boundary.push(cur_cell);
-        self.bounds_last_dir = dir.clone();
+        self.bounds_last_dir = *dir;
         pushed_one = true;
         break;
       }
@@ -153,11 +153,7 @@ impl CASim {
         self.ca_grid[x as usize][y as usize] = false;
       }
     }
-    if marked_encountered >= 2 {
-      true
-    } else {
-      false
-    }
+    marked_encountered >= 2
   }
 
   fn tick_ca_sim(&mut self) -> bool {
@@ -243,8 +239,8 @@ impl CASim {
       (1.0 / self.height as f32) * param.scale.y,
     );
     let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
-    let mut scaled_params = param.clone();
-    scaled_params.scale = scalept.into();
+    let mut scaled_params = param;
+    scaled_params.scale = scalept;
     scaled_params.dest = Point::new(0.0, 0.0);
     // Don't make my pixels all blurry
     img.set_filter(FilterMode::Nearest);

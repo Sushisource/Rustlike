@@ -87,7 +87,7 @@ impl Level {
     let cave_bb = self.cave_bound_box();
     let xrange = (cave_bb.mins().x, cave_bb.maxs().x);
     let yrange = (cave_bb.mins().y, cave_bb.maxs().y);
-    if self.rooms.len() < 1 {
+    if self.rooms.is_empty() {
       // First run through add the cave BB to the collision world so we don't get rooms too far
       // outside of the cave. To get the four walls, it's easy to convert the BB into a "room".
       let cave_bb_room = Room::new_with_centered_door(
@@ -131,15 +131,14 @@ impl Level {
   /// Returns a tuple of (collision handles, were any collisions)
   fn check_room_collisions(
     collw: &mut CollW,
-    nu_rooms: &Vec<Room>,
+    nu_rooms: &[Room],
     cw_dat: CollidableDat,
   ) -> (Vec<CollisionObjectHandle>, bool) {
     let coll_handles: Vec<CollisionObjectHandle> = nu_rooms
       .iter()
       .flat_map(|nr| {
-        // TODO: Re-enable floormats somehow
-        let _floormat: &CenterOriginRect = &nr.floormat();
-        vec![collw.register(nr, cw_dat) /*, collw.register(&floormat, cw_dat)*/]
+        let floormat: &CenterOriginRect = &nr.floormat();
+        vec![collw.register(nr, cw_dat), collw.register(&floormat, cw_dat)]
       }).collect();
     collw.update();
     (coll_handles, has_no_collisions(collw))
@@ -205,7 +204,7 @@ impl Level {
     let center_scale = self.lscale(ctx);
 
     if self.gen_stage == LevelGenStage::CaveSim {
-      &self.cave_sim.draw_evolution(ctx, sscale);
+      self.cave_sim.draw_evolution(ctx, sscale)?;
     } else {
       graphics::set_transform(ctx, center_scale.into_matrix());
       graphics::apply_transformations(ctx)?;
@@ -215,7 +214,7 @@ impl Level {
       // somehow?
       self.cave_sim.draw(ctx, self.u_to_l_scale())?;
 
-      if self.rooms.len() > 0 {
+      if !self.rooms.is_empty() {
         for room in &self.rooms {
           let grayval = 0.2;
           graphics::set_color(ctx, Color::new(grayval, grayval, grayval, 1.0))?;
@@ -223,7 +222,7 @@ impl Level {
         }
       }
 
-      if self.obstacles.len() > 0 {
+      if !self.rooms.is_empty() {
         for obstacle in &self.obstacles {
           graphics::set_color(ctx, (227, 77, 40).into())?;
           obstacle.draw(ctx)?;

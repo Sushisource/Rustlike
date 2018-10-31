@@ -50,6 +50,6 @@ impl Agent for Player {
   }
 
   fn trans(&mut self, by: Vector2) {
-    self.pos = self.pos + by;
+    self.pos += by;
   }
 }
