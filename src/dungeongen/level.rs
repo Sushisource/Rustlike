@@ -102,7 +102,7 @@ impl Level {
     }
     if self.rooms.len() < 15 {
       loop {
-        let is_compound = rng.gen_bool(5.0 / 5.0);
+        let is_compound = rng.gen_bool(1.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
           nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange));
