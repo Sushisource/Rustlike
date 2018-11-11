@@ -31,9 +31,10 @@ impl Assets {
   pub fn agent_txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
     // TODO: Could be crashy
     let font = &self.font_map[&agent.width()];
-    self.text_map.entry(agent.symbol()).or_insert_with(
-      || Text::new(ctx, agent.symbol(), font).unwrap()
-    )
+    self
+      .text_map
+      .entry(agent.symbol())
+      .or_insert_with(|| Text::new(ctx, agent.symbol(), font).unwrap())
   }
 
   pub fn txt(&mut self, content: &str, ctx: &mut Context) -> Text {

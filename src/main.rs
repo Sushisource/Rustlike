@@ -22,14 +22,11 @@ mod world;
 
 fn main() {
   let cb = ContextBuilder::new("rougelike", "ggez")
-    .window_setup(conf::WindowSetup::default()
-                    .title("Rougelike!")
-                  // TODO: Enable this and implement a fixed-ratio black bars solution or something
-                  //.resizable(true)
-    )
-    .window_mode(conf::WindowMode::default()
-      .dimensions(1600, 900)
-    );
+    .window_setup(
+      // TODO: Enable this and implement a fixed-ratio black bars solution or something
+      //.resizable(true)
+      conf::WindowSetup::default().title("Rougelike!"),
+    ).window_mode(conf::WindowMode::default().dimensions(1600, 900));
 
   let ctx = &mut cb.build().unwrap();
 
