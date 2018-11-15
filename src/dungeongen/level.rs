@@ -100,9 +100,9 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
-    if self.rooms.len() < 15 {
+    if self.rooms.len() < 1 {
       loop {
-        let is_compound = rng.gen_bool(1.0 / 5.0);
+        let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
           nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange));
@@ -276,7 +276,7 @@ mod test {
         l.tmp_collw.update();
         assert!(has_no_collisions(&l.tmp_collw))
       },
-      3000,
+      10000,
     )
   }
 

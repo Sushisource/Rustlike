@@ -24,20 +24,6 @@ pub struct Room {
   is_compound: bool,
 }
 
-impl<'a> Into<Room> for &'a GridRect {
-  fn into(self) -> Room {
-    let nc: Point = na::convert(self.center());
-    // TODO: Door stuff.
-    Room::new(
-      nc,
-      self.width as f32,
-      self.height as f32,
-      Door::new(CenteredRect::new(nc, 0.1, 0.1), Direction::North),
-      true,
-    )
-  }
-}
-
 pub type CompoundRoom = Vec<Room>;
 
 impl Room {
@@ -70,24 +56,41 @@ impl Room {
     // The initial room
     let starter = Room::rand_grid_room();
 
-    let mut rooms = vec![starter];
+    let starter_center: Point = na::convert(starter.center());
+    let mut rooms = vec![Room::grid_room_to_room(
+      &starter, Door::new(CenteredRect::new(starter_center, 1.0, 1.0), Direction::North))];
+    let mut room_boxes = vec![starter];
+
     let num_extensions = rng.gen_range(1, 5);
 
     for _ in 0..num_extensions {
       let exit_angle = rng.gen_range(0.0, PI * 2.0);
       let new = Room::rand_grid_room();
-      let moved = snap_to_existing_rooms(&rooms, &new, exit_angle);
-      rooms.push(moved);
+      let (moved_room, maybe_contact) = snap_to_existing_rooms(&room_boxes, &new, exit_angle);
+      println!("ROOM: {:?}\nCONTACT: {:?}", moved_room, maybe_contact);
+      let room_center: Point = na::convert(moved_room.center());
+      // Punch a door between this new room and whatever room it is contacting
+      let contact = maybe_contact.unwrap();
+      let contact_pt = contact.world1;
+      // TODO: Just need to figure out what to do when the default contact point overlaps with
+      // the corner of the room. Somehow slide the door until it fits.
+      let contact_dir = Direction::from_normal(contact.normal.as_slice());
+      let door = Door::of_width(contact_pt, DOOR_WIDTH, contact_dir);
+      rooms.push(Room::grid_room_to_room(&moved_room, door));
+      room_boxes.push(moved_room);
     }
 
+    // Punch doors to the outside where necessary to make all rooms accessible
+
+
+    // Shift all the rooms into a randomly selected position
     let c_x: f32 = rng.gen_range(x_min, x_max);
     let c_y: f32 = rng.gen_range(y_min, y_max);
     for r in rooms.iter_mut() {
-      r.top_left.x += c_x as i32;
-      r.top_left.y += c_y as i32;
+      r.translate(c_x, c_y);
     }
 
-    rooms.iter().map(|r| r.into()).collect()
+    rooms
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction
@@ -122,6 +125,18 @@ impl Room {
     )
   }
 
+  /// Moves the whole room by the provided amounts
+  pub fn translate(&mut self, x: Meters, y: Meters) {
+    self.cr.center.x += x;
+    self.cr.center.y += y;
+    self.door.cr.center.x += x;
+    self.door.cr.center.y += y;
+    for (w, _dir) in self.walls.iter_mut() {
+      w.center.x += x;
+      w.center.y += y;
+    }
+  }
+
   /// Creates a randomly sized grid room with top-left corner at origin
   fn rand_grid_room() -> GridRect {
     // TODO: Configurable sizing parameters
@@ -133,12 +148,17 @@ impl Room {
           .sample(&mut rng)
           .abs()
           // Rooms need to be big enough to fit a door, and a little wiggle room
-          .max((DOOR_WIDTH * 2.0).into())
+          .max((DOOR_WIDTH * 2.0 + 0.2).into())
           .min(30.0) as u32
       };
       (get_siz(), get_siz())
     };
     GridRect::new(room_w, room_h, IntPoint::new(0, 0))
+  }
+
+  fn grid_room_to_room(gr: &GridRect, door: Door) -> Room {
+    let nc: Point = na::convert(gr.center());
+    Room::new(nc, gr.width as f32, gr.height as f32, door, true)
   }
 
   fn rand_room_box() -> (Meters, Meters) {
@@ -260,6 +280,8 @@ type Wall = CenteredRect;
 impl Into<CollisionRect> for Wall {
   // Must be done as into b/c of generics
   fn into(self) -> CollisionRect {
+    assert!(self.width() > 0.0, "Walls must have width > 0");
+    assert!(self.height() > 0.0, "Walls must have height > 0");
     CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0))
   }
 }
@@ -294,6 +316,17 @@ impl Collidable for Room {
 pub struct Door {
   cr: CenteredRect,
   facing: Direction,
+}
+
+impl Door {
+  pub fn of_width(center: Point, width: Meters, dir: Direction) -> Door {
+    let (xsiz, ysiz) = match dir {
+      Direction::North | Direction::South => (width, WALL_THICKNESS),
+      Direction::East | Direction::West => (WALL_THICKNESS, width),
+      default => panic!("Doors can only face cardinal directions")
+    };
+    Door::new(CenteredRect::new(center, xsiz, ysiz), dir)
+  }
 }
 
 // TESTS ================================================================================

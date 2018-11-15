@@ -51,6 +51,19 @@ impl Direction {
     (other.0 + modifier.0 as i32, other.1 + modifier.1 as i32)
   }
 
+  /// Given two floats representing a 2d normal, determine the door direction. Only works if the
+  /// normal is totally aligned with an axis.
+  pub fn from_normal(norm: &[f32]) -> Direction {
+    let int_norm = [norm[0] as i8, norm[1] as i8];
+    match int_norm {
+      [1, 0] => Direction::East,
+      [0, 1] => Direction::South,
+      [-1, 0] => Direction::West,
+      [0, -1] => Direction::North,
+      [_, _] => panic!("{:?} is not a normal that can be converted to a direction!", norm)
+    }
+  }
+
   pub fn opposite(self) -> Direction {
     match self {
       Direction::North => Direction::South,

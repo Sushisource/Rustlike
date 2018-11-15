@@ -3,6 +3,7 @@ use ggez::graphics::Rect;
 use na;
 use na::{Isometry2, Vector2};
 use nc::query;
+use nc::query::Contact;
 use nc::shape::{Compound, ShapeHandle};
 use nc::world::CollisionGroups;
 use util::{Meters, Point};
@@ -119,7 +120,7 @@ pub fn snap_to_existing_rooms(
   rooms: &[GridRect],
   new_room: &GridRect,
   exit_angle: f32,
-) -> GridRect {
+) -> (GridRect, Option<Contact<Meters>>) {
   let walk_vec: Vector2<Meters> = PolarVec::new(1000.0, exit_angle).into();
   let walk_to_pt = IntPoint::new(walk_vec.x as i32, walk_vec.y as i32);
   let walk_list = walk_grid(IntPoint::new(0, 0), walk_to_pt);
@@ -128,12 +129,13 @@ pub fn snap_to_existing_rooms(
   let nr_coll = new_room as &CenterOriginRect;
   let nr_shape1 = nr_coll.shape();
   let nr_shape2: &CollisionRect = nr_shape1.as_shape().unwrap();
-  let nr_shape_half_w = nr_shape2.half_extents().x; // - 0.2;
-  let nr_shape_half_h = nr_shape2.half_extents().y; // - 0.2;
+  let nr_shape_half_w = nr_shape2.half_extents().x;
+  let nr_shape_half_h = nr_shape2.half_extents().y;
   let nr_shape: CollisionRect = CollisionRect::new(Vector2::new(nr_shape_half_w, nr_shape_half_h));
   let coll_rooms: Vec<&CenterOriginRect> = rooms.iter().map(|r| r as &CenterOriginRect).collect();
   let compound_room = compoundify(&coll_rooms);
   let mut last_pt = nr_coll.location();
+  let mut last_contact = None;
   for walkpt in walk_list {
     let cur_pt = Isometry2::new(
       Vector2::new(walkpt.x as f32 + nr_shape_half_w, walkpt.y as f32 + nr_shape_half_h),
@@ -144,13 +146,15 @@ pub fn snap_to_existing_rooms(
 
     if !is_contact {
       break;
+    } else {
+      last_contact = contact;
     }
     // Same as cur pt without the center shift
     last_pt = Isometry2::new(Vector2::new(walkpt.x as f32, walkpt.y as f32), 0.0);
   }
   let intified: Vector2<i32> =
     Vector2::new(last_pt.translation.vector.x as i32, last_pt.translation.vector.y as i32);
-  GridRect::new(orig_w, orig_h, IntPoint::from(intified))
+  (GridRect::new(orig_w, orig_h, IntPoint::from(intified)), last_contact)
 }
 
 fn compoundify(shapes: &[impl Collidable]) -> Compound<f32> {
