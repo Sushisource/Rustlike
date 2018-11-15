@@ -16,6 +16,7 @@ use rand::{thread_rng, Rng};
 use util::context_help::ContextHelp;
 use util::geom::CenterOriginRect;
 use util::{Meters, Point};
+use dungeongen::compound_room::CompoundRoomMaker;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -105,7 +106,7 @@ impl Level {
         let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
-          nu_rooms.append(&mut Room::rand_compound_room(xrange, yrange));
+          nu_rooms.append(&mut CompoundRoomMaker::rand_compound_room(xrange, yrange));
         } else {
           nu_rooms.push(Room::new_rand(xrange, yrange));
         }

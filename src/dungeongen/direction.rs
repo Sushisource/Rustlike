@@ -60,7 +60,7 @@ impl Direction {
       [0, 1] => Direction::South,
       [-1, 0] => Direction::West,
       [0, -1] => Direction::North,
-      [_, _] => panic!("{:?} is not a normal that can be converted to a direction!", norm)
+      [_, _] => panic!("{:?} is not a normal that can be converted to a direction!", norm),
     }
   }
 

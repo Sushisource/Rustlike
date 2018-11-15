@@ -2,9 +2,7 @@ use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
 use ggez::graphics::Rect;
 use na;
 use na::{Isometry2, Vector2};
-use nc::query;
-use nc::query::Contact;
-use nc::shape::{Compound, ShapeHandle};
+use nc::shape::ShapeHandle;
 use nc::world::CollisionGroups;
 use util::{Meters, Point};
 
@@ -113,55 +111,7 @@ impl CenterOriginRect for GridRect {
   }
 }
 
-/// Given some existing rooms (clustered around the origin) and a new room (at the origin),
-/// move the new room away from the origin at the exit angle until flush with the edge of one
-/// of the existing rooms. Rooms can't be bigger than 1000 meters in any direction.
-pub fn snap_to_existing_rooms(
-  rooms: &[GridRect],
-  new_room: &GridRect,
-  exit_angle: f32,
-) -> (GridRect, Option<Contact<Meters>>) {
-  let walk_vec: Vector2<Meters> = PolarVec::new(1000.0, exit_angle).into();
-  let walk_to_pt = IntPoint::new(walk_vec.x as i32, walk_vec.y as i32);
-  let walk_list = walk_grid(IntPoint::new(0, 0), walk_to_pt);
-  let orig_w = new_room.width;
-  let orig_h = new_room.height;
-  let nr_coll = new_room as &CenterOriginRect;
-  let nr_shape1 = nr_coll.shape();
-  let nr_shape2: &CollisionRect = nr_shape1.as_shape().unwrap();
-  let nr_shape_half_w = nr_shape2.half_extents().x;
-  let nr_shape_half_h = nr_shape2.half_extents().y;
-  let nr_shape: CollisionRect = CollisionRect::new(Vector2::new(nr_shape_half_w, nr_shape_half_h));
-  let coll_rooms: Vec<&CenterOriginRect> = rooms.iter().map(|r| r as &CenterOriginRect).collect();
-  let compound_room = compoundify(&coll_rooms);
-  let mut last_pt = nr_coll.location();
-  let mut last_contact = None;
-  for walkpt in walk_list {
-    let cur_pt = Isometry2::new(
-      Vector2::new(walkpt.x as f32 + nr_shape_half_w, walkpt.y as f32 + nr_shape_half_h),
-      0.0,
-    );
-    let contact = query::contact(&origin(), &compound_room, &cur_pt, &nr_shape, 0.0);
-    let is_contact = contact.is_some();
-
-    if !is_contact {
-      break;
-    } else {
-      last_contact = contact;
-    }
-    // Same as cur pt without the center shift
-    last_pt = Isometry2::new(Vector2::new(walkpt.x as f32, walkpt.y as f32), 0.0);
-  }
-  let intified: Vector2<i32> =
-    Vector2::new(last_pt.translation.vector.x as i32, last_pt.translation.vector.y as i32);
-  (GridRect::new(orig_w, orig_h, IntPoint::from(intified)), last_contact)
-}
-
-fn compoundify(shapes: &[impl Collidable]) -> Compound<f32> {
-  Compound::new(shapes.iter().map(|r| (r.location(), r.shape())).collect())
-}
-
-fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
+pub fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
   // Thanks RedBlob games
   let dx = p2.x - p1.x;
   let dy = p2.y - p1.y;
@@ -193,50 +143,3 @@ fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
   points
 }
 
-#[cfg(test)]
-mod test {
-  use super::*;
-  use std::f32::consts::PI;
-
-  #[test]
-  fn test_simple_snap() {
-    let existing = vec![GridRect::new(1, 1, IntPoint::new(0, 0))];
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, 0.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(1, 0)), moved);
-  }
-
-  #[test]
-  fn test_series_of_snaps() {
-    let mut existing = vec![GridRect::new(1, 1, IntPoint::new(0, 0))];
-    // Up
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 1)), moved);
-    existing.push(moved);
-    // Right
-    let new = GridRect::new(4, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, 0.0);
-    assert_eq!(GridRect::new(4, 1, IntPoint::new(1, 0)), moved);
-    existing.push(moved);
-    // Up again, two more times
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 2)), moved);
-    existing.push(moved);
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 3)), moved);
-    existing.push(moved);
-    // Diagonally up and right
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, PI / 4.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(1, 1)), moved);
-    existing.push(moved);
-    // Right again
-    let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-    let moved = snap_to_existing_rooms(&existing, &new, 0.0);
-    assert_eq!(GridRect::new(1, 1, IntPoint::new(5, 0)), moved);
-    existing.push(moved);
-  }
-}
