@@ -3,6 +3,7 @@ use super::ca_simulator::CASim;
 use super::direction::Direction;
 use super::rooms::Room;
 use collision::{new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar};
+use dungeongen::compound_room::CompoundRoomMaker;
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
 use ggez::{Context, GameResult};
@@ -16,7 +17,6 @@ use rand::{thread_rng, Rng};
 use util::context_help::ContextHelp;
 use util::geom::CenterOriginRect;
 use util::{Meters, Point};
-use dungeongen::compound_room::CompoundRoomMaker;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of

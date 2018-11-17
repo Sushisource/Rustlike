@@ -3,7 +3,8 @@ use dungeongen::rooms::DOOR_WIDTH;
 use dungeongen::{direction::Direction, rooms::Door, rooms::Room};
 use na;
 use na::{Isometry2, Vector2};
-use nc::{query, shape::Compound, query::Contact};
+use nc::{query, query::Contact, shape::Compound};
+use num::abs;
 use rand::distributions::{Distribution, Normal};
 use rand::thread_rng;
 use rand::Rng;
@@ -51,12 +52,11 @@ impl CompoundRoomMaker {
       let contact = maker.snap_to_existing_rooms(&new, exit_angle);
       let moved_room = maker.rects.last().unwrap();
       println!("ROOM: {:?}\nCONTACT: {:?}", moved_room, contact);
+      let midpt = maker.find_wall_overlap_midpoint(&contact);
+      println!("MIDP: {:?}", midpt);
       // Punch a door between this new room and whatever room it is contacting
-      let contact_pt = contact.world1;
-      // TODO: Just need to figure out what to do when the default contact point overlaps with
-      // the corner of the room. Somehow slide the door until it fits.
       let contact_dir = Direction::from_normal(contact.normal.as_slice());
-      let door = Door::of_width(contact_pt, DOOR_WIDTH, contact_dir);
+      let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir);
       maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, door));
     }
 
@@ -70,6 +70,67 @@ impl CompoundRoomMaker {
     }
 
     maker.rooms
+  }
+
+  /// Given a point of contact, searches all existing rects for two walls which are axis-aligned
+  /// and have the contact point in that line and within the bounds of the walls.
+  ///
+  /// Returns the midpoint of the overlap of the walls
+  fn find_wall_overlap_midpoint(&self, contact: &Contact<Meters>) -> Point {
+    let all_walls: Vec<(CenteredRect, Direction)> = self
+      .rects
+      .iter()
+      .flat_map(|r| {
+        let cr = r as &CenterOriginRect;
+        // Using a non-cardinal direction is like cheating and makes walls with no door
+        // TODO: Break apart gen walls so no hack needed
+        let door = Door::of_width(Point::new(0.0, 0.0), 1.0, Direction::North);
+        Room::gen_walls(cr.center(), cr.width(), cr.height(), door, Direction::NorthEast)
+          .into_iter()
+      }).collect();
+    println!("All walls: {:?}", all_walls);
+    let contact_dir = Direction::from_normal(contact.normal.as_slice());
+    println!("Contact dir: {:?}", contact_dir);
+    let target_walls: Vec<_> = all_walls
+      .into_iter()
+      // Find walls parallel to the contact's normal
+      .filter(|(w, d)| {
+        (*d == contact_dir || d.opposite() == contact_dir) &&
+          // And in the correct position
+          if *d == Direction::East || *d == Direction::West {
+            abs(w.center.x - contact.world1.x) < 0.0001 &&
+              (w.bottom_edge() > contact.world1.y && contact.world1.y > w.top_edge())
+          } else {
+            abs(w.center.y - contact.world1.y) < 0.0001 &&
+              (w.left_edge() < contact.world1.x && contact.world1.x < w.right_edge())
+          }
+      }).collect();
+    println!("target walls: {:?}", target_walls);
+    if target_walls.len() != 2 {
+      panic!("There should be exactly two walls sharing the contact point")
+    };
+    // Find the overlap of the target walls
+    let (w1, d) = target_walls[0];
+    let (w2, _) = target_walls[1];
+    // Sort all edges, and the #2 and #3 items are the endpoints of the overlapping segment
+    let mut sorted_edges = if d == Direction::East || d == Direction::West {
+      vec![w1.bottom_edge(), w1.top_edge(), w2.bottom_edge(), w2.top_edge()]
+    } else {
+      vec![w1.left_edge(), w1.right_edge(), w2.left_edge(), w2.right_edge()]
+    };
+    sorted_edges.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    let (low_end, hi_end) = if d == Direction::East || d == Direction::West {
+      (sorted_edges[2], sorted_edges[1])
+    } else {
+      (sorted_edges[1], sorted_edges[2])
+    };
+    let midpoint = (hi_end + low_end) / 2.0;
+    println!("lo {:?} hi {:?}", low_end, hi_end);
+    if d == Direction::East || d == Direction::West {
+      Point::new(w1.center.x, midpoint)
+    } else {
+      Point::new(midpoint, w1.center.y)
+    }
   }
 
   /// Given some existing rooms (clustered around the origin) and a new room (at the origin),

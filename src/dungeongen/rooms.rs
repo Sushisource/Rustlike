@@ -146,7 +146,7 @@ impl Room {
   /// Generates walls for the room, appropriately making a gap for the door. `door_side` must
   /// be passed even though `door` has a `facing` property, because you may want to punch a hole
   /// in some walls using another room's door.
-  fn gen_walls(
+  pub fn gen_walls(
     center: Point,
     width: Meters,
     height: Meters,
@@ -157,7 +157,9 @@ impl Room {
       .iter()
       .flat_map(|d| {
         let d = *d;
-        let has_door = door_side == d;
+        // TODO: REMOVE
+        let has_door = false;
+//        let has_door = door_side == d;
         let full_w = width + WALL_THICKNESS;
         let full_h = height + WALL_THICKNESS;
         match d {

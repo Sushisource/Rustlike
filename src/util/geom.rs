@@ -142,4 +142,3 @@ pub fn walk_grid(p1: IntPoint, p2: IntPoint) -> Vec<IntPoint> {
   }
   points
 }
-
