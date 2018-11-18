@@ -16,7 +16,11 @@ use num::{FromPrimitive, ToPrimitive};
 use rand::{thread_rng, Rng};
 use util::context_help::ContextHelp;
 use util::geom::CenterOriginRect;
+use util::geom::CenteredRect;
 use util::{Meters, Point};
+
+pub type Wall = CenteredRect;
+pub static WALL_THICKNESS: Meters = 0.2;
 
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
@@ -96,7 +100,7 @@ impl Level {
         cave_bb.half_extents().x * 2.0,
         cave_bb.half_extents().y * 2.0,
         Direction::North,
-      );
+      ).unwrap();
       let nxt_id = self.get_and_inc_eid();
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
@@ -106,7 +110,11 @@ impl Level {
         let is_compound = rng.gen_bool(5.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
-          nu_rooms.append(&mut CompoundRoomMaker::rand_compound_room(xrange, yrange));
+          if let Ok(mut room) = CompoundRoomMaker::rand_compound_room(xrange, yrange) {
+            nu_rooms.append(&mut room);
+          } else {
+            continue;
+          }
         } else {
           nu_rooms.push(Room::new_rand(xrange, yrange));
         }
@@ -284,9 +292,11 @@ mod test {
   #[test]
   fn test_rooms_can_nest() {
     let mut collw = new_collw();
-    let room1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::South);
+    let room1 =
+      Room::new_with_centered_door(Point::new(0.0, 0.0), 10.0, 10.0, Direction::South).unwrap();
     let dat1 = CollidableDat::new(CollidableType::RoomWall, 1);
-    let room2 = Room::new_with_centered_door(Point::new(0.0, 0.0), 3.0, 3.0, Direction::North);
+    let room2 =
+      Room::new_with_centered_door(Point::new(0.0, 0.0), 3.0, 3.0, Direction::North).unwrap();
     let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
     Level::check_room_collisions(&mut collw, &vec![room1], dat1);
     let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room2], dat2);
@@ -297,10 +307,12 @@ mod test {
   fn test_room_floormats_work() {
     let mut collw = new_collw();
     // The bottom wall of this room is @ 2.0
-    let room1 = Room::new_with_centered_door(Point::new(0.0, 0.0), 4.0, 4.0, Direction::South);
+    let room1 =
+      Room::new_with_centered_door(Point::new(0.0, 0.0), 4.0, 4.0, Direction::South).unwrap();
     let dat1 = CollidableDat::new(CollidableType::RoomWall, 1);
     // The top wall of this room is @ 2.25 (too close)
-    let room2 = Room::new_with_centered_door(Point::new(0.0, 4.0), 4.0, 3.5, Direction::East);
+    let room2 =
+      Room::new_with_centered_door(Point::new(0.0, 4.0), 4.0, 3.5, Direction::East).unwrap();
     let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
     let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room1], dat1);
     assert!(no_collisions);

@@ -1,5 +1,7 @@
 use super::direction::Direction;
 use collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
+use dungeongen::level::Wall;
+use dungeongen::level::WALL_THICKNESS;
 use ggez::graphics::{rectangle, set_color, Color, DrawMode, Rect};
 use ggez::{Context, GameResult};
 use na;
@@ -11,7 +13,6 @@ use rand::{thread_rng, Rng};
 use util::geom::{CenterOriginRect, CenteredRect};
 use util::{Meters, Point};
 
-static WALL_THICKNESS: Meters = 0.2;
 pub static DOOR_WIDTH: Meters = 1.1;
 
 #[derive(Debug, CenterOriginRect)]
@@ -24,9 +25,16 @@ pub struct Room {
 }
 
 impl Room {
-  pub fn new(center: Point, width: Meters, height: Meters, door: Door, is_compound: bool) -> Room {
-    let walls = Room::gen_walls(center, width, height, door, door.facing);
-    Room { cr: CenteredRect::new(center, width, height), door, walls, is_compound }
+  pub fn new(
+    center: Point,
+    width: Meters,
+    height: Meters,
+    door: Door,
+    is_compound: bool,
+  ) -> Result<Room, ()> {
+    let cr: &CenterOriginRect = &CenteredRect::new(center, width, height);
+    let walls = Room::gen_walls(cr, door, door.facing)?;
+    Ok(Room { cr: CenteredRect::new(center, width, height), door, walls, is_compound })
   }
 
   /// Creates a new `Room` randomly placed somewhere in the provided range
@@ -39,7 +47,7 @@ impl Room {
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
     let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, *side);
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door, false)
+    Room::new(Point::new(c_x, c_y), room_w, room_h, door, false).unwrap()
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction
@@ -48,7 +56,7 @@ impl Room {
     width: Meters,
     height: Meters,
     door_side: Direction,
-  ) -> Room {
+  ) -> Result<Room, ()> {
     let door = Room::gen_door(center.x, center.y, width, height, door_side, 0.0);
     Room::new(center, width, height, door, false)
   }
@@ -147,62 +155,68 @@ impl Room {
   /// be passed even though `door` has a `facing` property, because you may want to punch a hole
   /// in some walls using another room's door.
   pub fn gen_walls(
-    center: Point,
-    width: Meters,
-    height: Meters,
+    rect: &CenterOriginRect,
     door: Door,
     door_side: Direction,
-  ) -> Vec<(Wall, Direction)> {
-    Direction::compass()
-      .iter()
-      .flat_map(|d| {
-        let d = *d;
-        // TODO: REMOVE
-        let has_door = false;
-//        let has_door = door_side == d;
-        let full_w = width + WALL_THICKNESS;
-        let full_h = height + WALL_THICKNESS;
+  ) -> Result<Vec<(Wall, Direction)>, ()> {
+    let retme = rect.gen_walls();
+    retme.into_iter().flat_map(|(wall, d)| {
+      let has_door = door_side == d;
+      if has_door {
+        let center = rect.center();
+        let width = rect.width();
+        let height = rect.height();
         match d {
           Direction::North | Direction::South => {
             let yoffset = center.y + height / 2.0 * d.to_tup().1;
-            let wall_c = Point::new(center.x, yoffset);
-            if has_door {
-              let s1_rt_edge = door.left_edge();
-              let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
-              let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
-              let s2_rt_edge = center.x + width / 2.0 + WALL_THICKNESS / 2.0;
-              let s2_lf_edge = door.right_edge();
-              let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
-              let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
-              let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
-              vec![(side1, d), (side2, d)]
-            } else {
-              vec![(Wall::new(wall_c, full_w, WALL_THICKNESS), d)]
+            let s1_rt_edge = door.left_edge();
+            let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
+            let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
+            let s2_rt_edge = center.x + width / 2.0 + WALL_THICKNESS / 2.0;
+            let s2_lf_edge = door.right_edge();
+            let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
+            let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
+            let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
+            // TODO: Error enum for better reporting
+            if side1.width() < 0.0
+              || side1.height() < 0.0
+              || side2.width() < 0.0
+              || side2.height() < 0.0
+              {
+                eprintln!("Error generating walls for room. Door would obliterate wall");
+                vec![Err(())]
+              } else {
+              vec![Ok((side1, d)), Ok((side2, d))]
             }
           }
           _ => {
             let xoffset = center.x + width / 2.0 * d.to_tup().0;
-            let wall_c = Point::new(xoffset, center.y);
-            if has_door {
-              let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
-              let s1_bt_edge = door.top_edge();
-              let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
-              let s2_tp_edge = door.bottom_edge();
-              let s2_bt_edge = center.y + height / 2.0 + WALL_THICKNESS / 2.0;
-              let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
-              let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
-              let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
-              vec![(side1, d), (side2, d)]
-            } else {
-              vec![(Wall::new(wall_c, WALL_THICKNESS, full_h), d)]
+            let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
+            let s1_bt_edge = door.top_edge();
+            let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
+            let s2_tp_edge = door.bottom_edge();
+            let s2_bt_edge = center.y + height / 2.0 + WALL_THICKNESS / 2.0;
+            let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
+            let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
+            let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
+            if side1.width() < 0.0
+              || side1.height() < 0.0
+              || side2.width() < 0.0
+              || side2.height() < 0.0
+              {
+                eprintln!("Error generating walls for room. Door would obliterate wall");
+                vec![Err(())]
+              } else {
+              vec![Ok((side1, d)), Ok((side2, d))]
             }
           }
         }
-      }).collect()
+      } else {
+        vec![Ok((wall, d))]
+      }
+    }).collect()
   }
 }
-
-type Wall = CenteredRect;
 
 impl Into<CollisionRect> for Wall {
   // Must be done as into b/c of generics
@@ -270,7 +284,8 @@ mod test {
     let h = 10.0;
     let side = Direction::North;
     let door = Room::gen_door(c_x, c_y, w, h, side, 0.0);
-    let walls = Room::gen_walls(Point::new(c_x, c_y), w, h, door, side);
+    let rect = CenteredRect::new(Point::new(c_x, c_y), w, h);
+    let walls = Room::gen_walls(&rect, door, side).unwrap();
     println!("{:?}", walls);
     // South wall (recall south is +y)
     assert_eq!(walls.len(), 5);

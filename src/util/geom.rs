@@ -1,4 +1,7 @@
 use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
+use dungeongen::direction::Direction;
+use dungeongen::level::Wall;
+use dungeongen::level::WALL_THICKNESS;
 use ggez::graphics::Rect;
 use na;
 use na::{Isometry2, Vector2};
@@ -21,6 +24,31 @@ pub trait CenterOriginRect {
   }
   fn bottom_edge(&self) -> Meters {
     self.center().y + self.height() / 2.0
+  }
+}
+
+impl<'a> CenterOriginRect + 'a {
+  /// Generates walls for the rect. Walls are `WALL_THICKNESS` thick
+  pub fn gen_walls(&self) -> Vec<(Wall, Direction)> {
+    let mut retme = vec![];
+    for d in Direction::compass() {
+      let d = *d;
+      let full_w = self.width() + WALL_THICKNESS;
+      let full_h = self.height() + WALL_THICKNESS;
+      match d {
+        Direction::North | Direction::South => {
+          let yoffset = self.center().y + self.height() / 2.0 * d.to_tup().1;
+          let wall_c = Point::new(self.center().x, yoffset);
+          retme.push((Wall::new(wall_c, full_w, WALL_THICKNESS), d));
+        }
+        _ => {
+          let xoffset = self.center().x + self.width() / 2.0 * d.to_tup().0;
+          let wall_c = Point::new(xoffset, self.center().y);
+          retme.push((Wall::new(wall_c, WALL_THICKNESS, full_h), d));
+        }
+      }
+    }
+    retme
   }
 }
 

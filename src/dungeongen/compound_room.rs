@@ -1,4 +1,5 @@
 use collision::{Collidable, CollisionRect};
+use dungeongen::level::WALL_THICKNESS;
 use dungeongen::rooms::DOOR_WIDTH;
 use dungeongen::{direction::Direction, rooms::Door, rooms::Room};
 use na;
@@ -25,10 +26,12 @@ pub struct CompoundRoomMaker {
 impl CompoundRoomMaker {
   pub fn new(starter_rect: GridRect) -> CompoundRoomMaker {
     let starter_center: Point = na::convert(starter_rect.center());
-    let rooms = vec![CompoundRoomMaker::grid_room_to_room(
-      &starter_rect,
-      Door::new(CenteredRect::new(starter_center, 1.0, 1.0), Direction::North),
-    )];
+    let rooms = vec![
+      CompoundRoomMaker::grid_room_to_room(
+        &starter_rect,
+        Door::new(CenteredRect::new(starter_center, 1.0, 1.0), Direction::North),
+      ).unwrap(),
+    ];
     CompoundRoomMaker { rects: vec![starter_rect], rooms }
   }
   /// Creates a new group of `Room`s that all touch each-other. This is done in a gridded space
@@ -37,7 +40,7 @@ impl CompoundRoomMaker {
   pub fn rand_compound_room(
     (x_min, x_max): (Meters, Meters),
     (y_min, y_max): (Meters, Meters),
-  ) -> CompoundRoom {
+  ) -> Result<CompoundRoom, ()> {
     let mut rng = thread_rng();
     // The initial room
     let starter = CompoundRoomMaker::rand_grid_room();
@@ -52,12 +55,12 @@ impl CompoundRoomMaker {
       let contact = maker.snap_to_existing_rooms(&new, exit_angle);
       let moved_room = maker.rects.last().unwrap();
       println!("ROOM: {:?}\nCONTACT: {:?}", moved_room, contact);
-      let midpt = maker.find_wall_overlap_midpoint(&contact);
+      let midpt = maker.find_wall_overlap_midpoint(&contact)?;
       println!("MIDP: {:?}", midpt);
       // Punch a door between this new room and whatever room it is contacting
       let contact_dir = Direction::from_normal(contact.normal.as_slice());
       let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir);
-      maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, door));
+      maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, door)?);
     }
 
     // Punch doors to the outside where necessary to make all rooms accessible
@@ -69,24 +72,22 @@ impl CompoundRoomMaker {
       r.translate(c_x, c_y);
     }
 
-    maker.rooms
+    Ok(maker.rooms)
   }
 
   /// Given a point of contact, searches all existing rects for two walls which are axis-aligned
   /// and have the contact point in that line and within the bounds of the walls.
   ///
   /// Returns the midpoint of the overlap of the walls
-  fn find_wall_overlap_midpoint(&self, contact: &Contact<Meters>) -> Point {
+  ///
+  /// Can fail if overlap area isn't big enough, or contact point doesn't include two walls
+  fn find_wall_overlap_midpoint(&self, contact: &Contact<Meters>) -> Result<Point, ()> {
     let all_walls: Vec<(CenteredRect, Direction)> = self
       .rects
       .iter()
       .flat_map(|r| {
         let cr = r as &CenterOriginRect;
-        // Using a non-cardinal direction is like cheating and makes walls with no door
-        // TODO: Break apart gen walls so no hack needed
-        let door = Door::of_width(Point::new(0.0, 0.0), 1.0, Direction::North);
-        Room::gen_walls(cr.center(), cr.width(), cr.height(), door, Direction::NorthEast)
-          .into_iter()
+        cr.gen_walls().into_iter()
       }).collect();
     println!("All walls: {:?}", all_walls);
     let contact_dir = Direction::from_normal(contact.normal.as_slice());
@@ -107,7 +108,8 @@ impl CompoundRoomMaker {
       }).collect();
     println!("target walls: {:?}", target_walls);
     if target_walls.len() != 2 {
-      panic!("There should be exactly two walls sharing the contact point")
+      eprintln!("Couldn't find two walls that worked when punching door in compound room");
+      return Err(());
     };
     // Find the overlap of the target walls
     let (w1, d) = target_walls[0];
@@ -124,12 +126,17 @@ impl CompoundRoomMaker {
     } else {
       (sorted_edges[1], sorted_edges[2])
     };
+    let size = abs(hi_end - low_end);
+    if size < DOOR_WIDTH + WALL_THICKNESS * 2.0 {
+      eprintln!("Wall overlap not big enough to punch door");
+      return Err(());
+    }
     let midpoint = (hi_end + low_end) / 2.0;
     println!("lo {:?} hi {:?}", low_end, hi_end);
     if d == Direction::East || d == Direction::West {
-      Point::new(w1.center.x, midpoint)
+      Ok(Point::new(w1.center.x, midpoint))
     } else {
-      Point::new(midpoint, w1.center.y)
+      Ok(Point::new(midpoint, w1.center.y))
     }
   }
 
@@ -197,7 +204,7 @@ impl CompoundRoomMaker {
     GridRect::new(room_w, room_h, IntPoint::new(0, 0))
   }
 
-  fn grid_room_to_room(gr: &GridRect, door: Door) -> Room {
+  fn grid_room_to_room(gr: &GridRect, door: Door) -> Result<Room, ()> {
     let nc: Point = na::convert(gr.center());
     Room::new(nc, gr.width as f32, gr.height as f32, door, true)
   }
@@ -248,37 +255,3 @@ mod test {
     assert_eq!(GridRect::new(1, 1, IntPoint::new(5, 0)), *maker.rects.last().unwrap());
   }
 }
-
-//#[test]
-//fn test_series_of_snaps() {
-//  let mut existing = vec![GridRect::new(1, 1, IntPoint::new(0, 0))];
-//  // Up
-//  let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-//  assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 1)), moved);
-//  existing.push(moved);
-//  // Right
-//  let new = GridRect::new(4, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, 0.0);
-//  assert_eq!(GridRect::new(4, 1, IntPoint::new(1, 0)), moved);
-//  existing.push(moved);
-//  // Up again, two more times
-//  let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-//  assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 2)), moved);
-//  existing.push(moved);
-//  let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, PI / 2.0);
-//  assert_eq!(GridRect::new(1, 1, IntPoint::new(0, 3)), moved);
-//  existing.push(moved);
-//  // Diagonally up and right
-//  let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, PI / 4.0);
-//  assert_eq!(GridRect::new(1, 1, IntPoint::new(1, 1)), moved);
-//  existing.push(moved);
-//  // Right again
-//  let new = GridRect::new(1, 1, IntPoint::new(0, 0));
-//  let moved = snap_to_existing_rooms(&existing, &new, 0.0);
-//  assert_eq!(GridRect::new(1, 1, IntPoint::new(5, 0)), moved);
-//  existing.push(moved);
-//}
