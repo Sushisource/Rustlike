@@ -5,6 +5,8 @@ authors = ["Spencer Judge <sushisource@gmail.com>"]
 
 [dependencies]
 ggez = "0.4"
+env_logger = "0.6"
+log = "0.4"
 time = "0.1"
 nalgebra = "0.16"
 ncollide2d = "0.17"

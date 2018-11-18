@@ -105,6 +105,7 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
+    // TODO: Change back to more rooms / not 100% compound rooms
     if self.rooms.len() < 1 {
       loop {
         let is_compound = rng.gen_bool(5.0 / 5.0);
@@ -113,6 +114,7 @@ impl Level {
           if let Ok(mut room) = CompoundRoomMaker::rand_compound_room(xrange, yrange) {
             nu_rooms.append(&mut room);
           } else {
+            // If we failed to generate a compound room, restart and generate a new room
             continue;
           }
         } else {
@@ -132,7 +134,7 @@ impl Level {
       }
       false
     } else {
-      println!("Done placing rooms");
+      info!("Done placing rooms");
       true
     }
   }

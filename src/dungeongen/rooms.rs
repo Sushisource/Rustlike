@@ -177,13 +177,12 @@ impl Room {
             let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
             let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
             let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
-            // TODO: Error enum for better reporting
             if side1.width() < 0.0
               || side1.height() < 0.0
               || side2.width() < 0.0
               || side2.height() < 0.0
               {
-                eprintln!("Error generating walls for room. Door would obliterate wall");
+                warn!("Error generating walls for room. Door would obliterate wall");
                 vec![Err(())]
               } else {
               vec![Ok((side1, d)), Ok((side2, d))]
@@ -204,7 +203,7 @@ impl Room {
               || side2.width() < 0.0
               || side2.height() < 0.0
               {
-                eprintln!("Error generating walls for room. Door would obliterate wall");
+                warn!("Error generating walls for room. Door would obliterate wall");
                 vec![Err(())]
               } else {
               vec![Ok((side1, d)), Ok((side2, d))]

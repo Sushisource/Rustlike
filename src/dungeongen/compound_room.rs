@@ -54,9 +54,9 @@ impl CompoundRoomMaker {
       let new = CompoundRoomMaker::rand_grid_room();
       let contact = maker.snap_to_existing_rooms(&new, exit_angle);
       let moved_room = maker.rects.last().unwrap();
-      println!("ROOM: {:?}\nCONTACT: {:?}", moved_room, contact);
+      debug!("ROOM: {:?}\nCONTACT: {:?}", moved_room, contact);
       let midpt = maker.find_wall_overlap_midpoint(&contact)?;
-      println!("MIDP: {:?}", midpt);
+      debug!("MIDP: {:?}", midpt);
       // Punch a door between this new room and whatever room it is contacting
       let contact_dir = Direction::from_normal(contact.normal.as_slice());
       let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir);
@@ -89,9 +89,9 @@ impl CompoundRoomMaker {
         let cr = r as &CenterOriginRect;
         cr.gen_walls().into_iter()
       }).collect();
-    println!("All walls: {:?}", all_walls);
+    debug!("All walls: {:?}", all_walls);
     let contact_dir = Direction::from_normal(contact.normal.as_slice());
-    println!("Contact dir: {:?}", contact_dir);
+    debug!("Contact dir: {:?}", contact_dir);
     let target_walls: Vec<_> = all_walls
       .into_iter()
       // Find walls parallel to the contact's normal
@@ -106,9 +106,9 @@ impl CompoundRoomMaker {
               (w.left_edge() < contact.world1.x && contact.world1.x < w.right_edge())
           }
       }).collect();
-    println!("target walls: {:?}", target_walls);
+    debug!("target walls: {:?}", target_walls);
     if target_walls.len() != 2 {
-      eprintln!("Couldn't find two walls that worked when punching door in compound room");
+      warn!("Couldn't find two walls that worked when punching door in compound room");
       return Err(());
     };
     // Find the overlap of the target walls
@@ -128,11 +128,11 @@ impl CompoundRoomMaker {
     };
     let size = abs(hi_end - low_end);
     if size < DOOR_WIDTH + WALL_THICKNESS * 2.0 {
-      eprintln!("Wall overlap not big enough to punch door");
+      warn!("Wall overlap not big enough to punch door");
       return Err(());
     }
     let midpoint = (hi_end + low_end) / 2.0;
-    println!("lo {:?} hi {:?}", low_end, hi_end);
+    debug!("lo {:?} hi {:?}", low_end, hi_end);
     if d == Direction::East || d == Direction::West {
       Ok(Point::new(w1.center.x, midpoint))
     } else {

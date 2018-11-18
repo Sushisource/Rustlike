@@ -123,7 +123,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       }
       Keycode::Backquote => {
         self.debug = !self.debug;
-        println!("Debug mode now {}", self.debug);
+        info!("Debug mode now {}", self.debug);
       }
       Keycode::Q if keymod.contains(event::LCTRLMOD) => {
         std::process::exit(0);

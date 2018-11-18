@@ -10,10 +10,14 @@ extern crate rand;
 #[macro_use]
 extern crate roguelike_derive;
 extern crate core;
+#[macro_use]
+extern crate log;
+extern crate env_logger;
 
 use ggez::{conf, event, graphics, ContextBuilder};
 use world::render::WorldRender;
 use world::World;
+use env_logger::{Builder, Env};
 
 mod agents;
 mod collision;
@@ -22,6 +26,9 @@ mod util;
 mod world;
 
 fn main() {
+  // Set default log level to warn for everything, and info for our code
+  Builder::from_env(Env::default().default_filter_or("warn,rustlike=info")).init();
+
   let cb = ContextBuilder::new("rougelike", "ggez")
     .window_setup(
       // TODO: Enable this and implement a fixed-ratio black bars solution or something
