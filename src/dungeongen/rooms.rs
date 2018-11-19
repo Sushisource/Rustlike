@@ -18,7 +18,7 @@ pub static DOOR_WIDTH: Meters = 1.1;
 #[derive(Debug, CenterOriginRect)]
 pub struct Room {
   cr: CenteredRect,
-  door: Door,
+  door: Option<Door>,
   /// Tuple of wall, and side of the room that wall belongs to
   walls: Vec<(Wall, Direction)>,
   is_compound: bool,
@@ -29,11 +29,14 @@ impl Room {
     center: Point,
     width: Meters,
     height: Meters,
-    door: Door,
+    door: Option<Door>,
     is_compound: bool,
   ) -> Result<Room, ()> {
     let cr: &CenterOriginRect = &CenteredRect::new(center, width, height);
-    let walls = Room::gen_walls(cr, door, door.facing)?;
+    let walls = match door {
+      None => cr.gen_walls(),
+      Some(door) => Room::gen_walls_with_door(cr, door, door.facing)?
+    };
     Ok(Room { cr: CenteredRect::new(center, width, height), door, walls, is_compound })
   }
 
@@ -47,7 +50,7 @@ impl Room {
     // Add a door somewhere along the room edge
     let side = rng.choose(Direction::compass()).unwrap();
     let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, *side);
-    Room::new(Point::new(c_x, c_y), room_w, room_h, door, false).unwrap()
+    Room::new(Point::new(c_x, c_y), room_w, room_h, Some(door), false).unwrap()
   }
 
   /// Creates a new `Room` with a door centered along the wall of the provided direction
@@ -58,7 +61,7 @@ impl Room {
     door_side: Direction,
   ) -> Result<Room, ()> {
     let door = Room::gen_door(center.x, center.y, width, height, door_side, 0.0);
-    Room::new(center, width, height, door, false)
+    Room::new(center, width, height, Some(door), false)
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
@@ -66,28 +69,37 @@ impl Room {
       let r: Rect = (&wall as &CenterOriginRect).into();
       rectangle(ctx, DrawMode::Fill, r)?;
     }
-    set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
-    rectangle(ctx, DrawMode::Fill, (&self.door as &CenterOriginRect).into())
+    if let Some(door) = self.door {
+      set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
+      rectangle(ctx, DrawMode::Fill, (&door as &CenterOriginRect).into())?;
+    }
+    Ok(())
   }
 
   /// Returns a collidable that can be used during room placement to ensure there is enough space
   /// on either side of the Room's door to accommodate the player.
-  pub fn floormat(&self) -> CenteredRect {
-    let wider = self.door.width() > self.door.height();
-    let expander = if wider { (0.0, DOOR_WIDTH * 1.5) } else { (DOOR_WIDTH * 1.5, 0.0) };
-    CenteredRect::new(
-      self.door.center(),
-      self.door.width() + expander.0,
-      self.door.height() + expander.1,
-    )
+  pub fn floormat(&self) -> Option<CenteredRect> {
+    if let Some(door) = self.door {
+      let wider = door.width() > door.height();
+      let expander = if wider { (0.0, DOOR_WIDTH * 1.5) } else { (DOOR_WIDTH * 1.5, 0.0) };
+      Some(CenteredRect::new(
+        door.center(),
+        door.width() + expander.0,
+        door.height() + expander.1,
+      ))
+    } else {
+      None
+    }
   }
 
   /// Moves the whole room by the provided amounts
   pub fn translate(&mut self, x: Meters, y: Meters) {
     self.cr.center.x += x;
     self.cr.center.y += y;
-    self.door.cr.center.x += x;
-    self.door.cr.center.y += y;
+    if let Some(ref mut door) = self.door {
+      door.cr.center.x += x;
+      door.cr.center.y += y;
+    }
     for (w, _dir) in self.walls.iter_mut() {
       w.center.x += x;
       w.center.y += y;
@@ -154,7 +166,7 @@ impl Room {
   /// Generates walls for the room, appropriately making a gap for the door. `door_side` must
   /// be passed even though `door` has a `facing` property, because you may want to punch a hole
   /// in some walls using another room's door.
-  pub fn gen_walls(
+  pub fn gen_walls_with_door(
     rect: &CenterOriginRect,
     door: Door,
     door_side: Direction,
@@ -286,7 +298,7 @@ mod test {
     let side = Direction::North;
     let door = Room::gen_door(c_x, c_y, w, h, side, 0.0);
     let rect = CenteredRect::new(Point::new(c_x, c_y), w, h);
-    let walls = Room::gen_walls(&rect, door, side).unwrap();
+    let walls = Room::gen_walls_with_door(&rect, door, side).unwrap();
     println!("{:?}", walls);
     // South wall (recall south is +y)
     assert_eq!(walls.len(), 5);

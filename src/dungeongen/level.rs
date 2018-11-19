@@ -148,8 +148,12 @@ impl Level {
     let coll_handles: Vec<CollisionObjectHandle> = nu_rooms
       .iter()
       .flat_map(|nr| {
-        let floormat: &CenterOriginRect = &nr.floormat();
-        vec![collw.register(nr, cw_dat), collw.register(&floormat, cw_dat)]
+        let mut handles = vec![collw.register(nr, cw_dat)];
+        if let Some(floormat) = nr.floormat() {
+          let fm: &CenterOriginRect = &floormat;
+          handles.push(collw.register(&fm, cw_dat))
+        }
+        handles
       }).collect();
     collw.update();
     (coll_handles, has_no_collisions(collw))

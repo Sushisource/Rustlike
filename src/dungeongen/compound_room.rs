@@ -25,12 +25,8 @@ pub struct CompoundRoomMaker {
 
 impl CompoundRoomMaker {
   pub fn new(starter_rect: GridRect) -> CompoundRoomMaker {
-    let starter_center: Point = na::convert(starter_rect.center());
     let rooms = vec![
-      CompoundRoomMaker::grid_room_to_room(
-        &starter_rect,
-        Door::new(CenteredRect::new(starter_center, 1.0, 1.0), Direction::North),
-      ).unwrap(),
+      CompoundRoomMaker::grid_room_to_room(&starter_rect, None).unwrap(),
     ];
     CompoundRoomMaker { rects: vec![starter_rect], rooms }
   }
@@ -60,7 +56,7 @@ impl CompoundRoomMaker {
       // Punch a door between this new room and whatever room it is contacting
       let contact_dir = Direction::from_normal(contact.normal.as_slice());
       let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir.opposite());
-      maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, door)?);
+      maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, Some(door))?);
     }
 
     // Punch doors to the outside where necessary to make all rooms accessible
@@ -204,7 +200,7 @@ impl CompoundRoomMaker {
     GridRect::new(room_w, room_h, IntPoint::new(0, 0))
   }
 
-  fn grid_room_to_room(gr: &GridRect, door: Door) -> Result<Room, ()> {
+  fn grid_room_to_room(gr: &GridRect, door: Option<Door>) -> Result<Room, ()> {
     let nc: Point = na::convert(gr.center());
     Room::new(nc, gr.width as f32, gr.height as f32, door, true)
   }
