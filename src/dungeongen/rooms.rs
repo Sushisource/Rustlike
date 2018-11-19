@@ -160,60 +160,62 @@ impl Room {
     door_side: Direction,
   ) -> Result<Vec<(Wall, Direction)>, ()> {
     let retme = rect.gen_walls();
-    retme.into_iter().flat_map(|(wall, d)| {
-      let has_door = door_side == d;
-      if has_door {
-        let center = rect.center();
-        let width = rect.width();
-        let height = rect.height();
-        match d {
-          Direction::North | Direction::South => {
-            let yoffset = center.y + height / 2.0 * d.to_tup().1;
-            let s1_rt_edge = door.left_edge();
-            let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
-            let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
-            let s2_rt_edge = center.x + width / 2.0 + WALL_THICKNESS / 2.0;
-            let s2_lf_edge = door.right_edge();
-            let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
-            let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
-            let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
-            if side1.width() < 0.0
-              || side1.height() < 0.0
-              || side2.width() < 0.0
-              || side2.height() < 0.0
+    retme
+      .into_iter()
+      .flat_map(|(wall, d)| {
+        let has_door = door_side == d;
+        if has_door {
+          let center = rect.center();
+          let width = rect.width();
+          let height = rect.height();
+          match d {
+            Direction::North | Direction::South => {
+              let yoffset = center.y + height / 2.0 * d.to_tup().1;
+              let s1_rt_edge = door.left_edge();
+              let s1_lf_edge = center.x - width / 2.0 - WALL_THICKNESS / 2.0;
+              let s1c = Point::new(s1_lf_edge + (s1_rt_edge - s1_lf_edge) / 2.0, yoffset);
+              let s2_rt_edge = center.x + width / 2.0 + WALL_THICKNESS / 2.0;
+              let s2_lf_edge = door.right_edge();
+              let s2c = Point::new(s2_lf_edge + (s2_rt_edge - s2_lf_edge) / 2.0, yoffset);
+              let side1 = Wall::new(s1c, s1_rt_edge - s1_lf_edge, WALL_THICKNESS);
+              let side2 = Wall::new(s2c, s2_rt_edge - s2_lf_edge, WALL_THICKNESS);
+              if side1.width() < 0.0
+                || side1.height() < 0.0
+                || side2.width() < 0.0
+                || side2.height() < 0.0
               {
                 warn!("Error generating walls for room. Door would obliterate wall");
                 vec![Err(())]
               } else {
-              vec![Ok((side1, d)), Ok((side2, d))]
+                vec![Ok((side1, d)), Ok((side2, d))]
+              }
             }
-          }
-          _ => {
-            let xoffset = center.x + width / 2.0 * d.to_tup().0;
-            let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
-            let s1_bt_edge = door.top_edge();
-            let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
-            let s2_tp_edge = door.bottom_edge();
-            let s2_bt_edge = center.y + height / 2.0 + WALL_THICKNESS / 2.0;
-            let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
-            let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
-            let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
-            if side1.width() < 0.0
-              || side1.height() < 0.0
-              || side2.width() < 0.0
-              || side2.height() < 0.0
+            _ => {
+              let xoffset = center.x + width / 2.0 * d.to_tup().0;
+              let s1_tp_edge = center.y - height / 2.0 - WALL_THICKNESS / 2.0;
+              let s1_bt_edge = door.top_edge();
+              let s1c = Point::new(xoffset, s1_tp_edge + (s1_bt_edge - s1_tp_edge) / 2.0);
+              let s2_tp_edge = door.bottom_edge();
+              let s2_bt_edge = center.y + height / 2.0 + WALL_THICKNESS / 2.0;
+              let s2c = Point::new(xoffset, s2_tp_edge + (s2_bt_edge - s2_tp_edge) / 2.0);
+              let side1 = Wall::new(s1c, WALL_THICKNESS, s1_bt_edge - s1_tp_edge);
+              let side2 = Wall::new(s2c, WALL_THICKNESS, s2_bt_edge - s2_tp_edge);
+              if side1.width() < 0.0
+                || side1.height() < 0.0
+                || side2.width() < 0.0
+                || side2.height() < 0.0
               {
                 warn!("Error generating walls for room. Door would obliterate wall");
                 vec![Err(())]
               } else {
-              vec![Ok((side1, d)), Ok((side2, d))]
+                vec![Ok((side1, d)), Ok((side2, d))]
+              }
             }
           }
+        } else {
+          vec![Ok((wall, d))]
         }
-      } else {
-        vec![Ok((wall, d))]
-      }
-    }).collect()
+      }).collect()
   }
 }
 

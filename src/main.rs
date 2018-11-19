@@ -14,10 +14,10 @@ extern crate core;
 extern crate log;
 extern crate env_logger;
 
+use env_logger::{Builder, Env};
 use ggez::{conf, event, graphics, ContextBuilder};
 use world::render::WorldRender;
 use world::World;
-use env_logger::{Builder, Env};
 
 mod agents;
 mod collision;

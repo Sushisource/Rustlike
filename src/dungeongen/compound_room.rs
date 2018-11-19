@@ -59,7 +59,7 @@ impl CompoundRoomMaker {
       debug!("MIDP: {:?}", midpt);
       // Punch a door between this new room and whatever room it is contacting
       let contact_dir = Direction::from_normal(contact.normal.as_slice());
-      let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir);
+      let door = Door::of_width(midpt, DOOR_WIDTH, contact_dir.opposite());
       maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, door)?);
     }
 
@@ -182,7 +182,7 @@ impl CompoundRoomMaker {
     let intified: Vector2<i32> =
       Vector2::new(last_pt.translation.vector.x as i32, last_pt.translation.vector.y as i32);
     self.rects.push(GridRect::new(orig_w, orig_h, IntPoint::from(intified)));
-    return last_contact.unwrap();
+    last_contact.unwrap()
   }
 
   /// Creates a randomly sized grid room with top-left corner at origin
