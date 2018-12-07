@@ -1,17 +1,17 @@
-use collision::{Collidable, CollisionRect};
-use dungeongen::level::WALL_THICKNESS;
-use dungeongen::rooms::DOOR_WIDTH;
-use dungeongen::{direction::Direction, rooms::Door, rooms::Room};
-use na;
-use na::{Isometry2, Vector2};
-use nc::{query, query::Contact, shape::Compound};
+use crate::collision::{Collidable, CollisionRect};
+use crate::dungeongen::level::WALL_THICKNESS;
+use crate::dungeongen::rooms::DOOR_WIDTH;
+use crate::dungeongen::{direction::Direction, rooms::Door, rooms::Room};
+use crate::na;
+use crate::na::{Isometry2, Vector2};
+use crate::nc::{query, query::Contact, shape::Compound};
 use num::abs;
 use rand::distributions::{Distribution, Normal};
 use rand::thread_rng;
 use rand::Rng;
 use std::f32::consts::PI;
-use util::Point;
-use util::{
+use crate::util::Point;
+use crate::util::{
   geom::{origin, walk_grid, CenterOriginRect, CenteredRect, GridRect, IntPoint, PolarVec},
   Meters,
 };

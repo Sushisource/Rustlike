@@ -1,13 +1,13 @@
-use collision::{Collidable, CollidableType, CollisionRect, Shape2D};
-use dungeongen::direction::Direction;
-use dungeongen::level::Wall;
-use dungeongen::level::WALL_THICKNESS;
+use crate::collision::{Collidable, CollidableType, CollisionRect, Shape2D};
+use crate::dungeongen::direction::Direction;
+use crate::dungeongen::level::Wall;
+use crate::dungeongen::level::WALL_THICKNESS;
 use ggez::graphics::Rect;
-use na;
-use na::{Isometry2, Vector2};
-use nc::shape::ShapeHandle;
-use nc::world::CollisionGroups;
-use util::{Meters, Point};
+use crate::na;
+use crate::na::{Isometry2, Vector2};
+use crate::nc::shape::ShapeHandle;
+use crate::nc::world::CollisionGroups;
+use crate::util::{Meters, Point};
 
 pub trait CenterOriginRect {
   fn center(&self) -> Point;

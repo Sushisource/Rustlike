@@ -5,7 +5,7 @@ use super::direction::Direction;
 use ggez::graphics;
 use ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh};
 use ggez::{Context, GameResult};
-use util::Point;
+use crate::util::Point;
 
 type CellGrid = Vec<Vec<bool>>;
 

@@ -1,7 +1,7 @@
 use ggez::graphics::{rectangle, DrawMode, DrawParam, Point2, Rect};
 use ggez::{Context, GameResult};
-use nc::bounding_volume::AABB;
-use util::{Meters, Point};
+use crate::nc::bounding_volume::AABB;
+use crate::util::{Meters, Point};
 
 pub trait ContextHelp {
   fn screen_x(&self) -> f32;

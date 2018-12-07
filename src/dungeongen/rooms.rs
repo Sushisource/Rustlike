@@ -1,17 +1,17 @@
 use super::direction::Direction;
-use collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
-use dungeongen::level::Wall;
-use dungeongen::level::WALL_THICKNESS;
+use crate::collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
+use crate::dungeongen::level::Wall;
+use crate::dungeongen::level::WALL_THICKNESS;
 use ggez::graphics::{rectangle, set_color, Color, DrawMode, Rect};
 use ggez::{Context, GameResult};
-use na;
-use na::{Isometry2, Vector2};
-use nc::shape::{Compound, ShapeHandle};
-use nc::world::CollisionGroups;
+use crate::na;
+use crate::na::{Isometry2, Vector2};
+use crate::nc::shape::{Compound, ShapeHandle};
+use crate::nc::world::CollisionGroups;
 use rand::distributions::{Distribution, Normal};
 use rand::{thread_rng, Rng};
-use util::geom::{CenterOriginRect, CenteredRect};
-use util::{Meters, Point};
+use crate::util::geom::{CenterOriginRect, CenteredRect};
+use crate::util::{Meters, Point};
 
 pub static DOOR_WIDTH: Meters = 1.1;
 

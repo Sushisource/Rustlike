@@ -5,7 +5,7 @@ use super::Agent;
 use ggez::graphics;
 use ggez::graphics::{DrawParam, Point2, Vector2};
 use ggez::{Context, GameResult};
-use util::Assets;
+use crate::util::Assets;
 
 static PLAYER_SYM: &'static str = "@";
 

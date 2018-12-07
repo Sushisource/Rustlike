@@ -16,8 +16,8 @@ extern crate env_logger;
 
 use env_logger::{Builder, Env};
 use ggez::{conf, event, graphics, ContextBuilder};
-use world::render::WorldRender;
-use world::World;
+use crate::world::render::WorldRender;
+use crate::world::World;
 
 mod agents;
 mod collision;
