@@ -2,22 +2,24 @@ use super::blobstacle::Blobstacle;
 use super::ca_simulator::CASim;
 use super::direction::Direction;
 use super::rooms::Room;
-use crate::collision::{new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar};
+use crate::collision::{
+  new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar,
+};
 use crate::dungeongen::compound_room::CompoundRoomMaker;
-use ggez::graphics;
-use ggez::graphics::{Color, DrawParam};
-use ggez::{Context, GameResult};
 use crate::na;
 use crate::na::Isometry2;
 use crate::nc::bounding_volume::AABB;
 use crate::nc::shape::{Polyline, Shape};
 use crate::nc::world::CollisionObjectHandle;
-use num::{FromPrimitive, ToPrimitive};
-use rand::{thread_rng, Rng};
 use crate::util::context_help::ContextHelp;
 use crate::util::geom::CenterOriginRect;
 use crate::util::geom::CenteredRect;
 use crate::util::{Meters, Point};
+use ggez::graphics;
+use ggez::graphics::{Color, DrawParam};
+use ggez::{Context, GameResult};
+use num::{FromPrimitive, ToPrimitive};
+use rand::{thread_rng, Rng};
 
 pub type Wall = CenteredRect;
 pub static WALL_THICKNESS: Meters = 0.2;
@@ -100,7 +102,8 @@ impl Level {
         cave_bb.half_extents().x * 2.0,
         cave_bb.half_extents().y * 2.0,
         Direction::North,
-      ).unwrap();
+      )
+      .unwrap();
       let nxt_id = self.get_and_inc_eid();
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
@@ -149,12 +152,11 @@ impl Level {
       .iter()
       .flat_map(|nr| {
         let mut handles = vec![collw.register(nr, cw_dat)];
-        if let Some(floormat) = nr.floormat() {
-          let fm: &CenterOriginRect = &floormat;
-          handles.push(collw.register(&fm, cw_dat))
-        }
+        let floormats = nr.floormat();
+        handles.extend(floormats.iter().map(|f| collw.register(&(f as &CenterOriginRect), cw_dat)));
         handles
-      }).collect();
+      })
+      .collect();
     collw.update();
     (coll_handles, has_no_collisions(collw))
   }

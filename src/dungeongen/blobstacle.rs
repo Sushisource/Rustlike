@@ -1,9 +1,9 @@
 extern crate ggez;
 
 use super::ca_simulator::CASim;
+use crate::util::Point;
 use ggez::graphics::DrawParam;
 use ggez::{Context, GameResult};
-use crate::util::Point;
 
 /// Blobstacles are backed by a CA sim but have additional information like
 /// a position, ability to determine intersections, etc.

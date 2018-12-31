@@ -14,10 +14,10 @@ extern crate core;
 extern crate log;
 extern crate env_logger;
 
-use env_logger::{Builder, Env};
-use ggez::{conf, event, graphics, ContextBuilder};
 use crate::world::render::WorldRender;
 use crate::world::World;
+use env_logger::{Builder, Env};
+use ggez::{conf, event, graphics, ContextBuilder};
 
 mod agents;
 mod collision;
@@ -34,7 +34,8 @@ fn main() {
       // TODO: Enable this and implement a fixed-ratio black bars solution or something
       //.resizable(true)
       conf::WindowSetup::default().title("Rougelike!"),
-    ).window_mode(conf::WindowMode::default().dimensions(1600, 900));
+    )
+    .window_mode(conf::WindowMode::default().dimensions(1600, 900));
 
   let ctx = &mut cb.build().unwrap();
 

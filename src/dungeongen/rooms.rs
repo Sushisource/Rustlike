@@ -2,25 +2,25 @@ use super::direction::Direction;
 use crate::collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
 use crate::dungeongen::level::Wall;
 use crate::dungeongen::level::WALL_THICKNESS;
-use ggez::graphics::{rectangle, set_color, Color, DrawMode, Rect};
-use ggez::{Context, GameResult};
 use crate::na;
 use crate::na::{Isometry2, Vector2};
 use crate::nc::shape::{Compound, ShapeHandle};
 use crate::nc::world::CollisionGroups;
-use rand::distributions::{Distribution, Normal};
-use rand::{thread_rng, Rng};
 use crate::util::geom::{CenterOriginRect, CenteredRect};
 use crate::util::{Meters, Point};
+use ggez::graphics::{rectangle, set_color, Color, DrawMode, Rect};
+use ggez::{Context, GameResult};
+use rand::distributions::{Distribution, Normal};
+use rand::{thread_rng, Rng};
 
 pub static DOOR_WIDTH: Meters = 1.1;
 
-#[derive(Debug, CenterOriginRect)]
+#[derive(Debug, CenterOriginRect, PartialEq)]
 pub struct Room {
   cr: CenteredRect,
-  door: Option<Door>,
+  doors: Vec<Door>,
   /// Tuple of wall, and side of the room that wall belongs to
-  walls: Vec<(Wall, Direction)>,
+  pub walls: Vec<(Wall, Direction)>,
   is_compound: bool,
 }
 
@@ -35,9 +35,10 @@ impl Room {
     let cr: &CenterOriginRect = &CenteredRect::new(center, width, height);
     let walls = match door {
       None => cr.gen_walls(),
-      Some(door) => Room::gen_walls_with_door(cr, door, door.facing)?
+      Some(door) => Room::gen_walls_with_door(cr, door, door.facing)?,
     };
-    Ok(Room { cr: CenteredRect::new(center, width, height), door, walls, is_compound })
+    let doorvec = if let Some(d) = door { vec![d] } else { vec![] };
+    Ok(Room { cr: CenteredRect::new(center, width, height), doors: doorvec, walls, is_compound })
   }
 
   /// Creates a new `Room` randomly placed somewhere in the provided range
@@ -69,34 +70,32 @@ impl Room {
       let r: Rect = (&wall as &CenterOriginRect).into();
       rectangle(ctx, DrawMode::Fill, r)?;
     }
-    if let Some(door) = self.door {
+    for door in &self.doors {
       set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
-      rectangle(ctx, DrawMode::Fill, (&door as &CenterOriginRect).into())?;
+      rectangle(ctx, DrawMode::Fill, (door as &CenterOriginRect).into())?;
     }
     Ok(())
   }
 
   /// Returns a collidable that can be used during room placement to ensure there is enough space
   /// on either side of the Room's door to accommodate the player.
-  pub fn floormat(&self) -> Option<CenteredRect> {
-    if let Some(door) = self.door {
-      let wider = door.width() > door.height();
-      let expander = if wider { (0.0, DOOR_WIDTH * 1.5) } else { (DOOR_WIDTH * 1.5, 0.0) };
-      Some(CenteredRect::new(
-        door.center(),
-        door.width() + expander.0,
-        door.height() + expander.1,
-      ))
-    } else {
-      None
-    }
+  pub fn floormat(&self) -> Vec<CenteredRect> {
+    self
+      .doors
+      .iter()
+      .map(|door| {
+        let wider = door.width() > door.height();
+        let expander = if wider { (0.0, DOOR_WIDTH * 1.5) } else { (DOOR_WIDTH * 1.5, 0.0) };
+        CenteredRect::new(door.center(), door.width() + expander.0, door.height() + expander.1)
+      })
+      .collect()
   }
 
   /// Moves the whole room by the provided amounts
   pub fn translate(&mut self, x: Meters, y: Meters) {
     self.cr.center.x += x;
     self.cr.center.y += y;
-    if let Some(ref mut door) = self.door {
+    for door in &mut self.doors {
       door.cr.center.x += x;
       door.cr.center.y += y;
     }
@@ -104,6 +103,15 @@ impl Room {
       w.center.x += x;
       w.center.y += y;
     }
+  }
+
+  /// Adds a door to the room centered on the wall on the side of the given direction
+  pub fn add_door_to_wall(&mut self, side: Direction) {
+    let (correct_wall, _) = self.walls.iter().find(|(_, d)| *d == side).unwrap();
+    let (c_x, c_y) = (correct_wall.center.x, correct_wall.center.y);
+    let new_door = Room::gen_door(c_x, c_y, self.cr.width, self.cr.height, side, 0.0);
+    println!("Adding door! {:?}", new_door);
+    self.doors.push(new_door);
   }
 
   fn rand_room_box() -> (Meters, Meters) {
@@ -227,7 +235,8 @@ impl Room {
         } else {
           vec![Ok((wall, d))]
         }
-      }).collect()
+      })
+      .collect()
   }
 }
 

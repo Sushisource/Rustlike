@@ -2,12 +2,12 @@ use crate::collision::{Collidable, CollidableType, CollisionRect, Shape2D};
 use crate::dungeongen::direction::Direction;
 use crate::dungeongen::level::Wall;
 use crate::dungeongen::level::WALL_THICKNESS;
-use ggez::graphics::Rect;
 use crate::na;
 use crate::na::{Isometry2, Vector2};
 use crate::nc::shape::ShapeHandle;
 use crate::nc::world::CollisionGroups;
 use crate::util::{Meters, Point};
+use ggez::graphics::Rect;
 
 pub trait CenterOriginRect {
   fn center(&self) -> Point;

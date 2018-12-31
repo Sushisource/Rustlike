@@ -2,10 +2,10 @@ extern crate ggez;
 extern crate rand;
 
 use super::direction::Direction;
+use crate::util::Point;
 use ggez::graphics;
 use ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh};
 use ggez::{Context, GameResult};
-use crate::util::Point;
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -80,7 +80,8 @@ impl CASim {
         let xp = ((x as f32) / (self.width as f32) + shift.x) * self.scale;
         let yp = ((y as f32) / (self.height as f32) + shift.y) * self.scale;
         Point::new(xp, yp)
-      }).collect()
+      })
+      .collect()
   }
 
   pub fn uspace_gboundary(&self) -> Vec<Point> {

@@ -1,5 +1,8 @@
 use crate::agents::Agent;
 use crate::collision::Compound2D;
+use crate::util::context_help::ContextHelp;
+use crate::util::Assets;
+use crate::world::World;
 use ggez::event;
 use ggez::event::{Keycode, Mod};
 use ggez::graphics;
@@ -9,9 +12,6 @@ use ggez::timer;
 use ggez::{Context, GameResult};
 use std;
 use std::time::Duration;
-use crate::util::context_help::ContextHelp;
-use crate::util::Assets;
-use crate::world::World;
 
 pub struct WorldRender<'a> {
   world: &'a mut World,

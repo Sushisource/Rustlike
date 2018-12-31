@@ -2,10 +2,10 @@ extern crate ggez;
 extern crate nalgebra;
 
 use super::Agent;
+use crate::util::Assets;
 use ggez::graphics;
 use ggez::graphics::{DrawParam, Point2, Vector2};
 use ggez::{Context, GameResult};
-use crate::util::Assets;
 
 static PLAYER_SYM: &'static str = "@";
 

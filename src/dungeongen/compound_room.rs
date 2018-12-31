@@ -1,20 +1,21 @@
 use crate::collision::{Collidable, CollisionRect};
+use crate::dungeongen::level::Wall;
 use crate::dungeongen::level::WALL_THICKNESS;
 use crate::dungeongen::rooms::DOOR_WIDTH;
 use crate::dungeongen::{direction::Direction, rooms::Door, rooms::Room};
 use crate::na;
 use crate::na::{Isometry2, Vector2};
 use crate::nc::{query, query::Contact, shape::Compound};
-use num::abs;
-use rand::distributions::{Distribution, Normal};
-use rand::thread_rng;
-use rand::Rng;
-use std::f32::consts::PI;
 use crate::util::Point;
 use crate::util::{
   geom::{origin, walk_grid, CenterOriginRect, CenteredRect, GridRect, IntPoint, PolarVec},
   Meters,
 };
+use num::abs;
+use rand::distributions::{Distribution, Normal};
+use rand::thread_rng;
+use rand::Rng;
+use std::f32::consts::PI;
 
 pub type CompoundRoom = Vec<Room>;
 
@@ -25,9 +26,7 @@ pub struct CompoundRoomMaker {
 
 impl CompoundRoomMaker {
   pub fn new(starter_rect: GridRect) -> CompoundRoomMaker {
-    let rooms = vec![
-      CompoundRoomMaker::grid_room_to_room(&starter_rect, None).unwrap(),
-    ];
+    let rooms = vec![CompoundRoomMaker::grid_room_to_room(&starter_rect, None).unwrap()];
     CompoundRoomMaker { rects: vec![starter_rect], rooms }
   }
   /// Creates a new group of `Room`s that all touch each-other. This is done in a gridded space
@@ -59,7 +58,44 @@ impl CompoundRoomMaker {
       maker.rooms.push(CompoundRoomMaker::grid_room_to_room(&moved_room, Some(door))?);
     }
 
-    // Punch doors to the outside where necessary to make all rooms accessible
+    // Punch at least one door to the outside. All rooms are connected inside. To do this,
+    // we find the furthest out wall in some cardinal direction and punch a door in it.
+    {
+      let mut dirs = Direction::compass().clone();
+      rng.shuffle(dirs.as_mut());
+
+      for d in dirs.iter().take(rng.gen_range(1, 5)) {
+        let walls_in_dir_2_rooms: Vec<(Wall, &mut Room)> = maker
+          .rooms
+          .iter_mut()
+          .map(|r| {
+            (r.walls.clone().into_iter().find(|(_, wd)| wd == d).map(|(w, _)| w).unwrap(), r)
+          })
+          .collect();
+
+        let most_extreme_wall_and_room = match *d {
+          Direction::North => walls_in_dir_2_rooms
+            .into_iter()
+            .min_by(|(w1, _), (w2, _)| w1.top_edge().partial_cmp(&w2.top_edge()).unwrap()),
+          Direction::West => walls_in_dir_2_rooms
+            .into_iter()
+            .min_by(|(w1, _), (w2, _)| w1.left_edge().partial_cmp(&w2.left_edge()).unwrap()),
+          Direction::South => walls_in_dir_2_rooms
+            .into_iter()
+            .max_by(|(w1, _), (w2, _)| w1.bottom_edge().partial_cmp(&w2.bottom_edge()).unwrap()),
+          Direction::East => walls_in_dir_2_rooms
+            .into_iter()
+            .max_by(|(w1, _), (w2, _)| w1.right_edge().partial_cmp(&w2.right_edge()).unwrap()),
+          _ => unreachable!("Room door sweep can't come from non cardinal direction"),
+        };
+        if let Some((_, r)) = most_extreme_wall_and_room {
+          r.add_door_to_wall(*d)
+        } else {
+          warn!("Couldn't find an extreme wall to punch an outside door in");
+          return Err(());
+        }
+      }
+    };
 
     // Shift all the rooms into a randomly selected position
     let c_x: f32 = rng.gen_range(x_min, x_max);
@@ -84,7 +120,8 @@ impl CompoundRoomMaker {
       .flat_map(|r| {
         let cr = r as &CenterOriginRect;
         cr.gen_walls().into_iter()
-      }).collect();
+      })
+      .collect();
     debug!("All walls: {:?}", all_walls);
     let contact_dir = Direction::from_normal(contact.normal.as_slice());
     debug!("Contact dir: {:?}", contact_dir);
@@ -101,7 +138,8 @@ impl CompoundRoomMaker {
             abs(w.center.y - contact.world1.y) < 0.0001 &&
               (w.left_edge() < contact.world1.x && contact.world1.x < w.right_edge())
           }
-      }).collect();
+      })
+      .collect();
     debug!("target walls: {:?}", target_walls);
     if target_walls.len() != 2 {
       warn!("Couldn't find two walls that worked when punching door in compound room");
