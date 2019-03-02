@@ -74,6 +74,8 @@ impl Room {
   }
 
   pub fn draw(&self, ctx: &mut Context, draw_param: &DrawParam) -> GameResult<()> {
+    // TODO: Configurable door colors
+    let door_color =Color::new(0.9, 0.9, 0.9, 1.0);
     for &(wall, _) in &self.walls {
       let r: Rect = (&wall as &CenterOriginRect).into();
       let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
@@ -81,8 +83,8 @@ impl Room {
     }
     for door in &self.doors {
       let r: Rect = (door as &CenterOriginRect).into();
-      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
-      draw(ctx, &r, DrawParam::new().color(Color::new(0.8, 0.8, 0.8, 1.0)))?;
+      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, door_color)?;
+      draw(ctx, &r, DrawParam::new().color(door_color))?;
     }
     Ok(())
   }
