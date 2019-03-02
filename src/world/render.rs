@@ -4,14 +4,16 @@ use crate::util::context_help::ContextHelp;
 use crate::util::Assets;
 use crate::world::World;
 use ggez::event;
-use ggez::event::{Keycode, Mod};
 use ggez::graphics;
-use ggez::graphics::{Color, DrawParam, Drawable, Point2, Vector2};
-use ggez::mouse;
+use ggez::graphics::{Color, DrawParam, Drawable};
+use ggez::input::mouse;
 use ggez::timer;
 use ggez::{Context, GameResult};
 use std;
 use std::time::Duration;
+use ggez::event::KeyMods;
+use ggez::input::keyboard::KeyCode;
+use nalgebra::{Vector2};
 
 pub struct WorldRender<'a> {
   world: &'a mut World,
@@ -55,14 +57,13 @@ impl<'a> event::EventHandler for WorldRender<'a> {
   }
 
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
-    graphics::clear(ctx);
+    graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
 
     // First thing that is drawn is the level itself
     self.world.level.draw(ctx)?;
     // Render debug info that needs to be drawn at level scale
     if self.debug {
       // Render all collision bounding volumes
-      graphics::set_color(ctx, Color::new(0.0, 1.0, 0.0, 0.5))?;
       for c in self.world.collision.collision_objects() {
         let shape_h = c.shape();
         if shape_h.is_shape::<Compound2D>() {
@@ -79,53 +80,52 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     }
 
     let scaler = self.world.level.lscale(ctx);
-    graphics::set_transform(ctx, DrawParam::default().into_matrix());
+    graphics::set_transform(ctx, DrawParam::default().to_matrix());
     graphics::apply_transformations(ctx)?;
-    graphics::set_color(ctx, Color::new(1.0, 1.0, 1.0, 1.0))?;
-    self.world.player.draw(ctx, &mut self.assets, scaler.scale)?;
+    self.world.player.draw(ctx, &mut self.assets, scaler.scale.into())?;
 
     // Textual debug info
     if self.debug {
-      let mouse_p = mouse::get_position(ctx)?;
-      let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p);
+      let mouse_p = mouse::position(ctx);
+      let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p.into());
       let dbg_txt =
-        self.assets.txt(&format!("Mouse pos scrn: {} world: {}", mouse_p, w_mouse_p), ctx);
-      dbg_txt.draw(ctx, Point2::new(0.0, 0.0), 0.0)?;
+        self.assets.txt(&format!("Mouse pos scrn: {:?} world: {}", mouse_p, w_mouse_p));
+      dbg_txt.draw(ctx, DrawParam::default())?;
       self.world.collision_test(w_mouse_p);
     }
 
-    graphics::present(ctx);
+    graphics::present(ctx)?;
     timer::sleep(Duration::from_secs(0));
     Ok(())
   }
 
   // Handle key events. These just map keyboard events and alter our input
   // state appropriately.
-  fn key_down_event(&mut self, _ctx: &mut Context, keycode: Keycode, keymod: Mod, _repeat: bool) {
+  fn key_down_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymod: KeyMods, _repeat: bool) {
     match keycode {
-      Keycode::Space => {
+      KeyCode::Space => {
         self.stop_render();
       }
-      Keycode::Plus | Keycode::KpPlus => {
+      KeyCode::Add => {
         self.fastmode = !self.fastmode;
       }
-      Keycode::Up => {
+      KeyCode::Up => {
         self.world.player.trans(Vector2::new(0.0, -1.0));
       }
-      Keycode::Down => {
+      KeyCode::Down => {
         self.world.player.trans(Vector2::new(0.0, 1.0));
       }
-      Keycode::Left => {
+      KeyCode::Left => {
         self.world.player.trans(Vector2::new(-1.0, 0.0));
       }
-      Keycode::Right => {
+      KeyCode::Right => {
         self.world.player.trans(Vector2::new(1.0, 0.0));
       }
-      Keycode::Backquote => {
+      KeyCode::Grave => {
         self.debug = !self.debug;
         info!("Debug mode now {}", self.debug);
       }
-      Keycode::Q if keymod.contains(event::LCTRLMOD) => {
+      KeyCode::Q if keymod.contains(KeyMods::CTRL) => {
         std::process::exit(0);
       }
       _ => (), // Do nothing

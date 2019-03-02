@@ -5,12 +5,12 @@ authors = ["Spencer Judge <sushisource@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-ggez = "0.4"
+ggez = "0.5.0-rc.1"
 env_logger = "0.6"
 log = "0.4"
 time = "0.1"
-nalgebra = "0.16"
-ncollide2d = "0.17"
+nalgebra = "0.17"
+ncollide2d = "0.18"
 rand = "0.5"
 derive-new = "0.5"
 num-derive = "0.2"
@@ -23,8 +23,3 @@ members = ["roguelike-derive"]
 
 [dependencies.roguelike-derive]
 path = "roguelike-derive"
-
-
-# Remove once GGEZ is updated
-[patch.crates-io]
-ggez = { path = "../ggez" }

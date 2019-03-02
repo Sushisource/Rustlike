@@ -85,7 +85,7 @@ impl<T: Collidable + ?Sized> GameObjRegistrar<T> for CollW {
     dat: CollidableDat,
   ) -> CollisionObjectHandle {
     let q = nc::world::GeometricQueryType::Contacts(0.0, 0.0);
-    self.add(register_me.location(), register_me.shape(), group, q, dat)
+    self.add(register_me.location(), register_me.shape(), group, q, dat).handle()
   }
 }
 

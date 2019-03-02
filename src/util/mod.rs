@@ -5,12 +5,15 @@ use super::agents::Agent;
 use ggez::graphics::{Font, Text};
 use ggez::Context;
 use std::collections::HashMap;
+use ggez::graphics::Color;
+use ggez::graphics::TextFragment;
 
 pub mod context_help;
 pub mod geom;
 
 pub type Meters = f32;
 pub type Point = na::Point2<f32>;
+pub type Vec2 = na::Vector2<f32>;
 
 pub struct Assets {
   /// This map maps world sizes in meters -> font where the size as rendered
@@ -24,20 +27,33 @@ pub struct Assets {
 impl Assets {
   pub fn new(ctx: &mut Context) -> Assets {
     let mut m = HashMap::new();
-    m.insert(1, Font::new(ctx, "/Hack-Bold.ttf", 14).unwrap());
+    m.insert(1, Font::new(ctx, "/Hack-Bold.ttf").unwrap());
     Assets { font_map: m, text_map: HashMap::new() }
   }
 
-  pub fn agent_txt<T: Agent>(&mut self, agent: &T, ctx: &mut Context) -> &Text {
+  pub fn agent_txt<T: Agent>(&mut self, agent: &T) -> &Text {
     // TODO: Could be crashy
-    let font = &self.font_map[&agent.width()];
+    let font = self.font_map[&agent.width()];
+    let text_frag = TextFragment {
+      color: Some(Color::new(1.0, 1.0, 1.0, 1.0)),
+      font: Some(font),
+      scale: None,
+      text: agent.symbol().to_string(),
+    };
     self
       .text_map
       .entry(agent.symbol())
-      .or_insert_with(|| Text::new(ctx, agent.symbol(), font).unwrap())
+      .or_insert_with(|| Text::new(text_frag))
   }
 
-  pub fn txt(&mut self, content: &str, ctx: &mut Context) -> Text {
-    Text::new(ctx, content, &self.font_map[&1]).unwrap()
+  pub fn txt(&mut self, content: &str) -> Text {
+    let font = self.font_map[&1];
+    let text_frag = TextFragment {
+      color: Some(Color::new(1.0, 1.0, 1.0, 1.0)),
+      font: Some(font),
+      scale: None,
+      text: content.to_string(),
+    };
+    Text::new(text_frag)
   }
 }

@@ -3,9 +3,21 @@ extern crate rand;
 
 use super::direction::Direction;
 use crate::util::Point;
-use ggez::graphics;
-use ggez::graphics::{DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh};
-use ggez::{Context, GameResult};
+use ggez::{
+  graphics::{
+    DrawMode,
+    DrawParam,
+    FilterMode,
+    Image,
+    Mesh,
+    Color,
+    Drawable
+  },
+  Context,
+  GameResult,
+  graphics::draw
+};
+use crate::util::Vec2;
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -170,7 +182,7 @@ impl CASim {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-          // Cell dead
+            // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
@@ -235,23 +247,24 @@ impl CASim {
   // GRAPHICS =================================================================
   pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let ca_img_a = self.cave_ca_img(&self.ca_grid);
-    let scalept = Point::new(
+    let scalevec = Vec2::new(
       (1.0 / self.width as f32) * param.scale.x,
       (1.0 / self.height as f32) * param.scale.y,
     );
     let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
     let mut scaled_params = param;
-    scaled_params.scale = scalept;
-    scaled_params.dest = Point::new(0.0, 0.0);
+    scaled_params.scale = scalevec.into();
+    scaled_params.dest = Point::new(0.0, 0.0).into();
     // Don't make my pixels all blurry
     img.set_filter(FilterMode::Nearest);
-    img.draw_ex(ctx, scaled_params)?;
+    img.draw(ctx, scaled_params)?;
 
     let cave_bounds = self.uspace_gboundary();
     if !cave_bounds.is_empty() {
       // Line width also scales w/ draw param, so need to make it reasonable.
-      let line = Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x)?;
-      graphics::draw_ex(ctx, &line, param)?;
+      let line = Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x,
+                                Color::new(0.5, 0.5, 0.5, 1.0))?;
+      draw(ctx, &line, param)?;
     }
     Ok(())
   }
@@ -275,15 +288,18 @@ impl CASim {
 
   pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
-    let mesh = Mesh::new_polygon(ctx, DrawMode::Fill, bounds.as_slice())?;
-    graphics::draw_ex(ctx, &mesh, param)
+    let mesh = Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(),
+                                 Color::new(0.5, 0.5, 0.5, 1.0))?;
+    draw(ctx, &mesh, param)
   }
 }
 
 #[cfg(test)]
 mod test {
   use super::*;
+
   extern crate timebomb;
+
   use self::timebomb::timeout_ms;
 
   #[test]

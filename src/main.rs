@@ -17,7 +17,7 @@ extern crate env_logger;
 use crate::world::render::WorldRender;
 use crate::world::World;
 use env_logger::{Builder, Env};
-use ggez::{conf, event, graphics, ContextBuilder};
+use ggez::{conf, event, ContextBuilder};
 
 mod agents;
 mod collision;
@@ -35,13 +35,12 @@ fn main() {
       //.resizable(true)
       conf::WindowSetup::default().title("Rougelike!"),
     )
-    .window_mode(conf::WindowMode::default().dimensions(1600, 900));
+    .window_mode(conf::WindowMode::default().dimensions(1600.0, 900.0));
 
-  let ctx = &mut cb.build().unwrap();
+  let (mut ctx, mut eloop) = cb.build().unwrap();
 
   let mut world = World::new();
-  let mut renderer = WorldRender::new(&mut world, ctx);
-
-  graphics::set_background_color(ctx, graphics::Color::new(0.0, 0.0, 0.0, 1.0));
-  event::run(ctx, &mut renderer).unwrap();
+  let mut renderer = WorldRender::new(&mut world, &mut ctx);
+  // TODO: State is new in latest GGEZ, what do I use it for?
+  event::run(&mut ctx, &mut eloop, &mut renderer).unwrap();
 }

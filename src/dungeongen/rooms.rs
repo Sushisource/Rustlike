@@ -1,17 +1,25 @@
 use super::direction::Direction;
-use crate::collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D};
-use crate::dungeongen::level::Wall;
-use crate::dungeongen::level::WALL_THICKNESS;
-use crate::na;
-use crate::na::{Isometry2, Vector2};
-use crate::nc::shape::{Compound, ShapeHandle};
-use crate::nc::world::CollisionGroups;
-use crate::util::geom::{CenterOriginRect, CenteredRect};
-use crate::util::{Meters, Point};
-use ggez::graphics::{rectangle, set_color, Color, DrawMode, Rect};
-use ggez::{Context, GameResult};
+use crate::{
+  nc::world::CollisionGroups,
+  nc::shape::{Compound, ShapeHandle},
+  na::{Isometry2, Vector2},
+  na,
+  dungeongen::level::WALL_THICKNESS,
+  dungeongen::level::Wall,
+  collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D},
+  util::geom::{CenterOriginRect, CenteredRect},
+  util::{Meters, Point},
+};
+use ggez::{
+  graphics::{Color, Rect, DrawParam},
+  Context,
+  GameResult,
+  graphics::draw,
+};
 use rand::distributions::{Distribution, Normal};
 use rand::{thread_rng, Rng};
+use ggez::graphics::DrawMode;
+use ggez::graphics::Mesh;
 
 pub static DOOR_WIDTH: Meters = 1.1;
 
@@ -65,14 +73,16 @@ impl Room {
     Room::new(center, width, height, Some(door), false)
   }
 
-  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+  pub fn draw(&self, ctx: &mut Context, draw_param: &DrawParam) -> GameResult<()> {
     for &(wall, _) in &self.walls {
       let r: Rect = (&wall as &CenterOriginRect).into();
-      rectangle(ctx, DrawMode::Fill, r)?;
+      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
+      draw(ctx, &r, *draw_param)?;
     }
     for door in &self.doors {
-      set_color(ctx, Color::new(0.8, 0.8, 0.8, 1.0))?;
-      rectangle(ctx, DrawMode::Fill, (door as &CenterOriginRect).into())?;
+      let r: Rect = (door as &CenterOriginRect).into();
+      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
+      draw(ctx, &r, DrawParam::new().color(Color::new(0.8, 0.8, 0.8, 1.0)))?;
     }
     Ok(())
   }
