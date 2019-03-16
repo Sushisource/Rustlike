@@ -257,7 +257,7 @@ impl CASim {
         ctx,
         cave_bounds.as_slice(),
         4.0 / param.scale.x,
-        Color::new(0.5, 0.5, 0.5, 1.0),
+        Color::new(1.0, 1.0, 1.0, 1.0),
       )?;
       draw(ctx, &line, param)?;
     }
@@ -284,7 +284,7 @@ impl CASim {
   pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
     let mesh =
-      Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(), Color::new(0.5, 0.5, 0.5, 1.0))?;
+      Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(), Color::new(0.7, 0.7, 0.7, 1.0))?;
     draw(ctx, &mesh, param)
   }
 }

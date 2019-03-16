@@ -231,7 +231,7 @@ impl Level {
 
       if !self.rooms.is_empty() {
         for room in &self.rooms {
-          let grayval = 0.2;
+          let grayval = 0.3;
           room.draw(ctx, &DrawParam::new().color(Color::new(grayval, grayval, grayval, 1.0)))?;
         }
       }
