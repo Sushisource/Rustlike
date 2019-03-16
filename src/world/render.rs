@@ -15,8 +15,8 @@ use nalgebra::Vector2;
 use std;
 use std::time::Duration;
 
-pub struct WorldRender<'a> {
-  world: &'a mut World,
+pub struct WorldRender {
+  world: World,
   fastmode: bool,
   assets: Assets,
   debug: bool,
@@ -24,8 +24,8 @@ pub struct WorldRender<'a> {
   level_finished: bool,
 }
 
-impl<'a> WorldRender<'a> {
-  pub fn new(world: &'a mut World, ctx: &mut Context) -> WorldRender<'a> {
+impl WorldRender {
+  pub fn new(world: World, ctx: &mut Context) -> WorldRender {
     let assets = Assets::new(ctx);
     WorldRender { world, fastmode: true, assets, debug: false, level_finished: false }
   }
@@ -35,7 +35,7 @@ impl<'a> WorldRender<'a> {
   }
 }
 
-impl<'a> event::EventHandler for WorldRender<'a> {
+impl event::EventHandler for WorldRender {
   fn update(&mut self, ctx: &mut Context) -> GameResult<()> {
     const DESIRED_FPS: u32 = 60;
     if !timer::check_update_time(ctx, DESIRED_FPS) {
@@ -129,6 +129,9 @@ impl<'a> event::EventHandler for WorldRender<'a> {
       KeyCode::Grave => {
         self.debug = !self.debug;
         info!("Debug mode now {}", self.debug);
+      }
+      KeyCode::R if keymod.contains(KeyMods::CTRL) => {
+        self.world = World::new();
       }
       KeyCode::Q if keymod.contains(KeyMods::CTRL) => {
         std::process::exit(0);

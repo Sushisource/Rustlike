@@ -39,8 +39,7 @@ fn main() {
 
   let (mut ctx, mut eloop) = cb.build().unwrap();
 
-  let mut world = World::new();
-  let mut renderer = WorldRender::new(&mut world, &mut ctx);
-  // TODO: State is new in latest GGEZ, what do I use it for?
+  let world = World::new();
+  let mut renderer = WorldRender::new(world, &mut ctx);
   event::run(&mut ctx, &mut eloop, &mut renderer).unwrap();
 }
