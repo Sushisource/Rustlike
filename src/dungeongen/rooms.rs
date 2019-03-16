@@ -119,10 +119,8 @@ impl Room {
 
   /// Adds a door to the room centered on the wall on the side of the given direction
   pub fn add_door_to_wall(&mut self, side: Direction) {
-    let (correct_wall, _) = self.walls.iter().find(|(_, d)| *d == side).unwrap();
-    let (c_x, c_y) = (correct_wall.center.x, correct_wall.center.y);
-    let new_door = Room::gen_door(c_x, c_y, self.cr.width, self.cr.height, side, 0.0);
-    println!("Adding door! {:?}", new_door);
+    let new_door = Room::gen_door(self.cr.center().x, self.cr.center().y,
+                                  self.cr.width, self.cr.height, side, 0.0);
     self.doors.push(new_door);
   }
 
