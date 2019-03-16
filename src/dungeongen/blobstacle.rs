@@ -22,11 +22,8 @@ impl Blobstacle {
   }
 
   pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-    let repositioned = DrawParam {
-      dest: self.position.into(),
-      color: (227, 77, 40).into(),
-      ..DrawParam::default()
-    };
+    let repositioned =
+      DrawParam { dest: self.position.into(), color: (227, 77, 40).into(), ..DrawParam::default() };
     self.sim.draw(ctx, repositioned)
   }
 }

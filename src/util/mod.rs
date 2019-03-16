@@ -2,11 +2,11 @@ extern crate ggez;
 extern crate nalgebra as na;
 
 use super::agents::Agent;
+use ggez::graphics::Color;
+use ggez::graphics::TextFragment;
 use ggez::graphics::{Font, Text};
 use ggez::Context;
 use std::collections::HashMap;
-use ggez::graphics::Color;
-use ggez::graphics::TextFragment;
 
 pub mod context_help;
 pub mod geom;
@@ -40,10 +40,7 @@ impl Assets {
       scale: None,
       text: agent.symbol().to_string(),
     };
-    self
-      .text_map
-      .entry(agent.symbol())
-      .or_insert_with(|| Text::new(text_frag))
+    self.text_map.entry(agent.symbol()).or_insert_with(|| Text::new(text_frag))
   }
 
   pub fn txt(&mut self, content: &str) -> Text {

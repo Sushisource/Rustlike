@@ -1,14 +1,13 @@
 use crate::nc::bounding_volume::AABB;
-use crate::util::{Meters, Point};
 use crate::util::Vec2;
+use crate::util::{Meters, Point};
 use ggez::{
-  graphics::Mesh,
   graphics::draw,
-  Context,
-  GameResult,
-  graphics::{DrawParam, Rect},
   graphics::Color,
   graphics::DrawMode,
+  graphics::Mesh,
+  graphics::{DrawParam, Rect},
+  Context, GameResult,
 };
 
 pub trait ContextHelp {

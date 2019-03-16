@@ -7,7 +7,7 @@ use crate::collision::{
 };
 use crate::dungeongen::compound_room::CompoundRoomMaker;
 use crate::nc::bounding_volume::AABB;
-use crate::nc::shape::{Polyline};
+use crate::nc::shape::Polyline;
 use crate::nc::world::CollisionObjectHandle;
 use crate::util::context_help::ContextHelp;
 use crate::util::geom::CenterOriginRect;
@@ -102,7 +102,7 @@ impl Level {
         cave_bb.half_extents().y * 2.0,
         Direction::North,
       )
-        .unwrap();
+      .unwrap();
       let nxt_id = self.get_and_inc_eid();
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();

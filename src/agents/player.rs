@@ -3,12 +3,12 @@ extern crate nalgebra;
 
 use super::Agent;
 use crate::util::Assets;
-use ggez::graphics;
-use ggez::graphics::{DrawParam};
-use ggez::{Context, GameResult};
-use ggez::graphics::Color;
-use crate::util::Vec2;
 use crate::util::Point;
+use crate::util::Vec2;
+use ggez::graphics;
+use ggez::graphics::Color;
+use ggez::graphics::DrawParam;
+use ggez::{Context, GameResult};
 
 static PLAYER_SYM: &'static str = "@";
 

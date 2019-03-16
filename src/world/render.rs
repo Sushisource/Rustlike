@@ -4,16 +4,16 @@ use crate::util::context_help::ContextHelp;
 use crate::util::Assets;
 use crate::world::World;
 use ggez::event;
+use ggez::event::KeyMods;
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam, Drawable};
+use ggez::input::keyboard::KeyCode;
 use ggez::input::mouse;
 use ggez::timer;
 use ggez::{Context, GameResult};
+use nalgebra::Vector2;
 use std;
 use std::time::Duration;
-use ggez::event::KeyMods;
-use ggez::input::keyboard::KeyCode;
-use nalgebra::{Vector2};
 
 pub struct WorldRender<'a> {
   world: &'a mut World,
@@ -88,8 +88,7 @@ impl<'a> event::EventHandler for WorldRender<'a> {
     if self.debug {
       let mouse_p = mouse::position(ctx);
       let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p.into());
-      let dbg_txt =
-        self.assets.txt(&format!("Mouse pos scrn: {:?} world: {}", mouse_p, w_mouse_p));
+      let dbg_txt = self.assets.txt(&format!("Mouse pos scrn: {:?} world: {}", mouse_p, w_mouse_p));
       dbg_txt.draw(ctx, DrawParam::default())?;
       self.world.collision_test(w_mouse_p);
     }
@@ -101,7 +100,13 @@ impl<'a> event::EventHandler for WorldRender<'a> {
 
   // Handle key events. These just map keyboard events and alter our input
   // state appropriately.
-  fn key_down_event(&mut self, _ctx: &mut Context, keycode: KeyCode, keymod: KeyMods, _repeat: bool) {
+  fn key_down_event(
+    &mut self,
+    _ctx: &mut Context,
+    keycode: KeyCode,
+    keymod: KeyMods,
+    _repeat: bool,
+  ) {
     match keycode {
       KeyCode::Space => {
         self.stop_render();

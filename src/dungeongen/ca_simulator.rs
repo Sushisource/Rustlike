@@ -3,21 +3,12 @@ extern crate rand;
 
 use super::direction::Direction;
 use crate::util::Point;
-use ggez::{
-  graphics::{
-    DrawMode,
-    DrawParam,
-    FilterMode,
-    Image,
-    Mesh,
-    Color,
-    Drawable
-  },
-  Context,
-  GameResult,
-  graphics::draw
-};
 use crate::util::Vec2;
+use ggez::{
+  graphics::draw,
+  graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh},
+  Context, GameResult,
+};
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -182,7 +173,7 @@ impl CASim {
               // Cell survives
               ca_grid_next[x][y] = true;
             }
-            // Cell dead
+          // Cell dead
           } else if nc == 3 || nc >= 7 {
             // Cell born
             ca_grid_next[x][y] = true;
@@ -262,8 +253,12 @@ impl CASim {
     let cave_bounds = self.uspace_gboundary();
     if !cave_bounds.is_empty() {
       // Line width also scales w/ draw param, so need to make it reasonable.
-      let line = Mesh::new_line(ctx, cave_bounds.as_slice(), 4.0 / param.scale.x,
-                                Color::new(0.5, 0.5, 0.5, 1.0))?;
+      let line = Mesh::new_line(
+        ctx,
+        cave_bounds.as_slice(),
+        4.0 / param.scale.x,
+        Color::new(0.5, 0.5, 0.5, 1.0),
+      )?;
       draw(ctx, &line, param)?;
     }
     Ok(())
@@ -288,8 +283,8 @@ impl CASim {
 
   pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
     let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
-    let mesh = Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(),
-                                 Color::new(0.5, 0.5, 0.5, 1.0))?;
+    let mesh =
+      Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(), Color::new(0.5, 0.5, 0.5, 1.0))?;
     draw(ctx, &mesh, param)
   }
 }

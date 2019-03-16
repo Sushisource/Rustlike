@@ -1,25 +1,24 @@
 use super::direction::Direction;
 use crate::{
-  nc::world::CollisionGroups,
-  nc::shape::{Compound, ShapeHandle},
-  na::{Isometry2, Vector2},
-  na,
-  dungeongen::level::WALL_THICKNESS,
-  dungeongen::level::Wall,
   collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D},
+  dungeongen::level::Wall,
+  dungeongen::level::WALL_THICKNESS,
+  na,
+  na::{Isometry2, Vector2},
+  nc::shape::{Compound, ShapeHandle},
+  nc::world::CollisionGroups,
   util::geom::{CenterOriginRect, CenteredRect},
   util::{Meters, Point},
 };
+use ggez::graphics::DrawMode;
+use ggez::graphics::Mesh;
 use ggez::{
-  graphics::{Color, Rect, DrawParam},
-  Context,
-  GameResult,
   graphics::draw,
+  graphics::{Color, DrawParam, Rect},
+  Context, GameResult,
 };
 use rand::distributions::{Distribution, Normal};
 use rand::{thread_rng, Rng};
-use ggez::graphics::DrawMode;
-use ggez::graphics::Mesh;
 
 pub static DOOR_WIDTH: Meters = 1.1;
 
@@ -75,7 +74,7 @@ impl Room {
 
   pub fn draw(&self, ctx: &mut Context, draw_param: &DrawParam) -> GameResult<()> {
     // TODO: Configurable door colors
-    let door_color =Color::new(0.9, 0.9, 0.9, 1.0);
+    let door_color = Color::new(0.9, 0.9, 0.9, 1.0);
     for &(wall, _) in &self.walls {
       let r: Rect = (&wall as &CenterOriginRect).into();
       let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
@@ -119,8 +118,14 @@ impl Room {
 
   /// Adds a door to the room centered on the wall on the side of the given direction
   pub fn add_door_to_wall(&mut self, side: Direction) {
-    let new_door = Room::gen_door(self.cr.center().x, self.cr.center().y,
-                                  self.cr.width, self.cr.height, side, 0.0);
+    let new_door = Room::gen_door(
+      self.cr.center().x,
+      self.cr.center().y,
+      self.cr.width,
+      self.cr.height,
+      side,
+      0.0,
+    );
     self.doors.push(new_door);
   }
 
