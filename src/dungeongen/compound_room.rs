@@ -61,7 +61,7 @@ impl CompoundRoomMaker {
     // Punch at least one door to the outside. All rooms are connected inside. To do this,
     // we find the furthest out wall in some cardinal direction and punch a door in it.
     {
-      let mut dirs = Direction::compass().clone();
+      let mut dirs = *Direction::compass();
       rng.shuffle(dirs.as_mut());
 
       for d in dirs.iter().take(rng.gen_range(1, 5)) {
@@ -142,7 +142,7 @@ impl CompoundRoomMaker {
       .collect();
     debug!("target walls: {:?}", target_walls);
     if target_walls.len() != 2 {
-      warn!("Couldn't find two walls that worked when punching door in compound room");
+      debug!("Couldn't find two walls that worked when punching door in compound room");
       return Err(());
     };
     // Find the overlap of the target walls
@@ -162,7 +162,7 @@ impl CompoundRoomMaker {
     };
     let size = abs(hi_end - low_end);
     if size < DOOR_WIDTH + WALL_THICKNESS * 2.0 {
-      warn!("Wall overlap not big enough to punch door");
+      debug!("Wall overlap not big enough to punch door");
       return Err(());
     }
     let midpoint = (hi_end + low_end) / 2.0;

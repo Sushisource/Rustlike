@@ -30,7 +30,7 @@ impl WorldRender {
     WorldRender { world, fastmode: true, assets, debug: false, level_finished: false }
   }
 
-  fn stop_render(&mut self) -> () {
+  fn stop_render(&mut self) {
     self.world.level.level_gen_finished = true
   }
 }

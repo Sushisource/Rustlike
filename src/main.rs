@@ -35,7 +35,7 @@ fn main() {
       //.resizable(true)
       conf::WindowSetup::default().title("Rougelike!"),
     )
-    .window_mode(conf::WindowMode::default().dimensions(1600.0, 900.0));
+    .window_mode(conf::WindowMode::default().dimensions(1000.0, 1000.0));
 
   let (mut ctx, mut eloop) = cb.build().unwrap();
 

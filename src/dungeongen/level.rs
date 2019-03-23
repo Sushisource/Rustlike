@@ -54,19 +54,19 @@ impl Level {
       // TODO: Right now the dimensions of this sim need to have the same ratio
       // as the screen or it gets squished. It's also bad at taking up most of the available screen
       // space.
-      cave_sim: CASim::new(266, 150, 1.0),
+      cave_sim: CASim::new(200, 200, 1.0),
       level_gen_finished: false,
       rooms: Vec::new(),
       obstacles: Vec::new(),
       gen_stage: LevelGenStage::CaveSim,
-      width: 80.0,
-      height: 45.0,
+      width: 50.0,
+      height: 50.0,
       tmp_collw: new_collw(),
       tmp_ent_ct: 0,
     }
   }
 
-  pub fn tick_level_gen(&mut self) -> () {
+  pub fn tick_level_gen(&mut self) {
     let stage_complete = match self.gen_stage {
       LevelGenStage::CaveSim => self.tick_cavesim(),
       LevelGenStage::RoomSim => self.tick_roomsim(),
@@ -107,10 +107,9 @@ impl Level {
       self.tmp_collw.register(&cave_bb_room, CollidableDat::new(cave_bb.coltype(), nxt_id));
       self.tmp_collw.update();
     }
-    // TODO: Change back to more rooms / not 100% compound rooms
-    if self.rooms.len() < 1 {
+    if self.rooms.len() < 10 {
       loop {
-        let is_compound = rng.gen_bool(5.0 / 5.0);
+        let is_compound = rng.gen_bool(2.0 / 5.0);
         let mut nu_rooms = Vec::new();
         if is_compound {
           if let Ok(mut room) = CompoundRoomMaker::rand_compound_room(xrange, yrange) {
@@ -271,7 +270,6 @@ impl Level {
 
 fn has_no_collisions(collw: &CollW) -> bool {
   collw.contact_pairs(true).peekable().peek().is_none()
-  //.any(|p| p.2.num_contacts() > 0)
 }
 
 #[cfg(test)]
@@ -305,8 +303,8 @@ mod test {
     let room2 =
       Room::new_with_centered_door(Point::new(0.0, 0.0), 3.0, 3.0, Direction::North).unwrap();
     let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
-    Level::check_room_collisions(&mut collw, &vec![room1], dat1);
-    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room2], dat2);
+    Level::check_room_collisions(&mut collw, &[room1], dat1);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &[room2], dat2);
     assert!(no_collisions);
   }
 
@@ -321,9 +319,9 @@ mod test {
     let room2 =
       Room::new_with_centered_door(Point::new(0.0, 4.0), 4.0, 3.5, Direction::East).unwrap();
     let dat2 = CollidableDat::new(CollidableType::RoomWall, 2);
-    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room1], dat1);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &[room1], dat1);
     assert!(no_collisions);
-    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &vec![room2], dat2);
+    let (_, no_collisions) = Level::check_room_collisions(&mut collw, &[room2], dat2);
     // There should be collisions!
     assert!(!no_collisions);
   }
