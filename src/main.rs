@@ -1,5 +1,7 @@
 #[macro_use]
 extern crate derive_new;
+#[macro_use]
+extern crate lazy_static;
 extern crate ggez;
 extern crate nalgebra as na;
 extern crate ncollide2d as nc;
@@ -40,6 +42,6 @@ fn main() {
   let (mut ctx, mut eloop) = cb.build().unwrap();
 
   let world = World::new();
-  let mut renderer = WorldRender::new(world, &mut ctx);
+  let mut renderer = WorldRender::new(world, &mut ctx).unwrap();
   event::run(&mut ctx, &mut eloop, &mut renderer).unwrap();
 }

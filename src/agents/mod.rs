@@ -1,3 +1,4 @@
+pub mod mouse_mover;
 pub mod player;
 
 use crate::util::Point;

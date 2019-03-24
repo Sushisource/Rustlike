@@ -1,3 +1,4 @@
+use crate::agents::mouse_mover::MouseTarget;
 use crate::agents::Agent;
 use crate::collision::Compound2D;
 use crate::util::context_help::ContextHelp;
@@ -22,12 +23,21 @@ pub struct WorldRender {
   debug: bool,
   // TODO: Move
   level_finished: bool,
+  mouse_target: MouseTarget,
 }
 
 impl WorldRender {
-  pub fn new(world: World, ctx: &mut Context) -> WorldRender {
+  pub fn new(world: World, ctx: &mut Context) -> GameResult<WorldRender> {
     let assets = Assets::new(ctx);
-    WorldRender { world, fastmode: true, assets, debug: false, level_finished: false }
+    let mouse_target = MouseTarget::new(ctx)?;
+    Ok(WorldRender {
+      world,
+      fastmode: true,
+      assets,
+      debug: false,
+      level_finished: false,
+      mouse_target,
+    })
   }
 
   fn stop_render(&mut self) {
@@ -59,6 +69,9 @@ impl event::EventHandler for WorldRender {
   fn draw(&mut self, ctx: &mut Context) -> GameResult<()> {
     graphics::clear(ctx, Color::new(0.0, 0.0, 0.0, 1.0));
 
+    let mouse_p = mouse::position(ctx);
+    let w_mouse_p = self.world.level.sspace_to_lspace(ctx, mouse_p.into());
+
     // First thing that is drawn is the level itself
     self.world.level.draw(ctx)?;
     // Render debug info that needs to be drawn at level scale
@@ -78,10 +91,14 @@ impl event::EventHandler for WorldRender {
         }
       }
     }
+    // Draw movement target todo: if required
+    self.mouse_target.draw(ctx, w_mouse_p, self.world.player.pos())?;
 
-    let scaler = self.world.level.lscale(ctx);
+    // Reset scaling
     graphics::set_transform(ctx, DrawParam::default().to_matrix());
     graphics::apply_transformations(ctx)?;
+    // Draw the player
+    let scaler = self.world.level.lscale(ctx);
     self.world.player.draw(ctx, &mut self.assets, scaler.scale.into())?;
 
     // Textual debug info
