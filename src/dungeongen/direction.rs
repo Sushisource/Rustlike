@@ -24,7 +24,7 @@ impl Direction {
       Direction::West,
       Direction::NorthWest,
     ];
-    DIRECTIONS.into_iter()
+    DIRECTIONS.iter()
   }
 
   pub fn compass() -> &'static [Direction; 4] {

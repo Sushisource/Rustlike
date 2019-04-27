@@ -6,9 +6,6 @@ use crate::collision::{
   new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar,
 };
 use crate::dungeongen::compound_room::CompoundRoomMaker;
-use crate::nc::bounding_volume::AABB;
-use crate::nc::shape::Polyline;
-use crate::nc::world::CollisionObjectHandle;
 use crate::util::context_help::ContextHelp;
 use crate::util::geom::CenterOriginRect;
 use crate::util::geom::CenteredRect;
@@ -16,6 +13,9 @@ use crate::util::{Meters, Point};
 use ggez::graphics;
 use ggez::graphics::{Color, DrawParam};
 use ggez::{Context, GameResult};
+use nc::bounding_volume::AABB;
+use nc::shape::Polyline;
+use nc::world::CollisionObjectHandle;
 use num::{FromPrimitive, ToPrimitive};
 use rand::{thread_rng, Rng};
 

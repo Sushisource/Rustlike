@@ -3,14 +3,14 @@ use crate::dungeongen::level::Wall;
 use crate::dungeongen::level::WALL_THICKNESS;
 use crate::dungeongen::rooms::DOOR_WIDTH;
 use crate::dungeongen::{direction::Direction, rooms::Door, rooms::Room};
-use crate::na;
-use crate::na::{Isometry2, Vector2};
-use crate::nc::{query, query::Contact, shape::Compound};
 use crate::util::Point;
 use crate::util::{
   geom::{origin, walk_grid, CenterOriginRect, CenteredRect, GridRect, IntPoint, PolarVec},
   Meters,
 };
+use na;
+use na::{Isometry2, Vector2};
+use nc::{query, query::Contact, shape::Compound};
 use num::abs;
 use rand::distributions::{Distribution, Normal};
 use rand::thread_rng;

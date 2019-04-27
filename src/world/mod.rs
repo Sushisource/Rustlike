@@ -25,7 +25,7 @@ impl World {
     World { level, player, collision: new_collw(), next_eid: AtomicUsize::new(0) }
   }
 
-  fn add_level_contents_to_collision(&mut self) -> () {
+  fn add_level_contents_to_collision(&mut self) {
     let rooms = self.level.produce_collidables();
     for r in rooms {
       let cw_dat = CollidableDat::new(r.coltype(), self.next_eid.fetch_add(1, Ordering::Relaxed));
@@ -34,7 +34,7 @@ impl World {
     self.collision.update();
   }
 
-  fn collision_test(&self, p: Point) -> () {
+  fn collision_test(&self, p: Point) {
     let mut cgs = nc::world::CollisionGroups::new();
     cgs.set_membership(&[2]);
     cgs.set_whitelist(&[1]);

@@ -1,12 +1,12 @@
 extern crate nalgebra as na;
 extern crate ncollide2d as nc;
 
-use crate::na::Isometry2;
-use crate::nc::bounding_volume::AABB;
-use crate::nc::broad_phase::BroadPhasePairFilter;
-use crate::nc::shape::{Compound, Cuboid, ShapeHandle};
-use crate::nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
 use crate::util::Meters;
+use na::Isometry2;
+use nc::bounding_volume::AABB;
+use nc::broad_phase::BroadPhasePairFilter;
+use nc::shape::{Compound, Cuboid, ShapeHandle};
+use nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
 
 pub type CollW = nc::world::CollisionWorld<Meters, CollidableDat>;
 pub type CollisionRect = Cuboid<Meters>;

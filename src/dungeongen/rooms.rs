@@ -3,10 +3,6 @@ use crate::{
   collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D},
   dungeongen::level::Wall,
   dungeongen::level::WALL_THICKNESS,
-  na,
-  na::{Isometry2, Vector2},
-  nc::shape::{Compound, ShapeHandle},
-  nc::world::CollisionGroups,
   util::geom::{CenterOriginRect, CenteredRect},
   util::{Meters, Point},
 };
@@ -17,6 +13,10 @@ use ggez::{
   graphics::{Color, DrawParam, Rect},
   Context, GameResult,
 };
+use na;
+use na::{Isometry2, Vector2};
+use nc::shape::{Compound, ShapeHandle};
+use nc::world::CollisionGroups;
 use rand::distributions::{Distribution, Normal};
 use rand::{thread_rng, Rng};
 
