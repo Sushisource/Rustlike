@@ -10,7 +10,8 @@ use crate::{dungeongen::level::Level, world};
 use bevy::prelude::*;
 
 /// The startup system for dungeon generation.
-pub fn dungeongen(commands: &mut Commands, mut state: ResMut<world::World>) {
-  let level = Level::new();
-  commands.spawn(level);
+pub fn dungeongen(commands: &mut Commands) {
+  commands.insert_resource(world::World::new());
+  // let level = Level::new();
+  // commands.spawn(level);
 }

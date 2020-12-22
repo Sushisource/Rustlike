@@ -31,6 +31,6 @@ fn main() {
     .run();
 }
 
-pub fn setup(commands: &mut Commands, mut state: ResMut<world::World>) {
+pub fn setup(commands: &mut Commands) {
   commands.spawn(Camera2dBundle::default()).spawn(CameraUiBundle::default());
 }
