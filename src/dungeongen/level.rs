@@ -1,21 +1,16 @@
-use super::blobstacle::Blobstacle;
-use super::ca_simulator::CASim;
-use super::direction::Direction;
-use super::rooms::Room;
-use crate::collision::{
-  new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar,
+use super::{blobstacle::Blobstacle, ca_simulator::CASim, direction::Direction, rooms::Room};
+use crate::{
+  collision::{new_collw, CollW, Collidable, CollidableDat, CollidableType, GameObjRegistrar},
+  dungeongen::compound_room::CompoundRoomMaker,
+  util::{
+    context_help::ContextHelp,
+    geom::{CenterOriginRect, CenteredRect},
+    Meters, Point,
+  },
 };
-use crate::dungeongen::compound_room::CompoundRoomMaker;
-use crate::util::context_help::ContextHelp;
-use crate::util::geom::CenterOriginRect;
-use crate::util::geom::CenteredRect;
-use crate::util::{Meters, Point};
-use ggez::graphics;
-use ggez::graphics::{Color, DrawParam};
-use ggez::{Context, GameResult};
-use nc::bounding_volume::AABB;
-use nc::shape::Polyline;
-use nc::world::CollisionObjectHandle;
+use bevy::prelude::*;
+use ncollide2d::shape::Polyline;
+use ncollide2d::{bounding_volume::AABB, world::CollisionObjectHandle};
 use num::{FromPrimitive, ToPrimitive};
 use rand::{thread_rng, Rng};
 
@@ -26,6 +21,7 @@ pub static WALL_THICKNESS: Meters = 0.2;
 /// A level consists of one huge arbitrarily-shaped but enclosed curve, on top
 /// of which we will layer features. This bottom layer represents the shape of
 /// the cavern.
+#[derive(Bundle)]
 pub struct Level {
   pub cave_sim: CASim,
   pub level_gen_finished: bool,
@@ -77,9 +73,6 @@ impl Level {
       self.gen_stage = ToPrimitive::to_u8(&self.gen_stage)
         .and_then(|v| FromPrimitive::from_u8(v + 1))
         .unwrap_or(LevelGenStage::Done);
-    }
-    if self.gen_stage == LevelGenStage::Done {
-      self.level_gen_finished = true;
     }
   }
 
@@ -135,7 +128,7 @@ impl Level {
       }
       false
     } else {
-      info!("Done placing rooms");
+      log::info!("Done placing rooms");
       true
     }
   }
@@ -211,61 +204,59 @@ impl Level {
   }
 
   // Rendering code below =============================================================
-  pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
-    graphics::set_transform(ctx, DrawParam::default().to_matrix());
-    graphics::apply_transformations(ctx)?;
-    let sscale = ctx.sscale();
-    let center_scale = self.lscale(ctx);
-
-    if self.gen_stage == LevelGenStage::CaveSim {
-      self.cave_sim.draw_evolution(ctx, sscale)?;
-    } else {
-      graphics::set_transform(ctx, center_scale.to_matrix());
-      graphics::apply_transformations(ctx)?;
-      // Next stage, we render the cave as a polygon and place rooms
-      let color = Color::new(0.5, 0.5, 0.5, 1.0);
-      // TODO: We also do this u->l conversion in the generator. Combine
-      // somehow?
-      self.cave_sim.draw(ctx, self.u_to_l_scale().color(color))?;
-
-      if !self.rooms.is_empty() {
-        for room in &self.rooms {
-          let grayval = 0.3;
-          room.draw(ctx, &DrawParam::new().color(Color::new(grayval, grayval, grayval, 1.0)))?;
-        }
-      }
-
-      if !self.rooms.is_empty() {
-        for obstacle in &self.obstacles {
-          obstacle.draw(ctx)?;
-        }
-      }
-      //       Test center room of one sq unit
-      //      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
-      //      ctx.center_rect(self.middle(), 1.0, 1.0)?;
-    }
-    Ok(())
-  }
-
-  fn lspace_to_sspace(&self, ctx: &Context, p: Point) -> Point {
-    let p = self.lspace_to_uspace(p);
-    ctx.uspace_to_sspace(p)
-  }
-
-  pub fn sspace_to_lspace(&self, ctx: &Context, p: Point) -> Point {
-    let p = ctx.sspace_to_uspace(p);
-    self.uspace_to_lspace(p)
-  }
-
-  fn u_to_l_scale(&self) -> DrawParam {
-    let as_vec = self.uspace_to_lspace(Point::new(1.0, 1.0)).coords;
-    DrawParam { scale: as_vec.into(), ..Default::default() }
-  }
-
-  pub fn lscale(&self, ctx: &Context) -> DrawParam {
-    let as_vec = self.lspace_to_sspace(ctx, Point::new(1.0, 1.0)).coords;
-    DrawParam { scale: as_vec.into(), ..Default::default() }
-  }
+  // pub fn draw(&self, ctx: &mut Context) -> GameResult<()> {
+  //   let sscale = ctx.sscale();
+  //   let center_scale = self.lscale(ctx);
+  //
+  //   if self.gen_stage == LevelGenStage::CaveSim {
+  //     self.cave_sim.draw_evolution(ctx, sscale)?;
+  //   } else {
+  //     graphics::set_transform(ctx, center_scale.to_matrix());
+  //     graphics::apply_transformations(ctx)?;
+  //     // Next stage, we render the cave as a polygon and place rooms
+  //     let color = Color::new(0.5, 0.5, 0.5, 1.0);
+  //     // TODO: We also do this u->l conversion in the generator. Combine
+  //     // somehow?
+  //     self.cave_sim.draw(ctx, self.u_to_l_scale().color(color))?;
+  //
+  //     if !self.rooms.is_empty() {
+  //       for room in &self.rooms {
+  //         let grayval = 0.3;
+  //         room.draw(ctx, &DrawParam::new().color(Color::new(grayval, grayval, grayval, 1.0)))?;
+  //       }
+  //     }
+  //
+  //     if !self.rooms.is_empty() {
+  //       for obstacle in &self.obstacles {
+  //         obstacle.draw(ctx)?;
+  //       }
+  //     }
+  //     //       Test center room of one sq unit
+  //     //      graphics::set_color(ctx, Color::new(0.0, 0.5, 0.0, 1.0))?;
+  //     //      ctx.center_rect(self.middle(), 1.0, 1.0)?;
+  //   }
+  //   Ok(())
+  // }
+  //
+  // fn lspace_to_sspace(&self, ctx: &Context, p: Point) -> Point {
+  //   let p = self.lspace_to_uspace(p);
+  //   ctx.uspace_to_sspace(p)
+  // }
+  //
+  // pub fn sspace_to_lspace(&self, ctx: &Context, p: Point) -> Point {
+  //   let p = ctx.sspace_to_uspace(p);
+  //   self.uspace_to_lspace(p)
+  // }
+  //
+  // fn u_to_l_scale(&self) -> DrawParam {
+  //   let as_vec = self.uspace_to_lspace(Point::new(1.0, 1.0)).coords;
+  //   DrawParam { scale: as_vec.into(), ..Default::default() }
+  // }
+  //
+  // pub fn lscale(&self, ctx: &Context) -> DrawParam {
+  //   let as_vec = self.lspace_to_sspace(ctx, Point::new(1.0, 1.0)).coords;
+  //   DrawParam { scale: as_vec.into(), ..Default::default() }
+  // }
 }
 
 fn has_no_collisions(collw: &CollW) -> bool {

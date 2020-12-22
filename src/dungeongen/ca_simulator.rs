@@ -1,14 +1,6 @@
-extern crate ggez;
-extern crate rand;
-
 use super::direction::Direction;
 use crate::util::Point;
 use crate::util::Vec2;
-use ggez::{
-  graphics::draw,
-  graphics::{Color, DrawMode, DrawParam, Drawable, FilterMode, Image, Mesh},
-  Context, GameResult,
-};
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -236,33 +228,33 @@ impl CASim {
   }
 
   // GRAPHICS =================================================================
-  pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-    let ca_img_a = self.cave_ca_img(&self.ca_grid);
-    let scalevec = Vec2::new(
-      (1.0 / self.width as f32) * param.scale.x,
-      (1.0 / self.height as f32) * param.scale.y,
-    );
-    let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
-    let mut scaled_params = param;
-    scaled_params.scale = scalevec.into();
-    scaled_params.dest = Point::new(0.0, 0.0).into();
-    // Don't make my pixels all blurry
-    img.set_filter(FilterMode::Nearest);
-    img.draw(ctx, scaled_params)?;
-
-    let cave_bounds = self.uspace_gboundary();
-    if !cave_bounds.is_empty() {
-      // Line width also scales w/ draw param, so need to make it reasonable.
-      let line = Mesh::new_line(
-        ctx,
-        cave_bounds.as_slice(),
-        4.0 / param.scale.x,
-        Color::new(1.0, 1.0, 1.0, 1.0),
-      )?;
-      draw(ctx, &line, param)?;
-    }
-    Ok(())
-  }
+  // pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+  //   let ca_img_a = self.cave_ca_img(&self.ca_grid);
+  //   let scalevec = Vec2::new(
+  //     (1.0 / self.width as f32) * param.scale.x,
+  //     (1.0 / self.height as f32) * param.scale.y,
+  //   );
+  //   let mut img = Image::from_rgba8(ctx, self.width as u16, self.height as u16, &ca_img_a)?;
+  //   let mut scaled_params = param;
+  //   scaled_params.scale = scalevec.into();
+  //   scaled_params.dest = Point::new(0.0, 0.0).into();
+  //   // Don't make my pixels all blurry
+  //   img.set_filter(FilterMode::Nearest);
+  //   img.draw(ctx, scaled_params)?;
+  //
+  //   let cave_bounds = self.uspace_gboundary();
+  //   if !cave_bounds.is_empty() {
+  //     // Line width also scales w/ draw param, so need to make it reasonable.
+  //     let line = Mesh::new_line(
+  //       ctx,
+  //       cave_bounds.as_slice(),
+  //       4.0 / param.scale.x,
+  //       Color::new(1.0, 1.0, 1.0, 1.0),
+  //     )?;
+  //     draw(ctx, &line, param)?;
+  //   }
+  //   Ok(())
+  // }
 
   /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
   fn cave_ca_img(&self, cell_grid: &CellGrid) -> Vec<u8> {
@@ -281,12 +273,12 @@ impl CASim {
     img
   }
 
-  pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
-    let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
-    let mesh =
-      Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(), Color::new(0.7, 0.7, 0.7, 1.0))?;
-    draw(ctx, &mesh, param)
-  }
+  // pub fn draw(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
+  //   let bounds = self.uspace_boundary(Point::new(0.0, 0.0));
+  //   let mesh =
+  //     Mesh::new_polygon(ctx, DrawMode::fill(), bounds.as_slice(), Color::new(0.7, 0.7, 0.7, 1.0))?;
+  //   draw(ctx, &mesh, param)
+  // }
 }
 
 #[cfg(test)]

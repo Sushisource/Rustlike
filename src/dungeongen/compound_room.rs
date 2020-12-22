@@ -1,20 +1,23 @@
-use crate::collision::{Collidable, CollisionRect};
-use crate::dungeongen::level::Wall;
-use crate::dungeongen::level::WALL_THICKNESS;
-use crate::dungeongen::rooms::DOOR_WIDTH;
-use crate::dungeongen::{direction::Direction, rooms::Door, rooms::Room};
-use crate::util::Point;
-use crate::util::{
-  geom::{origin, walk_grid, CenterOriginRect, CenteredRect, GridRect, IntPoint, PolarVec},
-  Meters,
+use crate::{
+  collision::{Collidable, CollisionRect},
+  dungeongen::{
+    direction::Direction, level::Wall, level::WALL_THICKNESS, rooms::Door, rooms::Room,
+    rooms::DOOR_WIDTH,
+  },
+  util::{
+    geom::{origin, walk_grid, CenterOriginRect, CenteredRect, GridRect, IntPoint, PolarVec},
+    Meters, Point,
+  },
 };
-use na;
-use na::{Isometry2, Vector2};
-use nc::{query, query::Contact, shape::Compound};
+use nalgebra::{convert, Isometry2, Vector2};
+use ncollide2d::query;
+use ncollide2d::query::Contact;
+use ncollide2d::shape::Compound;
 use num::abs;
-use rand::distributions::{Distribution, Normal};
-use rand::thread_rng;
-use rand::Rng;
+use rand::seq::SliceRandom;
+use rand::{distributions::Distribution, thread_rng, Rng};
+use rand_distr::num_traits::real::Real;
+use rand_distr::Normal;
 use std::f32::consts::PI;
 
 pub type CompoundRoom = Vec<Room>;
@@ -42,10 +45,10 @@ impl CompoundRoomMaker {
 
     let mut maker = CompoundRoomMaker::new(starter);
 
-    let num_extensions = rng.gen_range(1, 5);
+    let num_extensions = rng.gen_range(1..5);
 
     for _ in 0..num_extensions {
-      let exit_angle = rng.gen_range(0.0, PI * 2.0);
+      let exit_angle = rng.gen_range(0.0..PI * 2.0);
       let new = CompoundRoomMaker::rand_grid_room();
       let contact = maker.snap_to_existing_rooms(&new, exit_angle);
       let moved_room = maker.rects.last().unwrap();
@@ -62,9 +65,9 @@ impl CompoundRoomMaker {
     // we find the furthest out wall in some cardinal direction and punch a door in it.
     {
       let mut dirs = *Direction::compass();
-      rng.shuffle(dirs.as_mut());
+      dirs.as_mut().shuffle(&mut rng);
 
-      for d in dirs.iter().take(rng.gen_range(1, 5)) {
+      for d in dirs.iter().take(rng.gen_range(1..5)) {
         let walls_in_dir_2_rooms: Vec<(Wall, &mut Room)> = maker
           .rooms
           .iter_mut()
@@ -98,8 +101,8 @@ impl CompoundRoomMaker {
     };
 
     // Shift all the rooms into a randomly selected position
-    let c_x: f32 = rng.gen_range(x_min, x_max);
-    let c_y: f32 = rng.gen_range(y_min, y_max);
+    let c_x: f32 = rng.gen_range(x_min..x_max);
+    let c_y: f32 = rng.gen_range(y_min..y_max);
     for r in maker.rooms.iter_mut() {
       r.translate(c_x, c_y);
     }
@@ -224,10 +227,10 @@ impl CompoundRoomMaker {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
     let (room_w, room_h) = {
-      let sizer = Normal::new(5.0, 3.0);
+      let sizer = Normal::new(5.0, 3.0).unwrap();
       let mut get_siz = || {
-        sizer
-          .sample(&mut rng)
+        rng
+          .sample(sizer)
           .abs()
           // Rooms need to be big enough to fit a door, and a little wiggle room
           .max((DOOR_WIDTH * 2.0 + 0.2).into())
@@ -239,7 +242,7 @@ impl CompoundRoomMaker {
   }
 
   fn grid_room_to_room(gr: &GridRect, door: Option<Door>) -> Result<Room, ()> {
-    let nc: Point = na::convert(gr.center());
+    let nc: Point = convert(gr.center());
     Room::new(nc, gr.width as f32, gr.height as f32, door, true)
   }
 }

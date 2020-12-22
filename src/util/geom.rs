@@ -1,13 +1,11 @@
-use crate::collision::{Collidable, CollidableType, CollisionRect, Shape2D};
-use crate::dungeongen::direction::Direction;
-use crate::dungeongen::level::Wall;
-use crate::dungeongen::level::WALL_THICKNESS;
-use crate::na;
-use crate::na::{Isometry2, Vector2};
-use crate::nc::shape::ShapeHandle;
-use crate::nc::world::CollisionGroups;
-use crate::util::{Meters, Point};
-use ggez::graphics::Rect;
+use crate::{
+  collision::{Collidable, CollidableType, CollisionRect, Shape2D},
+  dungeongen::{direction::Direction, level::Wall, level::WALL_THICKNESS},
+  util::{Meters, Point},
+};
+use nalgebra::{Isometry2, Vector2};
+use ncollide2d::{shape::ShapeHandle, world::CollisionGroups};
+use num::zero;
 
 pub trait CenterOriginRect {
   fn center(&self) -> Point;
@@ -54,7 +52,7 @@ impl<'a> CenterOriginRect + 'a {
 
 impl<'a> Collidable for &'a CenterOriginRect {
   fn location(&self) -> Isometry2<Meters> {
-    Isometry2::new(self.center().coords, na::zero())
+    Isometry2::new(self.center().coords, zero())
   }
   fn shape(&self) -> Shape2D {
     ShapeHandle::new(CollisionRect::new(Vector2::new(self.width() / 2.0, self.height() / 2.0)))
@@ -76,7 +74,7 @@ pub struct CenteredRect {
 
 impl CenterOriginRect for CenteredRect {
   fn center(&self) -> Point {
-    self.center
+    self.center.clone()
   }
   fn width(&self) -> f32 {
     self.width
@@ -86,17 +84,17 @@ impl CenterOriginRect for CenteredRect {
   }
 }
 
-impl<'a> Into<Rect> for &'a CenterOriginRect {
-  fn into(self) -> Rect {
-    Rect {
-      // GGEZ rect is top-left origin
-      x: self.center().x - self.width() / 2.0,
-      y: self.center().y - self.height() / 2.0,
-      w: self.width(),
-      h: self.height(),
-    }
-  }
-}
+// impl<'a> Into<Rect> for &'a CenterOriginRect {
+//   fn into(self) -> Rect {
+//     Rect {
+//       // GGEZ rect is top-left origin
+//       x: self.center().x - self.width() / 2.0,
+//       y: self.center().y - self.height() / 2.0,
+//       w: self.width(),
+//       h: self.height(),
+//     }
+//   }
+// }
 
 pub fn origin() -> Isometry2<Meters> {
   Isometry2::new(Vector2::zeros(), 0.0)
@@ -115,7 +113,7 @@ impl Into<Vector2<Meters>> for PolarVec {
 }
 
 // Gridded geometry below here ====================================================================
-pub type IntPoint = na::Point2<i32>;
+pub type IntPoint = nalgebra::Point2<i32>;
 
 #[derive(new, Debug, PartialEq)]
 pub struct GridRect {

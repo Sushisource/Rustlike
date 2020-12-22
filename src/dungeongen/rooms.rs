@@ -1,24 +1,21 @@
 use super::direction::Direction;
 use crate::{
   collision::{CollGroups, Collidable, CollidableType, CollisionRect, Shape2D},
-  dungeongen::level::Wall,
-  dungeongen::level::WALL_THICKNESS,
-  util::geom::{CenterOriginRect, CenteredRect},
-  util::{Meters, Point},
+  dungeongen::{level::Wall, level::WALL_THICKNESS},
+  util::{
+    geom::{CenterOriginRect, CenteredRect},
+    Meters, Point,
+  },
 };
-use ggez::graphics::DrawMode;
-use ggez::graphics::Mesh;
-use ggez::{
-  graphics::draw,
-  graphics::{Color, DrawParam, Rect},
-  Context, GameResult,
+use nalgebra::{zero, Isometry2, Vector2};
+use ncollide2d::{
+  shape::{Compound, ShapeHandle},
+  world::CollisionGroups,
 };
-use na;
-use na::{Isometry2, Vector2};
-use nc::shape::{Compound, ShapeHandle};
-use nc::world::CollisionGroups;
-use rand::distributions::{Distribution, Normal};
-use rand::{thread_rng, Rng};
+use rand::{
+  distributions::Distribution, prelude::IteratorRandom, seq::SliceRandom, thread_rng, Rng,
+};
+use rand_distr::Normal;
 
 pub static DOOR_WIDTH: Meters = 1.1;
 
@@ -39,7 +36,7 @@ impl Room {
     door: Option<Door>,
     is_compound: bool,
   ) -> Result<Room, ()> {
-    let cr: &CenterOriginRect = &CenteredRect::new(center, width, height);
+    let cr: &dyn CenterOriginRect = &CenteredRect::new(center.clone(), width, height);
     let walls = match door {
       None => cr.gen_walls(),
       Some(door) => Room::gen_walls_with_door(cr, door, door.facing)?,
@@ -51,12 +48,12 @@ impl Room {
   /// Creates a new `Room` randomly placed somewhere in the provided range
   pub fn new_rand((x_min, x_max): (Meters, Meters), (y_min, y_max): (Meters, Meters)) -> Room {
     let mut rng = thread_rng();
-    let c_x: f32 = rng.gen_range(x_min, x_max);
-    let c_y: f32 = rng.gen_range(y_min, y_max);
+    let c_x: f32 = rng.gen_range(x_min..x_max);
+    let c_y: f32 = rng.gen_range(y_min..y_max);
     let (room_w, room_h) = Room::rand_room_box();
     let mut rng = thread_rng();
     // Add a door somewhere along the room edge
-    let side = rng.choose(Direction::compass()).unwrap();
+    let side = Direction::compass().choose(&mut rng).unwrap();
     let door = Room::gen_rand_door(c_x, c_y, room_w, room_h, *side);
     Room::new(Point::new(c_x, c_y), room_w, room_h, Some(door), false).unwrap()
   }
@@ -72,21 +69,21 @@ impl Room {
     Room::new(center, width, height, Some(door), false)
   }
 
-  pub fn draw(&self, ctx: &mut Context, draw_param: &DrawParam) -> GameResult<()> {
-    // TODO: Configurable door colors
-    let door_color = Color::new(0.9, 0.9, 0.9, 1.0);
-    for &(wall, _) in &self.walls {
-      let r: Rect = (&wall as &CenterOriginRect).into();
-      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
-      draw(ctx, &r, *draw_param)?;
-    }
-    for door in &self.doors {
-      let r: Rect = (door as &CenterOriginRect).into();
-      let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, door_color)?;
-      draw(ctx, &r, DrawParam::new().color(door_color))?;
-    }
-    Ok(())
-  }
+  // pub fn draw(&self, ctx: &mut Context, draw_param: &DrawParam) -> GameResult<()> {
+  //   // TODO: Configurable door colors
+  //   let door_color = Color::new(0.9, 0.9, 0.9, 1.0);
+  //   for &(wall, _) in &self.walls {
+  //     let r: Rect = (&wall as &CenterOriginRect).into();
+  //     let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, draw_param.color)?;
+  //     draw(ctx, &r, *draw_param)?;
+  //   }
+  //   for door in &self.doors {
+  //     let r: Rect = (door as &CenterOriginRect).into();
+  //     let r = Mesh::new_rectangle(ctx, DrawMode::fill(), r, door_color)?;
+  //     draw(ctx, &r, DrawParam::new().color(door_color))?;
+  //   }
+  //   Ok(())
+  // }
 
   /// Returns a collidable that can be used during room placement to ensure there is enough space
   /// on either side of the Room's door to accommodate the player.
@@ -133,7 +130,7 @@ impl Room {
     // TODO: Configurable sizing parameters
     let mut rng = thread_rng();
     let (room_w, room_h) = {
-      let sizer = Normal::new(5.0, 3.0);
+      let sizer = Normal::<f64>::new(5.0, 3.0).unwrap();
       let mut get_siz = || {
         sizer
           .sample(&mut rng)
@@ -149,7 +146,7 @@ impl Room {
 
   fn gen_rand_door(c_x: f32, c_y: f32, room_w: f32, room_h: f32, side: Direction) -> Door {
     let mut rng = thread_rng();
-    let offset_mul: f32 = rng.gen_range(-1.0, 1.0);
+    let offset_mul: f32 = rng.gen_range(-1.0..1.0);
     Room::gen_door(c_x, c_y, room_w, room_h, side, offset_mul)
   }
 
@@ -266,13 +263,13 @@ impl Into<CollisionRect> for Wall {
 
 impl Collidable for Room {
   fn location(&self) -> Isometry2<Meters> {
-    Isometry2::new(self.center().coords, na::zero())
+    Isometry2::new(self.center().coords, zero())
   }
   fn shape(&self) -> Shape2D {
     let shapes = self.walls.iter().map(|&(w, _)| {
       let cr: CollisionRect = w.into();
       // Wall locations need to be represented relative to the center of the room
-      let loc = Isometry2::new(w.center().coords - self.center().coords, na::zero());
+      let loc = Isometry2::new(w.center().coords - self.center().coords, zero());
       (loc, ShapeHandle::new(cr))
     });
     let whole_shape = Compound::new(shapes.collect());

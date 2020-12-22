@@ -14,7 +14,7 @@ pub struct World {
   level: Level,
   player: Player,
   collision: CollW,
-  // TODO: Move to Specs and use that for entity IDs?
+  // TODO: Use bevy properly for this
   next_eid: AtomicUsize, // Could be atomic
 }
 

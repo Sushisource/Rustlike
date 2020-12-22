@@ -3,10 +3,12 @@ extern crate ncollide2d as nc;
 
 use crate::util::Meters;
 use na::Isometry2;
-use nc::bounding_volume::AABB;
-use nc::broad_phase::BroadPhasePairFilter;
-use nc::shape::{Compound, Cuboid, ShapeHandle};
-use nc::world::{CollisionGroups, CollisionObject, CollisionObjectHandle};
+use nc::{
+  bounding_volume::AABB,
+  broad_phase::BroadPhasePairFilter,
+  shape::{Compound, Cuboid, ShapeHandle},
+  world::{CollisionGroups, CollisionObject, CollisionObjectHandle},
+};
 
 pub type CollW = nc::world::CollisionWorld<Meters, CollidableDat>;
 pub type CollisionRect = Cuboid<Meters>;
@@ -47,13 +49,13 @@ impl Collidable for AABB<Meters> {
   }
 }
 
-#[derive(new, Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(new, Hash, Eq, PartialEq, Debug, Copy, Clone)]
 pub struct CollidableDat {
   pub otype: CollidableType,
   pub id: usize,
 }
 
-#[derive(Eq, PartialEq, Debug, Copy, Clone)]
+#[derive(Hash, Eq, PartialEq, Debug, Copy, Clone)]
 pub enum CollidableType {
   RoomWall,
   CompoundRoomWall,
