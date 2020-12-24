@@ -67,7 +67,10 @@ impl Level {
       LevelGenStage::CaveSim => self.tick_cavesim(),
       LevelGenStage::RoomSim => self.tick_roomsim(),
       LevelGenStage::PlaceObstacles => self.place_obstacles(),
-      _ => false,
+      _ => {
+        self.level_gen_finished = true;
+        false
+      }
     };
     if stage_complete {
       self.gen_stage = ToPrimitive::to_u8(&self.gen_stage)

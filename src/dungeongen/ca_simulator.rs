@@ -1,6 +1,8 @@
 use super::direction::Direction;
 use crate::util::Point;
-use crate::util::Vec2;
+use bevy::prelude::*;
+use bevy::render::renderer::RenderResource;
+use bevy::render::texture::{Extent3d, TextureDimension, TextureFormat};
 
 type CellGrid = Vec<Vec<bool>>;
 
@@ -228,6 +230,30 @@ impl CASim {
   }
 
   // GRAPHICS =================================================================
+  pub fn draw_evolution(
+    &self,
+    commands: &mut Commands,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+  ) {
+    let ca_img_a = self.cave_ca_img(&self.ca_grid);
+    // let scalevec = Vec2::new(
+    //   (1.0 / self.width as f32) * param.scale.x,
+    //   (1.0 / self.height as f32) * param.scale.y,
+    // );
+    let texture = Texture::new_fill(
+      Extent3d::new(self.width as u32, self.height as u32, 0),
+      TextureDimension::D2,
+      &ca_img_a,
+      TextureFormat::Bgra8Unorm,
+    );
+    let mathandle = materials.add(ColorMaterial::texture(texture.into()));
+    commands.spawn(SpriteBundle {
+      sprite: Sprite::new(Vec2::new(10.0, 10.0)),
+      transform: Transform::from_translation(Vec3::new(0.0, -0.0, 0.0)),
+      material: mathandle,
+      ..Default::default()
+    });
+  }
   // pub fn draw_evolution(&self, ctx: &mut Context, param: DrawParam) -> GameResult<()> {
   //   let ca_img_a = self.cave_ca_img(&self.ca_grid);
   //   let scalevec = Vec2::new(

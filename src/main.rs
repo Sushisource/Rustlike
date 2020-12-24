@@ -26,8 +26,9 @@ fn main() {
   //let world = World::new();
   App::build()
     .add_plugins(DefaultPlugins)
+    .add_resource(world::World::new())
     .add_startup_system(setup.system())
-    .add_startup_system(dungeongen.system())
+    .add_system(dungeongen.system())
     .run();
 }
 

@@ -25,7 +25,7 @@ pub trait CenterOriginRect {
   }
 }
 
-impl<'a> CenterOriginRect + 'a {
+impl<'a> dyn CenterOriginRect + 'a {
   /// Generates walls for the rect. Walls are `WALL_THICKNESS` thick
   pub fn gen_walls(&self) -> Vec<(Wall, Direction)> {
     let mut retme = vec![];

@@ -11,7 +11,7 @@ pub mod render;
 /// The entire world. Contains all world objects, and handles interaction
 /// between subsystems.
 pub struct World {
-  level: Level,
+  pub level: Level,
   player: Player,
   collision: CollW,
   // TODO: Use bevy properly for this
