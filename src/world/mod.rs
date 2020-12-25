@@ -1,9 +1,11 @@
 extern crate ncollide2d as nc;
 
-use crate::agents::player::Player;
-use crate::collision::{new_collw, CollW, CollidableDat, GameObjRegistrar};
-use crate::dungeongen::level::Level;
-use crate::util::Point;
+use crate::{
+  agents::player::Player,
+  collision::{new_collw, CollW, CollidableDat, GameObjRegistrar},
+  dungeongen::level::Level,
+  util::Point,
+};
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 pub mod render;

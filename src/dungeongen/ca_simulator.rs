@@ -12,6 +12,8 @@ pub struct CASim {
   // TODO: this should obvi be an enum
   pub gen_stage: u8,
   bounds_last_dir: Direction,
+  // Holds image data to avoid re-allocating
+  image: Vec<u8>,
 }
 
 fn gen_cave(width: usize, height: usize) -> CellGrid {
@@ -40,6 +42,7 @@ impl CASim {
       scale,
       gen_stage: 0,
       bounds_last_dir: Direction::SouthEast,
+      image: vec![0u8; width * height * 4],
     }
   }
 
@@ -73,7 +76,8 @@ impl CASim {
       .iter()
       .map(|&(x, y)| {
         let xp = ((x as f32) / (self.width as f32) + shift.x) * self.scale;
-        let yp = ((y as f32) / (self.height as f32) + shift.y) * self.scale;
+        // Neg y here b/c bevy's coord system is upside down
+        let yp = -((y as f32) / (self.height as f32) + shift.y) * self.scale;
         Point::new(xp, yp)
       })
       .collect()
@@ -228,20 +232,19 @@ impl CASim {
   }
 
   /// Converts the cave CA sim to a 1d array of RGBA 8 bit values
-  pub fn cave_ca_img(&self) -> Vec<u8> {
-    let mut img = vec![0u8; self.width * self.height * 4];
+  pub fn cave_ca_img(&mut self) -> &[u8] {
     for x in 0..(self.width - 1) {
       for y in 0..(self.height - 1) {
         if self.ca_grid[x][y] {
           let i = (self.width * y + x) * 4;
-          img[i] = 0xAF;
-          img[i + 1] = 0xAF;
-          img[i + 2] = 0xAF;
-          img[i + 3] = 0xFF;
+          self.image[i] = 0xAF;
+          self.image[i + 1] = 0xAF;
+          self.image[i + 2] = 0xAF;
+          self.image[i + 3] = 0xFF;
         }
       }
     }
-    img
+    &self.image
   }
 }
 

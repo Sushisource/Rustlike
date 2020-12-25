@@ -30,8 +30,8 @@ fn main() {
   App::build()
     .add_resource(WindowDescriptor {
       title: "rustlike".to_string(),
-      width: 1000.,
-      height: 1000.,
+      width: 900.,
+      height: 900.,
       vsync: true,
       resizable: false,
       ..Default::default()

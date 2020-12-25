@@ -10,11 +10,19 @@ use crate::{
   dungeongen::{ca_simulator::CASim, level::Level},
   world,
 };
-use bevy::render::mesh::Indices;
-use bevy::render::pipeline::PrimitiveTopology;
 use bevy::{
   prelude::*,
-  render::texture::{Extent3d, TextureDimension, TextureFormat},
+  render::{
+    mesh::Indices,
+    pipeline::PrimitiveTopology,
+    texture::{Extent3d, TextureDimension, TextureFormat},
+  },
+};
+use lyon::algorithms::walk::Pattern;
+use lyon::{
+  math::{point, Point},
+  path::{builder::*, Path},
+  tessellation::*,
 };
 
 pub struct BoundsDrawer;
@@ -23,7 +31,6 @@ pub struct BoundsDrawer;
 pub fn dungeongen_init(
   commands: &mut Commands,
   mut materials: ResMut<Assets<ColorMaterial>>,
-  mut stdmat: ResMut<Assets<StandardMaterial>>,
   mut meshes: ResMut<Assets<Mesh>>,
 ) {
   // Init the CA draw target
@@ -43,19 +50,23 @@ pub fn dungeongen_init(
     ..Default::default()
   });
 
-  let mut mesh = Mesh::new(PrimitiveTopology::LineList);
-  // Bevy crashes w/o any indicies
+  let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
   mesh.set_indices(Some(Indices::U32(vec![0])));
+  mesh.set_attribute(Mesh::ATTRIBUTE_POSITION, vec![[0., 0.]]);
+  // TODO: Can be removed w/ custom shader that doesn't require them.
+  mesh.set_attribute(Mesh::ATTRIBUTE_NORMAL, vec![[0., 0.]]);
+  mesh.set_attribute(Mesh::ATTRIBUTE_UV_0, vec![[0., 0.]]);
   let mesh_h = meshes.set("ca_boundary", mesh);
-  commands.spawn((
-    BoundsDrawer,
-    PbrBundle {
-      mesh: mesh_h,
-      transform: Transform::from_translation(Vec3::new(0., 0., 2.)),
-      material: stdmat.add(StandardMaterial::from(Color::rgb(1., 0., 0.))),
-      ..Default::default()
-    },
-  ));
+  let mut transform = Transform::from_translation(Vec3::new(0., 0., 2.));
+  // TODO: properly scale? oh yay more fun
+  transform.scale = [1., 1., 1.].into();
+  commands.spawn(SpriteBundle {
+    mesh: mesh_h,
+    transform,
+    material: materials.add(Color::rgba(1., 1., 0., 1.).into()),
+    sprite: Sprite { size: Vec2::new(800.0, 800.0), ..Default::default() },
+    ..Default::default()
+  });
 }
 
 /// The system for dungeon generation.
@@ -83,7 +94,7 @@ pub fn draw_evolution(
       Extent3d::new(200, 200, 1),
       TextureDimension::D2,
       &ca_img_a,
-      TextureFormat::Bgra8Unorm,
+      TextureFormat::Rgba8Unorm,
     );
     let texhandle = textures.set("ca_texture", texture);
     materials.set("ca_texmat", ColorMaterial::texture(texhandle));
@@ -94,12 +105,39 @@ pub fn draw_ca_boundary(mut state: ResMut<world::World>, mut meshes: ResMut<Asse
   if state.level.cave_sim.gen_stage == 1 {
     let cave_bounds = state.level.cave_sim.uspace_gboundary();
     if !cave_bounds.is_empty() {
-      let indices = Indices::U32((0u32..cave_bounds.len() as u32).into_iter().collect());
-      let positions: Vec<_> = cave_bounds.into_iter().map(|p| [p.x, p.y]).collect();
-      let m = meshes.get_mut("ca_boundary").unwrap();
-      log::info!("Pump up the JAM");
-      m.set_indices(Some(indices));
-      m.set_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+      let mut builder = Path::builder();
+      builder.move_to(point(0.0, 0.0));
+      for boundary_pt in &cave_bounds {
+        builder.line_to(point(boundary_pt.x, boundary_pt.y));
+      }
+      builder.close();
+      let path = builder.build();
+      // Will contain the result of the tessellation.
+      let mut geometry: VertexBuffers<[f32; 2], u32> = VertexBuffers::new();
+      let mut tessellator = FillTessellator::new();
+      {
+        // Compute the tessellation.
+        tessellator
+          .tessellate_path(
+            &path,
+            &FillOptions::default(),
+            &mut BuffersBuilder::new(&mut geometry, |pos: Point, _: FillAttributes| pos.to_array()),
+          )
+          .unwrap();
+      }
+
+      let mut m = meshes.get_mut("ca_boundary").unwrap();
+      m.set_indices(Some(Indices::U32(geometry.indices)));
+      let mut normals: Vec<[f32; 3]> = Vec::new();
+      let mut uvs: Vec<[f32; 2]> = Vec::new();
+      for _ in 0..geometry.vertices.len() {
+        normals.push([0.0, 0.0, 0.0]);
+        uvs.push([0.0, 0.0]);
+      }
+      m.set_attribute(Mesh::ATTRIBUTE_POSITION, geometry.vertices);
+      // TODO: Can be removed w/ custom shader that doesn't require them.
+      m.set_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+      m.set_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
     }
   }
 }
