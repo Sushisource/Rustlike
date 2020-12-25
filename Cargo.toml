@@ -1,7 +1,7 @@
 [package]
 name = "rustlike"
 version = "0.1.0"
-authors = ["Spencer Judge <sushisource@gmail.com>"]
+authors = ["Spencer Judge <sjudge@hey.com>"]
 edition = "2018"
 
 [dependencies]
@@ -21,7 +21,7 @@ time = "0.2"
 timebomb = "*"
 
 [workspace]
-members = ["roguelike-derive"]
+members = ["roguelike-derive", "."]
 
 [dependencies.roguelike-derive]
 path = "roguelike-derive"
